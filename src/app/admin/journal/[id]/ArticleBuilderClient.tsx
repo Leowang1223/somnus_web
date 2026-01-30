@@ -12,9 +12,9 @@ export default function ArticleBuilderClient({ id, initialSections }: { id: stri
         setIsSaving(true);
         try {
             await updateArticleSectionsAction(id, sections);
-            alert("Article Published Successfully.");
+            alert("文章已成功發佈。");
         } catch (e) {
-            alert("Error saving layout.");
+            alert("儲存佈局時出錯。");
         } finally {
             setIsSaving(false);
         }

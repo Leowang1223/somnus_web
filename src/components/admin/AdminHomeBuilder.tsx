@@ -12,9 +12,9 @@ export default function AdminHomeBuilder({ initialSections }: { initialSections:
         setIsSaving(true);
         try {
             await updateHomeLayoutAction(sections);
-            alert("Homepage Published Successfully.");
+            alert("首頁已成功發佈。");
         } catch (e) {
-            alert("Error saving layout.");
+            alert("儲存佈局時出錯。");
         } finally {
             setIsSaving(false);
         }

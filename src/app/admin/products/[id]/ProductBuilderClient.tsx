@@ -17,9 +17,9 @@ export default function ProductBuilderClient({ id, initialSections }: { id: stri
         setIsSaving(true);
         try {
             await updateProductSectionsAction(id, publishedSections);
-            alert("Product Layout Published Successfully.");
+            alert("產品佈局已成功發佈。");
         } catch (e) {
-            alert("Error saving layout.");
+            alert("儲存佈局時出錯。");
         } finally {
             setIsSaving(false);
         }
@@ -34,7 +34,7 @@ export default function ProductBuilderClient({ id, initialSections }: { id: stri
                         onClick={() => setIsLiveStudio(!isLiveStudio)}
                         className={`flex items-center gap-2 px-4 py-2 text-[10px] uppercase tracking-widest font-bold transition-all rounded-sm ${isLiveStudio ? 'bg-[#d8aa5b] text-black shadow-[0_0_20px_rgba(216,170,91,0.3)]' : 'bg-white/5 text-white/50 hover:text-white'}`}
                     >
-                        <Eye size={14} /> {isLiveStudio ? 'Exit Studio' : 'Live Studio Mode'}
+                        <Eye size={14} /> {isLiveStudio ? '退出工作室' : '實時工作室模式'}
                     </button>
 
                     {isLiveStudio && (
@@ -46,7 +46,7 @@ export default function ProductBuilderClient({ id, initialSections }: { id: stri
                 </div>
 
                 {isLiveStudio && (
-                    <span className="text-gray-500 text-[10px] uppercase tracking-[0.4em] font-display">SØMNUS Live Studio</span>
+                    <span className="text-gray-500 text-[10px] uppercase tracking-[0.4em] font-display">SØMNUS 實時工作室</span>
                 )}
             </div>
 

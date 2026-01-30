@@ -114,3 +114,40 @@ body::after {
     box-shadow: 0 0 10px var(--color-amber-glow);
   }
 }
+
+/* --- GLOBAL ADMIN FIXES --- */
+
+/* Fix Dropdown Visibility */
+select {
+  cursor: pointer;
+}
+
+select option {
+  background-color: #ffffff !important;
+  color: #000000 !important;
+  padding: 12px !important;
+}
+
+/* Ensure consistent input visibility in dark backgrounds */
+input::placeholder,
+textarea::placeholder {
+  color: rgba(255, 255, 255, 0.2) !important;
+}
+
+/* Admin UI scrollbar */
+::-webkit-scrollbar {
+  width: 4px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(216, 170, 91, 0.2);
+  border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(216, 170, 91, 0.5);
+}

@@ -31,7 +31,7 @@ function MediaPicker({ label, value, onChange, focusPoint, onFocusChange, prefix
             const result = await uploadFileAction(formData);
             onChange(result.url);
         } catch (err) {
-            alert("Upload failed");
+            alert("上傳失敗");
         } finally {
             setIsUploading(false);
         }
@@ -46,7 +46,7 @@ function MediaPicker({ label, value, onChange, focusPoint, onFocusChange, prefix
                     value={value || ''}
                     onChange={e => onChange(e.target.value)}
                     className="flex-1 bg-white/5 border border-white/10 p-3 text-white focus:outline-none focus:border-[#d8aa5b] text-sm font-mono"
-                    placeholder="URL or Upload ->"
+                    placeholder="URL 或 上傳 ->"
                 />
                 <label className="bg-white/5 border border-white/10 p-3 text-white hover:bg-white/10 transition-colors cursor-pointer flex items-center justify-center min-w-[50px]">
                     {isUploading ? <Loader2 size={16} className="animate-spin" /> : <Upload size={16} />}
@@ -66,7 +66,7 @@ function MediaPicker({ label, value, onChange, focusPoint, onFocusChange, prefix
                     {value.match(/\.(mp4|webm)$/) ? (
                         <video src={value} className="w-full h-full object-cover opacity-40" muted />
                     ) : (
-                        <img src={value} className="w-full h-full object-cover opacity-40" alt="Focus Preview" />
+                        <img src={value} className="w-full h-full object-cover opacity-40" alt="焦點預覽" />
                     )}
                     <div
                         className="absolute w-4 h-4 border-2 border-[#d8aa5b] rounded-full -translate-x-1/2 -translate-y-1/2 pointer-events-none shadow-[0_0_10px_rgba(216,170,91,0.5)]"
@@ -125,15 +125,15 @@ export default function AdminProductsClient({ initialProducts }: { initialProduc
                             animate={{ opacity: 1, x: 0 }}
                             className="bg-[#d8aa5b]/10 border border-[#d8aa5b]/20 px-4 py-2 rounded-sm flex items-center gap-6"
                         >
-                            <span className="text-[#d8aa5b] text-[10px] uppercase font-bold tracking-widest">{selectedIds.length} Selected</span>
+                            <span className="text-[#d8aa5b] text-[10px] uppercase font-bold tracking-widest">{selectedIds.length} 個已選擇</span>
                             <div className="h-4 w-[1px] bg-[#d8aa5b]/20" />
-                            <button className="text-white hover:text-[#d8aa5b] text-[10px] uppercase tracking-widest font-bold transition-colors">Publish</button>
-                            <button className="text-white hover:text-red-400 text-[10px] uppercase tracking-widest font-bold transition-colors">Delete</button>
+                            <button className="text-white hover:text-[#d8aa5b] text-[10px] uppercase tracking-widest font-bold transition-colors">發佈</button>
+                            <button className="text-white hover:text-red-400 text-[10px] uppercase tracking-widest font-bold transition-colors">刪除</button>
                         </motion.div>
                     )}
                 </div>
                 <button onClick={handleAddNew} className="bg-[#d8aa5b] text-black px-6 py-3 text-xs uppercase font-bold tracking-widest hover:bg-white transition-colors flex items-center gap-2 rounded-sm">
-                    <Plus size={16} /> Add Product
+                    <Plus size={16} /> 新增產品
                 </button>
             </div>
 
@@ -146,11 +146,11 @@ export default function AdminProductsClient({ initialProducts }: { initialProduc
                                     {selectedIds.length === products.length && <Check size={10} className="text-black" />}
                                 </button>
                             </th>
-                            <th className="p-6 font-medium">Artifact Name</th>
-                            <th className="p-6 font-medium">Category</th>
-                            <th className="p-6 font-medium">Status</th>
-                            <th className="p-6 font-medium">Price</th>
-                            <th className="p-6 font-medium text-right">Actions</th>
+                            <th className="p-6 font-medium">產品名稱</th>
+                            <th className="p-6 font-medium">類別</th>
+                            <th className="p-6 font-medium">狀態</th>
+                            <th className="p-6 font-medium">價格</th>
+                            <th className="p-6 font-medium text-right">操作</th>
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-white/5 text-white">
@@ -178,7 +178,7 @@ export default function AdminProductsClient({ initialProducts }: { initialProduc
                                 <td className="p-6 text-[#d8aa5b] font-display">${product.price}</td>
                                 <td className="p-6 text-right flex justify-end gap-3">
                                     <Link href={`/admin/products/${product.id}`} className="text-[#d8aa5b] hover:text-white transition-colors bg-[#d8aa5b]/5 px-3 py-1 rounded-sm text-[10px] uppercase tracking-widest font-bold flex items-center gap-1">
-                                        <Layout size={12} /> Design
+                                        <Layout size={12} /> 設計佈局
                                     </Link>
                                     <button onClick={() => handleEdit(product)} className="text-gray-500 hover:text-white transition-colors">
                                         <Edit size={16} />
@@ -204,8 +204,8 @@ export default function AdminProductsClient({ initialProducts }: { initialProduc
 
                             <div className="flex justify-between items-center mb-10 relative z-10">
                                 <div>
-                                    <h2 className="font-display text-3xl text-white mb-1">{currentProduct.id ? 'Refine Artifact' : 'Cast New Ritual'}</h2>
-                                    <p className="text-gray-500 text-xs uppercase tracking-widest">Core Product Metadata</p>
+                                    <h2 className="font-display text-3xl text-white mb-1">{currentProduct.id ? '優化產品資料' : '創建新產品'}</h2>
+                                    <p className="text-gray-500 text-xs uppercase tracking-widest">核心產品元數據</p>
                                 </div>
                                 <button onClick={() => setIsEditing(false)} className="text-white/30 hover:text-white transition-colors p-2"><X size={28} /></button>
                             </div>
@@ -226,8 +226,8 @@ export default function AdminProductsClient({ initialProducts }: { initialProduc
                                                 <Zap size={14} />
                                             </div>
                                             <div>
-                                                <p className="text-[10px] text-white font-bold uppercase tracking-widest">Global Reach</p>
-                                                <p className="text-[10px] text-[#d8aa5b] uppercase opacity-70">AI Manual Translation Ritual</p>
+                                                <p className="text-[10px] text-white font-bold uppercase tracking-widest">全球佈局</p>
+                                                <p className="text-[10px] text-[#d8aa5b] uppercase opacity-70">AI 手動翻譯儀式</p>
                                             </div>
                                         </div>
                                         <button
@@ -235,48 +235,48 @@ export default function AdminProductsClient({ initialProducts }: { initialProduc
                                             onClick={async () => {
                                                 const btn = document.activeElement as HTMLButtonElement;
                                                 const originalText = btn.innerText;
-                                                btn.innerText = "Chanting...";
+                                                btn.innerText = "儀式進行中...";
                                                 btn.disabled = true;
 
                                                 const { translateAction } = await import("@/app/actions");
                                                 const result = await translateAction(currentProduct.name, 'zh'); // Example target
-                                                alert(`AI Suggested Translation: ${result.translated}`);
+                                                alert(`AI 建議翻譯： ${result.translated}`);
 
                                                 btn.innerText = originalText;
                                                 btn.disabled = false;
                                             }}
                                             className="px-4 py-2 bg-[#d8aa5b] text-black text-[10px] font-bold uppercase tracking-widest hover:bg-white transition-all rounded-sm"
                                         >
-                                            Translate to Traditional Chinese
+                                            翻譯為繁體中文
                                         </button>
                                     </div>
 
                                     <div className="space-y-6">
                                         <div className="grid grid-cols-2 gap-6">
                                             <div>
-                                                <label className="block text-xs uppercase tracking-widest text-[#d8aa5b] mb-2 font-bold">Artifact Name</label>
+                                                <label className="block text-xs uppercase tracking-widest text-[#d8aa5b] mb-2 font-bold">產品名稱</label>
                                                 <input
                                                     name="name"
                                                     defaultValue={currentProduct.name}
                                                     onChange={e => setCurrentProduct({ ...currentProduct, name: e.target.value })}
                                                     className="w-full bg-white/5 border border-white/10 p-4 text-white focus:outline-none focus:border-[#d8aa5b] transition-all font-display text-xl"
-                                                    placeholder="e.g. Midnight Mist"
+                                                    placeholder="例如：Midnight Mist"
                                                     required
                                                 />
                                             </div>
                                             <div>
-                                                <label className="block text-xs uppercase tracking-widest text-gray-500 mb-2">Display Status</label>
+                                                <label className="block text-xs uppercase tracking-widest text-gray-500 mb-2">顯示狀態</label>
                                                 <select name="status" defaultValue={currentProduct.status || 'draft'} className="w-full bg-white/5 border border-white/10 p-4 text-white focus:outline-none focus:border-[#d8aa5b] appearance-none">
-                                                    <option value="draft">Draft (Hidden)</option>
-                                                    <option value="published">Published (Live)</option>
-                                                    <option value="archived">Archived</option>
+                                                    <option value="draft">草稿 (隱藏)</option>
+                                                    <option value="published">已發佈 (公開)</option>
+                                                    <option value="archived">已歸檔</option>
                                                 </select>
                                             </div>
                                         </div>
 
                                         <div className="grid grid-cols-3 gap-6">
                                             <div>
-                                                <label className="block text-xs uppercase tracking-widest text-gray-500 mb-2">Category</label>
+                                                <label className="block text-xs uppercase tracking-widest text-gray-500 mb-2">類別</label>
                                                 <select name="category" defaultValue={currentProduct.category} className="w-full bg-white/5 border border-white/10 p-4 text-white focus:outline-none focus:border-[#d8aa5b] appearance-none">
                                                     <option value="Touch">Touch</option>
                                                     <option value="Scent">Scent</option>
@@ -285,31 +285,31 @@ export default function AdminProductsClient({ initialProducts }: { initialProduc
                                                 </select>
                                             </div>
                                             <div>
-                                                <label className="block text-xs uppercase tracking-widest text-gray-500 mb-2">Aspect Ratio</label>
+                                                <label className="block text-xs uppercase tracking-widest text-gray-500 mb-2">寬高比</label>
                                                 <select name="aspectRatio" defaultValue={currentProduct.aspectRatio || '4:5'} className="w-full bg-white/5 border border-white/10 p-4 text-white focus:outline-none focus:border-[#d8aa5b] appearance-none">
-                                                    <option value="4:5">Portrait (4:5)</option>
-                                                    <option value="1:1">Square (1:1)</option>
-                                                    <option value="16:9">Wide (16:9)</option>
+                                                    <option value="4:5">縱向 (4:5)</option>
+                                                    <option value="1:1">正方形 (1:1)</option>
+                                                    <option value="16:9">橫向 (16:9)</option>
                                                 </select>
                                             </div>
                                             <div>
-                                                <label className="block text-xs uppercase tracking-widest text-gray-500 mb-2">Price ($)</label>
+                                                <label className="block text-xs uppercase tracking-widest text-gray-500 mb-2">價格 ($)</label>
                                                 <input name="price" type="number" defaultValue={currentProduct.price} className="w-full bg-white/5 border border-white/10 p-4 text-white focus:outline-none focus:border-[#d8aa5b]" required />
                                             </div>
                                         </div>
 
                                         <div>
-                                            <label className="block text-xs uppercase tracking-widest text-gray-500 mb-2">Sensory Tags (Comma separated)</label>
+                                            <label className="block text-xs uppercase tracking-widest text-gray-500 mb-2">感官標籤 (以逗號分隔)</label>
                                             <input
                                                 name="tags"
                                                 defaultValue={(currentProduct.tags || []).join(', ')}
                                                 className="w-full bg-white/5 border border-white/10 p-4 text-white focus:outline-none focus:border-[#d8aa5b] text-xs font-mono"
-                                                placeholder="e.g. Woody, Warm, Quiet"
+                                                placeholder="例如：Woody, Warm, Quiet"
                                             />
                                         </div>
 
                                         <MediaPicker
-                                            label="Artifact Primary Image"
+                                            label="產品主要圖片"
                                             value={currentProduct.image}
                                             onChange={(val) => setCurrentProduct({ ...currentProduct, image: val })}
                                             focusPoint={currentProduct.focusPoint}
@@ -318,21 +318,21 @@ export default function AdminProductsClient({ initialProducts }: { initialProduc
                                         />
 
                                         <MediaPicker
-                                            label="Hover Cinematic Media (Video/GIF)"
+                                            label="懸停動態媒體 (影片/GIF)"
                                             value={currentProduct.hoverVideo || ''}
                                             onChange={(val) => setCurrentProduct({ ...currentProduct, hoverVideo: val })}
                                             prefix={`${currentProduct.name}-hover`}
                                         />
 
                                         <div>
-                                            <label className="block text-xs uppercase tracking-widest text-gray-500 mb-2">Atmospheric Brief</label>
-                                            <textarea name="description" defaultValue={currentProduct.description} rows={4} className="w-full bg-white/5 border border-white/10 p-4 text-white focus:outline-none focus:border-[#d8aa5b] resize-none font-light" placeholder="Describe the sensory experience..." required />
+                                            <label className="block text-xs uppercase tracking-widest text-gray-500 mb-2">氛圍描述</label>
+                                            <textarea name="description" defaultValue={currentProduct.description} rows={4} className="w-full bg-white/5 border border-white/10 p-4 text-white focus:outline-none focus:border-[#d8aa5b] resize-none font-light" placeholder="描述感官體驗..." required />
                                         </div>
                                     </div>
 
                                     <div className="flex gap-4 pt-6">
                                         <button type="submit" className="flex-1 bg-[#d8aa5b] text-black h-16 font-bold uppercase tracking-[0.2em] hover:bg-white transition-all shadow-xl flex items-center justify-center gap-3">
-                                            <Save size={18} /> {currentProduct.id ? 'Commit Changes' : 'Initialize Artifact'}
+                                            <Save size={18} /> {currentProduct.id ? '確認變更' : '初始化產品'}
                                         </button>
                                     </div>
                                 </form>
@@ -348,7 +348,7 @@ export default function AdminProductsClient({ initialProducts }: { initialProduc
                                                 <img
                                                     src={currentProduct.image}
                                                     className="w-full h-full object-cover"
-                                                    alt="Preview"
+                                                    alt="預覽"
                                                     style={{ objectPosition: `${currentProduct.focusPoint?.x ?? 50}% ${currentProduct.focusPoint?.y ?? 50}%` }}
                                                 />
                                             ) : (
@@ -356,7 +356,7 @@ export default function AdminProductsClient({ initialProducts }: { initialProduc
                                                     <div className="w-20 h-20 border border-white/20 rounded-full flex items-center justify-center mb-6">
                                                         <ImageIcon className="text-white/20" size={32} />
                                                     </div>
-                                                    <p className="text-xs uppercase tracking-widest text-white/20">Media Preview</p>
+                                                    <p className="text-xs uppercase tracking-widest text-white/20">媒體預覽</p>
                                                 </>
                                             )}
                                         </div>
@@ -364,11 +364,11 @@ export default function AdminProductsClient({ initialProducts }: { initialProduc
                                     <div className="space-y-4">
                                         <div className="bg-[#d8aa5b]/5 border-l-2 border-[#d8aa5b] p-4">
                                             <p className="text-xs text-[#d8aa5b] font-medium leading-relaxed">
-                                                SEO TIP: Assets are auto-renamed to match the Artifact Name for search indexing.
+                                                SEO 提示：資產將自動重命名為產品名稱，以利於搜尋引擎索引。
                                             </p>
                                         </div>
                                         <p className="text-[10px] text-gray-600 uppercase tracking-widest leading-loose">
-                                            The focus point ensures your ritual remains centered across different screen sizes (desktop vs mobile).
+                                            焦點確保您的產品在不同螢幕尺寸（桌面 vs 手機）下都能保持居中。
                                         </p>
                                     </div>
                                 </div>

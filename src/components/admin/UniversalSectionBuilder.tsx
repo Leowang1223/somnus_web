@@ -47,7 +47,7 @@ function SortableItem({ section, onEdit, onToggle, onDelete }: {
                     <span className="text-[#d8aa5b] text-[10px] uppercase font-bold tracking-widest">{section.type}</span>
                 </div>
                 <p className="text-white text-xs truncate opacity-60">
-                    {section.type === 'hero' ? section.content.title : (section.content.heading || section.content.text || 'Untitled Block')}
+                    {section.type === 'hero' ? section.content.title : (section.content.heading || section.content.text || '未命名區塊')}
                 </p>
             </div>
 
@@ -55,8 +55,8 @@ function SortableItem({ section, onEdit, onToggle, onDelete }: {
                 <button onClick={() => {
                     const sections = JSON.parse(localStorage.getItem('somnus-section-clipboard') || '[]');
                     localStorage.setItem('somnus-section-clipboard', JSON.stringify([...sections, { ...section, id: `${section.type}-${Date.now()}` }]));
-                    alert('Section copied to library');
-                }} className="p-2 text-yellow-400/70 hover:bg-yellow-400/10 rounded-sm transition-colors" title="Copy to Library">
+                    alert('區塊已複製到庫中');
+                }} className="p-2 text-yellow-400/70 hover:bg-yellow-400/10 rounded-sm transition-colors" title="複製到库">
                     <Plus size={14} />
                 </button>
                 <button onClick={() => onToggle(section.id)} className={`p-2 rounded-sm transition-colors ${section.isEnabled ? 'text-green-400/70 hover:bg-green-400/10' : 'text-gray-600 hover:bg-white/5'}`}>
@@ -96,7 +96,7 @@ function MediaPicker({ label, value, onChange, focusPoint, onFocusChange, prefix
             const result = await uploadFileAction(formData);
             onChange(result.url);
         } catch (err) {
-            alert("Upload failed");
+            alert("上傳失敗");
         } finally {
             setIsUploading(false);
         }
@@ -110,7 +110,7 @@ function MediaPicker({ label, value, onChange, focusPoint, onFocusChange, prefix
                     value={value || ''}
                     onChange={e => onChange(e.target.value)}
                     className="flex-1 bg-[#111] border border-white/10 p-4 text-white focus:outline-none focus:border-[#d8aa5b] text-sm font-mono"
-                    placeholder="URL or Upload ->"
+                    placeholder="URL 或 上傳 ->"
                 />
                 <label className="bg-white/5 border border-white/10 p-4 text-white hover:bg-white/10 transition-colors cursor-pointer flex items-center justify-center min-w-[60px]">
                     {isUploading ? <Loader2 size={18} className="animate-spin text-[#d8aa5b]" /> : <Upload size={18} />}
@@ -120,7 +120,7 @@ function MediaPicker({ label, value, onChange, focusPoint, onFocusChange, prefix
 
             {value && onFocusChange && (
                 <div className="space-y-2">
-                    <p className="text-[10px] uppercase text-gray-600 tracking-widest">Set Focus Point (Click image)</p>
+                    <p className="text-[10px] uppercase text-gray-600 tracking-widest">設定焦點（點擊圖片）</p>
                     <div
                         className="relative aspect-video bg-black border border-white/5 overflow-hidden cursor-crosshair group"
                         onClick={(e) => {
@@ -133,7 +133,7 @@ function MediaPicker({ label, value, onChange, focusPoint, onFocusChange, prefix
                         {value.match(/\.(mp4|webm)$/) ? (
                             <video src={value} className="w-full h-full object-cover opacity-50" muted />
                         ) : (
-                            <img src={value} className="w-full h-full object-cover opacity-50" alt="Focus Preview" />
+                            <img src={value} className="w-full h-full object-cover opacity-50" alt="焦點預覽" />
                         )}
                         <div
                             className="absolute w-6 h-6 border-2 border-[#d8aa5b] rounded-full -translate-x-1/2 -translate-y-1/2 shadow-[0_0_15px_rgba(216,170,91,0.5)] pointer-events-none"
@@ -144,6 +144,49 @@ function MediaPicker({ label, value, onChange, focusPoint, onFocusChange, prefix
                     </div>
                 </div>
             )}
+        </div>
+    );
+}
+
+function MultiImagePicker({ label, values = [], onChange, prefix }: {
+    label: string,
+    values: string[],
+    onChange: (vals: string[]) => void,
+    prefix?: string
+}) {
+    return (
+        <div className="space-y-4">
+            <label className="block text-xs uppercase text-[#d8aa5b] font-bold tracking-widest">{label} (多張圖片時自動開啟輪播)</label>
+            <div className="space-y-3">
+                {values.map((val, i) => (
+                    <div key={i} className="flex gap-2 items-start">
+                        <div className="flex-1">
+                            <MediaPicker
+                                label={`圖片 #${i + 1}`}
+                                value={val}
+                                onChange={newVal => {
+                                    const next = [...values];
+                                    next[i] = newVal;
+                                    onChange(next);
+                                }}
+                                prefix={prefix ? `${prefix}-${i}` : undefined}
+                            />
+                        </div>
+                        <button
+                            onClick={() => onChange(values.filter((_, idx) => idx !== i))}
+                            className="mt-8 p-2 text-red-400 hover:bg-red-400/10 rounded-sm transition-colors"
+                        >
+                            <Trash2 size={16} />
+                        </button>
+                    </div>
+                ))}
+                <button
+                    onClick={() => onChange([...values, ""])}
+                    className="w-full py-3 border border-dashed border-white/10 text-white/40 hover:text-white hover:border-white/20 transition-all text-[10px] uppercase font-bold tracking-widest"
+                >
+                    + 新增輪播圖片
+                </button>
+            </div>
         </div>
     );
 }
@@ -160,7 +203,7 @@ function EditModal({ section, onClose, onSave }: { section: Section; onClose: ()
         <div className="fixed inset-0 z-[100] bg-black/90 backdrop-blur-md flex items-center justify-center p-4">
             <div className="bg-[#0a0a09] border border-white/10 w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-sm p-8 shadow-2xl">
                 <div className="flex justify-between items-center mb-8 border-b border-white/5 pb-4">
-                    <h2 className="text-white font-display text-2xl uppercase tracking-widest">Edit {section.type}</h2>
+                    <h2 className="text-white font-display text-2xl uppercase tracking-widest">編輯 {section.type}</h2>
                     <span className="text-gray-500 text-[10px] font-mono uppercase">{section.id}</span>
                 </div>
 
@@ -168,37 +211,52 @@ function EditModal({ section, onClose, onSave }: { section: Section; onClose: ()
                     {section.type === 'hero' && (
                         <>
                             <div>
-                                <label className="block text-xs uppercase text-gray-500 mb-2">Title</label>
+                                <label className="block text-xs uppercase text-gray-500 mb-2">標題</label>
                                 <textarea value={content.title} onChange={e => handleChange('title', e.target.value)} className="w-full bg-[#111] border border-white/10 p-3 text-white focus:outline-none focus:border-[#d8aa5b]" rows={2} />
                             </div>
                             <div>
-                                <label className="block text-xs uppercase text-gray-500 mb-2">Subtitle</label>
+                                <label className="block text-xs uppercase text-gray-500 mb-2">副標題</label>
                                 <textarea value={content.subtitle} onChange={e => handleChange('subtitle', e.target.value)} className="w-full bg-[#111] border border-white/10 p-3 text-white focus:outline-none focus:border-[#d8aa5b]" rows={2} />
                             </div>
                             <div>
-                                <label className="block text-xs uppercase text-gray-500 mb-2">CTA Text</label>
+                                <label className="block text-xs uppercase text-gray-500 mb-2">按鈕文字</label>
                                 <input value={content.ctaText} onChange={e => handleChange('ctaText', e.target.value)} className="w-full bg-[#111] border border-white/10 p-3 text-white focus:outline-none focus:border-[#d8aa5b]" />
                             </div>
-                            <MediaPicker label="Background Image" value={content.backgroundImage} onChange={val => handleChange('backgroundImage', val)} />
+
+                            <MultiImagePicker
+                                label="背景輪播圖片"
+                                values={content.backgroundImages || (content.backgroundImage ? [content.backgroundImage] : [])}
+                                onChange={vals => {
+                                    handleChange('backgroundImages', vals);
+                                    if (vals.length > 0) handleChange('backgroundImage', vals[0]);
+                                }}
+                            />
                         </>
                     )}
 
                     {section.type === 'text-image' && (
                         <>
                             <div>
-                                <label className="block text-xs uppercase text-gray-500 mb-2">Heading</label>
+                                <label className="block text-xs uppercase text-gray-500 mb-2">標題</label>
                                 <input value={content.heading} onChange={e => handleChange('heading', e.target.value)} className="w-full bg-[#111] border border-white/10 p-3 text-white focus:outline-none focus:border-[#d8aa5b]" />
                             </div>
                             <div>
-                                <label className="block text-xs uppercase text-gray-500 mb-2">Text Body</label>
+                                <label className="block text-xs uppercase text-gray-500 mb-2">正文</label>
                                 <textarea value={content.text} onChange={e => handleChange('text', e.target.value)} className="w-full bg-[#111] border border-white/10 p-3 text-white focus:outline-none focus:border-[#d8aa5b]" rows={4} />
                             </div>
-                            <MediaPicker label="Main Image" value={content.image} onChange={val => handleChange('image', val)} />
+                            <MultiImagePicker
+                                label="視覺圖片"
+                                values={content.images || (content.image ? [content.image] : [])}
+                                onChange={vals => {
+                                    handleChange('images', vals);
+                                    if (vals.length > 0) handleChange('image', vals[0]);
+                                }}
+                            />
                             <div>
-                                <label className="block text-xs uppercase text-gray-500 mb-2">Image Position</label>
+                                <label className="block text-xs uppercase text-gray-500 mb-2">圖片位置</label>
                                 <select value={content.imagePosition || 'left'} onChange={e => handleChange('imagePosition', e.target.value)} className="w-full bg-[#111] border border-white/10 p-3 text-white focus:outline-none focus:border-[#d8aa5b]">
-                                    <option value="left">Left</option>
-                                    <option value="right">Right</option>
+                                    <option value="left">左</option>
+                                    <option value="right">右</option>
                                 </select>
                             </div>
                         </>
@@ -206,9 +264,16 @@ function EditModal({ section, onClose, onSave }: { section: Section; onClose: ()
 
                     {section.type === 'full-image' && (
                         <>
-                            <MediaPicker label="High-Res Image" value={content.image} onChange={val => handleChange('image', val)} />
+                            <MultiImagePicker
+                                label="高解析度輪播圖片"
+                                values={content.images || (content.image ? [content.image] : [])}
+                                onChange={vals => {
+                                    handleChange('images', vals);
+                                    if (vals.length > 0) handleChange('image', vals[0]);
+                                }}
+                            />
                             <div>
-                                <label className="block text-xs uppercase text-gray-500 mb-2">Overlay Caption (Optional)</label>
+                                <label className="block text-xs uppercase text-gray-500 mb-2">疊蓋說明 (選填)</label>
                                 <input value={content.caption} onChange={e => handleChange('caption', e.target.value)} className="w-full bg-[#111] border border-white/10 p-3 text-white focus:outline-none focus:border-[#d8aa5b]" />
                             </div>
                         </>
@@ -216,7 +281,7 @@ function EditModal({ section, onClose, onSave }: { section: Section; onClose: ()
 
                     {section.type === 'rich-text' && (
                         <div>
-                            <label className="block text-xs uppercase text-gray-500 mb-2">Editor (Markdown/HTML Support)</label>
+                            <label className="block text-xs uppercase text-gray-500 mb-2">編輯器 (支援 Markdown/HTML)</label>
                             <textarea value={content.text} onChange={e => handleChange('text', e.target.value)} className="w-full bg-[#111] border border-white/10 p-3 text-white focus:outline-none focus:border-[#d8aa5b]" rows={12} />
                         </div>
                     )}
@@ -224,11 +289,11 @@ function EditModal({ section, onClose, onSave }: { section: Section; onClose: ()
                     {section.type === 'quote' && (
                         <>
                             <div>
-                                <label className="block text-xs uppercase text-gray-500 mb-2">Quote Text</label>
+                                <label className="block text-xs uppercase text-gray-500 mb-2">引用文字</label>
                                 <textarea value={content.text} onChange={e => handleChange('text', e.target.value)} className="w-full bg-[#111] border border-white/10 p-3 text-white focus:outline-none focus:border-[#d8aa5b]" rows={3} />
                             </div>
                             <div>
-                                <label className="block text-xs uppercase text-gray-500 mb-2">Author</label>
+                                <label className="block text-xs uppercase text-gray-500 mb-2">作者</label>
                                 <input value={content.author} onChange={e => handleChange('author', e.target.value)} className="w-full bg-[#111] border border-white/10 p-3 text-white focus:outline-none focus:border-[#d8aa5b]" />
                             </div>
                         </>
@@ -237,12 +302,12 @@ function EditModal({ section, onClose, onSave }: { section: Section; onClose: ()
                     {section.type === 'video' && (
                         <>
                             <div>
-                                <label className="block text-xs uppercase text-gray-500 mb-2">Video URL (MP4 / YouTube)</label>
+                                <label className="block text-xs uppercase text-gray-500 mb-2">影片 URL (MP4 / YouTube)</label>
                                 <input value={content.videoUrl} onChange={e => handleChange('videoUrl', e.target.value)} className="w-full bg-[#111] border border-white/10 p-3 text-white focus:outline-none focus:border-[#d8aa5b]" />
                             </div>
-                            <MediaPicker label="Video Thumbnail" value={content.thumbnail} onChange={val => handleChange('thumbnail', val)} />
+                            <MediaPicker label="影片縮圖" value={content.thumbnail} onChange={val => handleChange('thumbnail', val)} />
                             <div>
-                                <label className="block text-xs uppercase text-gray-500 mb-2">Label</label>
+                                <label className="block text-xs uppercase text-gray-500 mb-2">標籤</label>
                                 <input value={content.label} onChange={e => handleChange('label', e.target.value)} className="w-full bg-[#111] border border-white/10 p-3 text-white focus:outline-none focus:border-[#d8aa5b]" />
                             </div>
                         </>
@@ -250,7 +315,7 @@ function EditModal({ section, onClose, onSave }: { section: Section; onClose: ()
 
                     {section.type === 'spacer' && (
                         <div>
-                            <label className="block text-xs uppercase text-gray-500 mb-2">Height (pixels)</label>
+                            <label className="block text-xs uppercase text-gray-500 mb-2">高度 (像素)</label>
                             <input type="number" value={content.height || 60} onChange={e => handleChange('height', parseInt(e.target.value))} className="w-full bg-[#111] border border-white/10 p-3 text-white focus:outline-none focus:border-[#d8aa5b]" />
                         </div>
                     )}
@@ -258,18 +323,18 @@ function EditModal({ section, onClose, onSave }: { section: Section; onClose: ()
                     {section.type === 'purchase' && (
                         <div className="text-center py-10 border border-dashed border-white/10">
                             <ShoppingBag className="mx-auto mb-4 text-[#d8aa5b]" size={32} />
-                            <p className="text-white text-sm font-display">Purchase Interface</p>
-                            <p className="text-gray-500 text-[10px] uppercase tracking-widest mt-2 px-10">This block will automatically display the Buy/Add buttons for the current product.</p>
+                            <p className="text-white text-sm font-display">購買介面</p>
+                            <p className="text-gray-500 text-[10px] uppercase tracking-widest mt-2 px-10">此區塊將自動顯示當前產品的購買/添加按鈕。</p>
                         </div>
                     )}
 
                     {/* Section Background & Atmospheric Config */}
                     <div className="mt-12 pt-12 border-t border-white/5">
-                        <h3 className="text-[#d8aa5b] text-xs uppercase tracking-[0.2em] mb-8 font-bold">Atmospheric Engine</h3>
+                        <h3 className="text-[#d8aa5b] text-xs uppercase tracking-[0.2em] mb-8 font-bold">氛圍引擎</h3>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
                             <div className="space-y-6">
                                 <MediaPicker
-                                    label="Section Background (Override)"
+                                    label="區塊背景 (覆蓋)"
                                     value={section.backgroundConfig?.url || ''}
                                     onChange={val => {
                                         const config = section.backgroundConfig || {};
@@ -278,7 +343,7 @@ function EditModal({ section, onClose, onSave }: { section: Section; onClose: ()
                                 />
                                 <div className="grid grid-cols-2 gap-4">
                                     <div>
-                                        <label className="block text-[10px] uppercase text-gray-500 mb-2">Opacity ({section.backgroundConfig?.opacity ?? 1})</label>
+                                        <label className="block text-[10px] uppercase text-gray-500 mb-2">不透明度 ({section.backgroundConfig?.opacity ?? 1})</label>
                                         <input
                                             type="range" min="0" max="1" step="0.1"
                                             value={section.backgroundConfig?.opacity ?? 1}
@@ -290,7 +355,7 @@ function EditModal({ section, onClose, onSave }: { section: Section; onClose: ()
                                         />
                                     </div>
                                     <div>
-                                        <label className="block text-[10px] uppercase text-gray-500 mb-2">Blur ({section.backgroundConfig?.blur ?? 0}px)</label>
+                                        <label className="block text-[10px] uppercase text-gray-500 mb-2">模糊 ({section.backgroundConfig?.blur ?? 0}px)</label>
                                         <input
                                             type="range" min="0" max="100" step="5"
                                             value={section.backgroundConfig?.blur ?? 0}
@@ -303,7 +368,7 @@ function EditModal({ section, onClose, onSave }: { section: Section; onClose: ()
                                     </div>
                                 </div>
                                 <div>
-                                    <label className="block text-[10px] uppercase text-gray-500 mb-2">Film Grain ({section.backgroundConfig?.grain ?? 0}%)</label>
+                                    <label className="block text-[10px] uppercase text-gray-500 mb-2">底片顆粒 ({section.backgroundConfig?.grain ?? 0}%)</label>
                                     <input
                                         type="range" min="0" max="100" step="5"
                                         value={section.backgroundConfig?.grain ?? 0}
@@ -317,8 +382,7 @@ function EditModal({ section, onClose, onSave }: { section: Section; onClose: ()
                             </div>
                             <div className="bg-black/50 p-6 border border-white/5 rounded-sm flex flex-col justify-center">
                                 <p className="text-[10px] text-gray-500 uppercase tracking-widest leading-loose">
-                                    The Atmospheric Engine allows you to set a cinematic backdrop for this specific section.
-                                    Transitions between different backgrounded sections will automatically cross-fade for a fluid sensory experience.
+                                    氛圍引擎可讓您為此特定區塊設置劇院級背景。不同背景區塊之間的切換將自動淡入淡出，營造流暢的感官體驗。
                                 </p>
                             </div>
                         </div>
@@ -326,8 +390,8 @@ function EditModal({ section, onClose, onSave }: { section: Section; onClose: ()
                 </div>
 
                 <div className="flex justify-end gap-4 mt-12 pt-8 border-t border-white/5">
-                    <button onClick={onClose} className="text-white/40 hover:text-white px-4 py-2 transition-colors uppercase text-[10px] tracking-widest font-bold">Cancel</button>
-                    <button onClick={() => onSave({ ...section, content })} className="bg-[#d8aa5b] text-black px-8 py-3 font-bold uppercase tracking-widest hover:bg-white rounded-sm transition-all shadow-[0_4px_20px_rgba(216,170,91,0.2)]">Save Changes</button>
+                    <button onClick={onClose} className="text-white/40 hover:text-white px-4 py-2 transition-colors uppercase text-[10px] tracking-widest font-bold">取消</button>
+                    <button onClick={() => onSave({ ...section, content })} className="bg-[#d8aa5b] text-black px-8 py-3 font-bold uppercase tracking-widest hover:bg-white rounded-sm transition-all shadow-[0_4px_20px_rgba(216,170,91,0.2)]">儲存變更</button>
                 </div>
             </div>
         </div>
@@ -381,18 +445,18 @@ export default function UniversalSectionBuilder({
     };
 
     const handleDelete = (id: string) => {
-        if (confirm("Delete this block?")) {
+        if (confirm("確認刪除此區塊？")) {
             setSections(sections.filter(s => s.id !== id));
         }
     };
 
     const addNewSection = (type: SectionType) => {
         const defaultContent: Record<string, any> = {
-            hero: { title: "New Hero", subtitle: "Enter details", ctaText: "Explore", ctaLink: "/collection" },
-            'text-image': { heading: "New Story", text: "Long description...", imagePosition: "left" },
-            'rich-text': { text: "Main content..." },
-            video: { videoUrl: "", thumbnail: "", label: "Watch Ritual" },
-            quote: { text: "Wise words...", author: "SØMNUS" },
+            hero: { title: "新英雄區塊", subtitle: "輸入細節", ctaText: "探索", ctaLink: "/collection" },
+            'text-image': { heading: "新故事", text: "長篇描述...", imagePosition: "left" },
+            'rich-text': { text: "主要內容..." },
+            video: { videoUrl: "", thumbnail: "", label: "觀看儀式" },
+            quote: { text: "名言...", author: "SØMNUS" },
             spacer: { height: 60 }
         };
 
@@ -419,39 +483,39 @@ export default function UniversalSectionBuilder({
         <div className="space-y-6">
             <div className="flex flex-wrap items-center gap-2 mb-6">
                 <button onClick={() => addNewSection('hero')} className="flex items-center gap-2 text-[10px] uppercase tracking-widest bg-white/5 hover:bg-white/10 text-white/70 px-4 py-2 rounded-sm border border-white/10 transition-colors">
-                    <Layout size={12} /> + Hero
+                    <Layout size={12} /> + 英雄區塊
                 </button>
                 <button onClick={() => addNewSection('text-image')} className="flex items-center gap-2 text-[10px] uppercase tracking-widest bg-white/5 hover:bg-white/10 text-white/70 px-4 py-2 rounded-sm border border-white/10 transition-colors">
-                    <ImageIcon size={12} /> + Story
+                    <ImageIcon size={12} /> + 故事區塊
                 </button>
                 <button onClick={addNewFullImage} className="flex items-center gap-2 text-[10px] uppercase tracking-widest bg-[#d8aa5b]/10 hover:bg-[#d8aa5b]/20 text-[#d8aa5b] px-4 py-2 rounded-sm border border-[#d8aa5b]/20 transition-colors">
-                    <ImageIcon size={12} /> + Full Image Block
+                    <ImageIcon size={12} /> + 全寬圖片區塊
                 </button>
                 <button onClick={() => addNewSection('rich-text')} className="flex items-center gap-2 text-[10px] uppercase tracking-widest bg-white/5 hover:bg-white/10 text-white/70 px-4 py-2 rounded-sm border border-white/10 transition-colors">
-                    <Type size={12} /> + Content
+                    <Type size={12} /> + 內容區塊
                 </button>
                 <button onClick={() => addNewSection('video')} className="flex items-center gap-2 text-[10px] uppercase tracking-widest bg-white/5 hover:bg-white/10 text-white/70 px-4 py-2 rounded-sm border border-white/10 transition-colors">
-                    <Video size={12} /> + Video
+                    <Video size={12} /> + 影片區塊
                 </button>
                 <button onClick={() => addNewSection('quote')} className="flex items-center gap-2 text-[10px] uppercase tracking-widest bg-white/5 hover:bg-white/10 text-white/70 px-4 py-2 rounded-sm border border-white/10 transition-colors">
-                    <Quote size={12} /> + Quote
+                    <Quote size={12} /> + 引用區塊
                 </button>
                 <button onClick={() => addNewSection('spacer')} className="flex items-center gap-2 text-[10px] uppercase tracking-widest bg-white/5 hover:bg-white/10 text-white/70 px-4 py-2 rounded-sm border border-white/10 transition-colors">
-                    <Layout size={12} /> + Spacer
+                    <Layout size={12} /> + 間隔區塊
                 </button>
                 <button onClick={() => addNewSection('purchase')} className="flex items-center gap-2 text-[10px] uppercase tracking-widest bg-[#d8aa5b]/10 hover:bg-[#d8aa5b]/20 text-[#d8aa5b] px-4 py-2 rounded-sm border border-[#d8aa5b]/20 transition-colors">
-                    <ShoppingBag size={12} /> + Purchase Block
+                    <ShoppingBag size={12} /> + 購買區塊
                 </button>
                 <div className="h-6 w-[1px] bg-white/10 mx-2" />
                 <button
                     onClick={() => {
                         const items = JSON.parse(localStorage.getItem('somnus-section-clipboard') || '[]');
-                        if (items.length === 0) return alert('Library is empty');
+                        if (items.length === 0) return alert('庫是空的');
                         setSections([...sections, ...items]);
                     }}
                     className="flex items-center gap-2 text-[10px] uppercase tracking-widest bg-yellow-500/10 hover:bg-yellow-500/20 text-yellow-500 px-4 py-2 rounded-sm border border-yellow-500/20 transition-colors"
                 >
-                    <Plus size={12} /> Paste from Library ({JSON.parse(localStorage.getItem('somnus-section-clipboard') || '[]').length})
+                    <Plus size={12} /> 從庫中貼上 ({JSON.parse(localStorage.getItem('somnus-section-clipboard') || '[]').length})
                 </button>
             </div>
 
@@ -472,7 +536,7 @@ export default function UniversalSectionBuilder({
 
                 {sections.length === 0 && (
                     <div className="py-20 text-center border border-dashed border-white/5 text-gray-600 text-sm">
-                        No sections added yet. Start by adding a Hero block.
+                        尚未添加區塊。從添加英雄區塊開始吧。
                     </div>
                 )}
             </div>
@@ -483,7 +547,7 @@ export default function UniversalSectionBuilder({
                     disabled={isSaving}
                     className="bg-[#d8aa5b] text-black px-10 py-4 font-bold uppercase tracking-widest hover:bg-white disabled:opacity-50 transition-all rounded-sm shadow-xl"
                 >
-                    {isSaving ? "Saving..." : "Publish Page Layout"}
+                    {isSaving ? "儲存中..." : "發佈頁面佈局"}
                 </button>
             </div>
 

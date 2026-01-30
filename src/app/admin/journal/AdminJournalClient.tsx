@@ -24,7 +24,7 @@ function MediaPicker({ label, value, onChange, prefix }: { label: string, value:
             const result = await uploadFileAction(formData);
             onChange(result.url);
         } catch (err) {
-            alert("Upload failed");
+            alert("上傳失敗");
         } finally {
             setIsUploading(false);
         }
@@ -39,7 +39,7 @@ function MediaPicker({ label, value, onChange, prefix }: { label: string, value:
                     value={value || ''}
                     onChange={e => onChange(e.target.value)}
                     className="flex-1 bg-white/5 border border-white/10 p-3 text-white focus:outline-none focus:border-[#d8aa5b] text-sm font-mono"
-                    placeholder="Thumbnail URL or Upload ->"
+                    placeholder="縮圖 URL 或 上傳 ->"
                 />
                 <label className="bg-white/5 border border-white/10 p-3 text-white hover:bg-white/10 transition-colors cursor-pointer flex items-center justify-center min-w-[50px]">
                     {isUploading ? <Loader2 size={16} className="animate-spin text-[#d8aa5b]" /> : <Upload size={16} />}
@@ -96,15 +96,15 @@ export default function AdminJournalClient({ initialArticles }: { initialArticle
                             animate={{ opacity: 1, x: 0 }}
                             className="bg-[#d8aa5b]/10 border border-[#d8aa5b]/20 px-4 py-2 rounded-sm flex items-center gap-6"
                         >
-                            <span className="text-[#d8aa5b] text-[10px] uppercase font-bold tracking-widest">{selectedIds.length} Selected</span>
+                            <span className="text-[#d8aa5b] text-[10px] uppercase font-bold tracking-widest">{selectedIds.length} 個已選擇</span>
                             <div className="h-4 w-[1px] bg-[#d8aa5b]/20" />
-                            <button className="text-white hover:text-[#d8aa5b] text-[10px] uppercase tracking-widest font-bold transition-colors">Publish</button>
-                            <button className="text-white hover:text-red-400 text-[10px] uppercase tracking-widest font-bold transition-colors">Delete</button>
+                            <button className="text-white hover:text-[#d8aa5b] text-[10px] uppercase tracking-widest font-bold transition-colors">發佈</button>
+                            <button className="text-white hover:text-red-400 text-[10px] uppercase tracking-widest font-bold transition-colors">刪除</button>
                         </motion.div>
                     )}
                 </div>
                 <button onClick={handleAddNew} className="bg-[#d8aa5b] text-black px-6 py-3 text-xs uppercase font-bold tracking-widest hover:bg-white transition-colors flex items-center gap-2 rounded-sm">
-                    <Plus size={16} /> Add Article
+                    <Plus size={16} /> 新增文章
                 </button>
             </div>
 
@@ -117,10 +117,10 @@ export default function AdminJournalClient({ initialArticles }: { initialArticle
                                     {selectedIds.length === articles.length && <Check size={10} className="text-black" />}
                                 </button>
                             </th>
-                            <th className="p-6 font-medium">Title</th>
-                            <th className="p-6 font-medium">Category</th>
-                            <th className="p-6 font-medium">Status</th>
-                            <th className="p-6 font-medium text-right">Actions</th>
+                            <th className="p-6 font-medium">標題</th>
+                            <th className="p-6 font-medium">主題</th>
+                            <th className="p-6 font-medium">狀態</th>
+                            <th className="p-6 font-medium text-right">操作</th>
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-white/5 text-white">
@@ -147,7 +147,7 @@ export default function AdminJournalClient({ initialArticles }: { initialArticle
                                 </td>
                                 <td className="p-6 text-right flex justify-end gap-3">
                                     <Link href={`/admin/journal/${article.id}`} className="text-[#d8aa5b] hover:text-white transition-colors bg-[#d8aa5b]/5 px-3 py-1 rounded-sm text-[10px] uppercase tracking-widest font-bold flex items-center gap-1">
-                                        <BookOpen size={12} /> Layout
+                                        <BookOpen size={12} /> 設計佈局
                                     </Link>
                                     <button onClick={() => handleEdit(article)} className="text-gray-500 hover:text-white transition-colors p-1">
                                         <Edit size={16} />
@@ -170,8 +170,8 @@ export default function AdminJournalClient({ initialArticles }: { initialArticle
                         >
                             <div className="flex justify-between items-center mb-10">
                                 <div>
-                                    <h2 className="font-display text-3xl text-white mb-1">{currentArticle.id ? 'Refine Ritual' : 'Script New Myth'}</h2>
-                                    <p className="text-gray-500 text-[10px] uppercase tracking-widest">Editorial & Story Metadata</p>
+                                    <h2 className="font-display text-3xl text-white mb-1">{currentArticle.id ? '優化儀式內容' : '編寫新神話'}</h2>
+                                    <p className="text-gray-500 text-[10px] uppercase tracking-widest">編輯與故事元數據</p>
                                 </div>
                                 <button onClick={() => setIsEditing(false)} className="text-white/30 hover:text-white transition-colors p-2"><X size={28} /></button>
                             </div>
@@ -181,18 +181,18 @@ export default function AdminJournalClient({ initialArticles }: { initialArticle
                                     <div className="w-8 h-8 rounded-full bg-[#d8aa5b] flex items-center justify-center text-black">
                                         <Zap size={14} />
                                     </div>
-                                    <p className="text-[10px] text-white font-bold uppercase tracking-widest">AI Translation Ritual Available</p>
+                                    <p className="text-[10px] text-white font-bold uppercase tracking-widest">AI 翻譯儀式可用</p>
                                 </div>
                                 <button
                                     type="button"
                                     onClick={async () => {
                                         const { translateAction } = await import("@/app/actions");
                                         const result = await translateAction(currentArticle.title, 'zh');
-                                        alert(`AI Suggestion: ${result.translated}`);
+                                        alert(`AI 建議翻譯： ${result.translated}`);
                                     }}
                                     className="px-4 py-2 bg-[#d8aa5b] text-black text-[10px] font-bold uppercase tracking-widest hover:bg-white transition-all rounded-sm"
                                 >
-                                    Translate Content
+                                    翻譯內容
                                 </button>
                             </div>
 
@@ -206,26 +206,26 @@ export default function AdminJournalClient({ initialArticles }: { initialArticle
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                                     <div className="space-y-6">
                                         <div>
-                                            <label className="block text-xs uppercase tracking-widest text-[#d8aa5b] mb-2 font-bold">Headline</label>
+                                            <label className="block text-xs uppercase tracking-widest text-[#d8aa5b] mb-2 font-bold">大標題</label>
                                             <input name="title" defaultValue={currentArticle.title} className="w-full bg-white/5 border border-white/10 p-4 text-white focus:outline-none focus:border-[#d8aa5b] font-display text-xl" required />
                                         </div>
 
                                         <div className="grid grid-cols-2 gap-6">
                                             <div>
-                                                <label className="block text-xs uppercase tracking-widest text-gray-500 mb-2">Display Status</label>
+                                                <label className="block text-xs uppercase tracking-widest text-gray-500 mb-2">顯示狀態</label>
                                                 <select name="status" defaultValue={currentArticle.status || 'draft'} className="w-full bg-white/5 border border-white/10 p-4 text-white focus:outline-none focus:border-[#d8aa5b] appearance-none">
-                                                    <option value="draft">Draft</option>
-                                                    <option value="published">Published</option>
+                                                    <option value="draft">草稿</option>
+                                                    <option value="published">已發佈</option>
                                                 </select>
                                             </div>
                                             <div>
-                                                <label className="block text-xs uppercase tracking-widest text-gray-500 mb-2">Read Time</label>
+                                                <label className="block text-xs uppercase tracking-widest text-gray-500 mb-2">閱讀時間</label>
                                                 <input name="readTime" defaultValue={currentArticle.readTime} className="w-full bg-white/5 border border-white/10 p-4 text-white focus:outline-none focus:border-[#d8aa5b]" />
                                             </div>
                                         </div>
 
                                         <MediaPicker
-                                            label="Feature Image / Thumbnail"
+                                            label="特色圖片 / 縮圖"
                                             value={currentArticle.image}
                                             onChange={(val) => setCurrentArticle({ ...currentArticle, image: val })}
                                             prefix={currentArticle.title}
@@ -234,27 +234,27 @@ export default function AdminJournalClient({ initialArticles }: { initialArticle
 
                                     <div className="space-y-6">
                                         <div>
-                                            <label className="block text-xs uppercase tracking-widest text-gray-500 mb-2">SEO Meta Title</label>
+                                            <label className="block text-xs uppercase tracking-widest text-gray-500 mb-2">SEO 元標題</label>
                                             <input name="metaTitle" defaultValue={currentArticle.metaTitle} className="w-full bg-white/5 border border-white/10 p-3 text-white focus:outline-none focus:border-[#d8aa5b] text-xs" />
                                         </div>
                                         <div>
-                                            <label className="block text-xs uppercase tracking-widest text-gray-500 mb-2">SEO Meta Description</label>
+                                            <label className="block text-xs uppercase tracking-widest text-gray-500 mb-2">SEO 元描述</label>
                                             <textarea name="metaDescription" defaultValue={currentArticle.metaDescription} rows={3} className="w-full bg-white/5 border border-white/10 p-3 text-white focus:outline-none focus:border-[#d8aa5b] text-xs resize-none" />
                                         </div>
                                         <div>
-                                            <label className="block text-xs uppercase tracking-widest text-gray-500 mb-2">Tags (Comma split)</label>
+                                            <label className="block text-xs uppercase tracking-widest text-gray-500 mb-2">標籤 (以逗號分隔)</label>
                                             <input name="tags" defaultValue={(currentArticle.tags || []).join(', ')} className="w-full bg-white/5 border border-white/10 p-3 text-white focus:outline-none focus:border-[#d8aa5b] text-xs font-mono" />
                                         </div>
                                     </div>
                                 </div>
 
                                 <div>
-                                    <label className="block text-xs uppercase tracking-widest text-gray-500 mb-2">Snippet (Intro)</label>
-                                    <textarea name="snippet" defaultValue={currentArticle.snippet} rows={3} className="w-full bg-white/5 border border-white/10 p-4 text-white focus:outline-none focus:border-[#d8aa5b] font-light resize-none" placeholder="A brief hook..." />
+                                    <label className="block text-xs uppercase tracking-widest text-gray-500 mb-2">簡介 (引言)</label>
+                                    <textarea name="snippet" defaultValue={currentArticle.snippet} rows={3} className="w-full bg-white/5 border border-white/10 p-4 text-white focus:outline-none focus:border-[#d8aa5b] font-light resize-none" placeholder="簡短的引言..." />
                                 </div>
 
                                 <button type="submit" className="w-full bg-[#d8aa5b] text-black h-16 font-bold uppercase tracking-[0.2em] hover:bg-white transition-all shadow-xl flex items-center justify-center gap-3">
-                                    <Save size={18} /> Seal Publication
+                                    <Save size={18} /> 封存發佈
                                 </button>
                             </form>
                         </motion.div>

@@ -17,38 +17,38 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     }, [role, isAuthenticated, router]);
 
     if (!isAuthenticated || role !== 'admin') {
-        return <div className="min-h-screen bg-[#050505] flex items-center justify-center text-white">Authenticating...</div>
+        return <div className="min-h-screen bg-[#050505] flex items-center justify-center text-white">驗證中...</div>
     }
 
     return (
         <div className="min-h-screen bg-[#050505] flex pt-24">
             {/* Sidebar */}
             <aside className="w-64 border-r border-white/10 p-6 fixed h-full bg-[#050505] z-40">
-                <h2 className="text-[#d8aa5b] font-display text-lg mb-8 tracking-widest uppercase">Control Pane</h2>
+                <h2 className="text-[#d8aa5b] font-display text-lg mb-8 tracking-widest uppercase">控制台</h2>
 
                 <nav className="space-y-2">
                     <Link href="/admin" className="flex items-center gap-3 text-white/60 hover:text-white hover:bg-white/5 p-3 rounded-sm transition-colors">
                         <LayoutDashboard size={18} />
-                        <span className="text-sm uppercase tracking-wider">Overview</span>
+                        <span className="text-sm uppercase tracking-wider">總覽</span>
                     </Link>
                     <Link href="/admin/products" className="flex items-center gap-3 text-white/60 hover:text-white hover:bg-white/5 p-3 rounded-sm transition-colors">
                         <ShoppingBag size={18} />
-                        <span className="text-sm uppercase tracking-wider">Products</span>
+                        <span className="text-sm uppercase tracking-wider">產品管理</span>
                     </Link>
                     <Link href="/admin/journal" className="flex items-center gap-3 text-white/60 hover:text-white hover:bg-white/5 p-3 rounded-sm transition-colors">
                         <BookOpen size={18} />
-                        <span className="text-sm uppercase tracking-wider">Journal</span>
+                        <span className="text-sm uppercase tracking-wider">日誌管理</span>
                     </Link>
                     <Link href="/admin/homepage" className="flex items-center gap-3 text-white/60 hover:text-white hover:bg-white/5 p-3 rounded-sm transition-colors">
                         <Home size={18} />
-                        <span className="text-sm uppercase tracking-wider">Home Layout</span>
+                        <span className="text-sm uppercase tracking-wider">首頁佈局</span>
                     </Link>
                 </nav>
 
                 <div className="absolute bottom-8 left-6 w-[calc(100%-3rem)]">
                     <button onClick={logout} className="w-full flex items-center gap-3 text-red-400 hover:bg-red-400/10 p-3 rounded-sm transition-colors">
                         <LogOut size={18} />
-                        <span className="text-sm uppercase tracking-wider">Logout</span>
+                        <span className="text-sm uppercase tracking-wider">登出</span>
                     </button>
                 </div>
             </aside>

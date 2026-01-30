@@ -1,0 +1,55 @@
+[
+  {
+    "id": "1",
+    "slug": "architecture-of-rest",
+    "title": "The Architecture of Rest",
+    "category": "Featured Ritual",
+    "readTime": "12 min read",
+    "snippet": "Discover the intersection of circadian biology and sensory design in our definitive guide.",
+    "sections": [
+      {
+        "id": "art-hero-1",
+        "type": "hero",
+        "content": {
+          "title": "The Architecture of Rest",
+          "subtitle": "Designing the ultimate sleep sanctuary."
+        },
+        "isEnabled": true
+      },
+      {
+        "id": "art-text-1",
+        "type": "rich-text",
+        "content": {
+          "text": "Sleep is not a passive state, but a ritual to be performed..."
+        },
+        "isEnabled": true
+      }
+    ]
+  },
+  {
+    "id": "2",
+    "slug": "biology-of-darkness",
+    "title": "The Biology of Darkness",
+    "category": "Science",
+    "readTime": "8 min read",
+    "snippet": "Exploring the profound impact of absolute darkness on melatonin synthesis.",
+    "sections": []
+  },
+  {
+    "id": "3",
+    "slug": "scent-somatic-memory",
+    "title": "Scent & Somatic Memory",
+    "category": "Ritual",
+    "readTime": "6 min read",
+    "snippet": "How olfactory signals can be programmed to trigger physiological relaxation.",
+    "sections": []
+  },
+  {
+    "id": "2lh43gyjr",
+    "title": "熱敷眼罩",
+    "category": "#熱敷",
+    "readTime": "",
+    "snippet": "開啟夜用低光燈\r\n\r\n夜浴或溫熱淋浴\r\n\r\n點燃線香\r\n\r\n熱敷肩頸\r\n\r\n戴上熱敷眼罩\r\n\r\n關燈，上床",
+    "slug": "熱敷眼罩"
+  }
+]

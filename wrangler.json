@@ -1,7 +1,7 @@
 {
     "name": "somnus-web",
     "compatibility_date": "2024-09-23",
-    "main": ".vercel/output/static/_worker.js",
+    "main": "cloudflare_worker.js",
     "assets": {
         "directory": ".vercel/output/static"
     }

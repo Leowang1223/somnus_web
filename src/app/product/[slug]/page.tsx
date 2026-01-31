@@ -27,7 +27,11 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
             {/* If product has sections, use renderer, otherwise show empty state with default purchase block */}
             <Suspense fallback={<div className="min-h-screen bg-[#050505]" />}>
                 {product.sections && product.sections.length > 0 ? (
-                    <SectionRenderer sections={product.sections} productContext={product} />
+                    <SectionRenderer
+                        sections={product.sections}
+                        productContext={product}
+                        noSnap={true}
+                    />
                 ) : (
                     <div className="pt-40 pb-20 px-8 flex flex-col items-center">
                         <h1 className="text-white font-display text-5xl mb-12">{product.name}</h1>

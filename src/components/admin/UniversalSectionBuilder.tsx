@@ -5,7 +5,7 @@ import { useState, useEffect } from "react";
 import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, DragEndEvent } from '@dnd-kit/core';
 import { arrayMove, SortableContext, sortableKeyboardCoordinates, verticalListSortingStrategy, useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { GripVertical, Edit, Eye, EyeOff, Trash2, Plus, Type, Image as ImageIcon, Video, Quote, Layout, Upload, Loader2, ShoppingBag } from "lucide-react";
+import { GripVertical, Edit, Eye, EyeOff, Trash2, Plus, Type, Image as ImageIcon, Video, Quote, Layout, Upload, Loader2, ShoppingBag, Zap } from "lucide-react";
 import { uploadFileAction } from "@/app/actions";
 
 // Sortable Item Component
@@ -191,6 +191,28 @@ function MultiImagePicker({ label, values = [], onChange, prefix }: {
     );
 }
 
+function AlignControl({ value, onChange, label = '文字對齊方式' }: { value: string, onChange: (v: string) => void, label?: string }) {
+    return (
+        <div>
+            <label className="block text-xs uppercase text-gray-500 mb-4">{label}</label>
+            <div className="flex gap-1 bg-black/40 p-1 rounded-sm border border-white/5">
+                {['left', 'center', 'right'].map((align) => (
+                    <button
+                        key={align}
+                        onClick={() => onChange(align)}
+                        className={`flex-1 py-1.5 text-[10px] uppercase font-bold tracking-widest transition-all ${value === align || (!value && align === 'center')
+                            ? 'bg-[#d8aa5b] text-black shadow-[0_0_10px_rgba(216,170,91,0.3)]'
+                            : 'text-white/40 hover:text-white hover:bg-white/5'
+                            }`}
+                    >
+                        {align === 'left' ? '靠左' : align === 'center' ? '置中' : '靠右'}
+                    </button>
+                ))}
+            </div>
+        </div>
+    );
+}
+
 // Editor Modal Component
 function EditModal({ section, onClose, onSave }: { section: Section; onClose: () => void; onSave: (s: Section) => void }) {
     const [content, setContent] = useState(section.content);
@@ -218,9 +240,94 @@ function EditModal({ section, onClose, onSave }: { section: Section; onClose: ()
                                 <label className="block text-xs uppercase text-gray-500 mb-2">副標題</label>
                                 <textarea value={content.subtitle} onChange={e => handleChange('subtitle', e.target.value)} className="w-full bg-[#111] border border-white/10 p-3 text-white focus:outline-none focus:border-[#d8aa5b]" rows={2} />
                             </div>
-                            <div>
-                                <label className="block text-xs uppercase text-gray-500 mb-2">按鈕文字</label>
-                                <input value={content.ctaText} onChange={e => handleChange('ctaText', e.target.value)} className="w-full bg-[#111] border border-white/10 p-3 text-white focus:outline-none focus:border-[#d8aa5b]" />
+
+                            <div className="grid grid-cols-2 gap-6 p-4 bg-white/5 border border-white/10 rounded-sm">
+                                <AlignControl value={content.textAlign} onChange={v => handleChange('textAlign', v)} />
+                                <div>
+                                    <label className="block text-xs uppercase text-gray-500 mb-2">容器寬度 (內容邊界)</label>
+                                    <input
+                                        type="range"
+                                        min="40"
+                                        max="100"
+                                        value={content.containerWidth || 95}
+                                        onChange={e => handleChange('containerWidth', parseInt(e.target.value))}
+                                        className="w-full accent-[#d8aa5b] cursor-pointer"
+                                    />
+                                    <div className="flex justify-between text-[10px] text-gray-500 mt-1 uppercase">
+                                        <span>較窄</span>
+                                        <span>目前: {content.containerWidth || 95}%</span>
+                                        <span>完全無限制</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-6">
+                                <div>
+                                    <label className="block text-xs uppercase text-gray-500 mb-2 text-white">標題顏色</label>
+                                    <div className="flex gap-2">
+                                        <input type="color" value={content.titleColor || '#ffffff'} onChange={e => handleChange('titleColor', e.target.value)} className="w-12 h-11 bg-[#111] border border-white/10 p-1 cursor-pointer" />
+                                        <input value={content.titleColor || '#ffffff'} onChange={e => handleChange('titleColor', e.target.value)} className="flex-1 bg-[#111] border border-white/10 p-3 text-white font-mono text-xs uppercase" />
+                                    </div>
+                                </div>
+                                <div>
+                                    <label className="block text-xs uppercase text-gray-500 mb-2 text-white">副標題顏色</label>
+                                    <div className="flex gap-2">
+                                        <input type="color" value={content.subtitleColor || '#ffffff'} onChange={e => handleChange('subtitleColor', e.target.value)} className="w-12 h-11 bg-[#111] border border-white/10 p-1 cursor-pointer" />
+                                        <input value={content.subtitleColor || '#ffffff'} onChange={e => handleChange('subtitleColor', e.target.value)} className="flex-1 bg-[#111] border border-white/10 p-3 text-white font-mono text-xs uppercase" />
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="bg-[#d8aa5b]/5 border border-[#d8aa5b]/20 p-4 rounded-sm space-y-6">
+                                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                                    {/* Background Glow */}
+                                    <div className="space-y-3">
+                                        <div className="flex items-center justify-between">
+                                            <label className="text-[10px] uppercase text-[#d8aa5b] font-bold tracking-widest">文字背景輝光</label>
+                                            <button
+                                                onClick={() => handleChange('enableTitleBgGlow', !content.enableTitleBgGlow)}
+                                                className={`w-10 h-5 rounded-full transition-colors relative ${content.enableTitleBgGlow ? 'bg-[#d8aa5b]' : 'bg-white/10'}`}
+                                            >
+                                                <div className={`absolute top-1 w-3 h-3 bg-white rounded-full transition-all ${content.enableTitleBgGlow ? 'left-6' : 'left-1'}`}></div>
+                                            </button>
+                                        </div>
+                                        {content.enableTitleBgGlow && (
+                                            <input type="color" value={content.titleBgGlowColor || '#d8aa5b'} onChange={e => handleChange('titleBgGlowColor', e.target.value)} className="w-full h-8 bg-[#111] border border-white/10 p-1 cursor-pointer rounded-sm" />
+                                        )}
+                                    </div>
+
+                                    {/* Text Glow */}
+                                    <div className="space-y-3">
+                                        <div className="flex items-center justify-between">
+                                            <label className="text-[10px] uppercase text-[#d8aa5b] font-bold tracking-widest">文字本體輝光</label>
+                                            <button
+                                                onClick={() => handleChange('enableTitleGlow', !content.enableTitleGlow)}
+                                                className={`w-10 h-5 rounded-full transition-colors relative ${content.enableTitleGlow ? 'bg-[#d8aa5b]' : 'bg-white/10'}`}
+                                            >
+                                                <div className={`absolute top-1 w-3 h-3 bg-white rounded-full transition-all ${content.enableTitleGlow ? 'left-6' : 'left-1'}`}></div>
+                                            </button>
+                                        </div>
+                                        {content.enableTitleGlow && (
+                                            <input type="color" value={content.titleGlowColor || '#d8aa5b'} onChange={e => handleChange('titleGlowColor', e.target.value)} className="w-full h-8 bg-[#111] border border-white/10 p-1 cursor-pointer rounded-sm" />
+                                        )}
+                                    </div>
+
+                                    {/* Button Glow */}
+                                    <div className="space-y-3">
+                                        <div className="flex items-center justify-between">
+                                            <label className="text-[10px] uppercase text-[#d8aa5b] font-bold tracking-widest">按鈕呼吸輝光</label>
+                                            <button
+                                                onClick={() => handleChange('enableGlow', !content.enableGlow)}
+                                                className={`w-10 h-5 rounded-full transition-colors relative ${content.enableGlow ? 'bg-[#d8aa5b]' : 'bg-white/10'}`}
+                                            >
+                                                <div className={`absolute top-1 w-3 h-3 bg-white rounded-full transition-all ${content.enableGlow ? 'left-6' : 'left-1'}`}></div>
+                                            </button>
+                                        </div>
+                                        {content.enableGlow && (
+                                            <input type="color" value={content.glowColor || '#d8aa5b'} onChange={e => handleChange('glowColor', e.target.value)} className="w-full h-8 bg-[#111] border border-white/10 p-1 cursor-pointer rounded-sm" />
+                                        )}
+                                    </div>
+                                </div>
                             </div>
 
                             <MultiImagePicker
@@ -244,6 +351,16 @@ function EditModal({ section, onClose, onSave }: { section: Section; onClose: ()
                                 <label className="block text-xs uppercase text-gray-500 mb-2">正文</label>
                                 <textarea value={content.text} onChange={e => handleChange('text', e.target.value)} className="w-full bg-[#111] border border-white/10 p-3 text-white focus:outline-none focus:border-[#d8aa5b]" rows={4} />
                             </div>
+                            <div className="grid grid-cols-2 gap-6">
+                                <AlignControl value={content.textAlign} onChange={v => handleChange('textAlign', v)} />
+                                <div>
+                                    <label className="block text-xs uppercase text-gray-500 mb-2">圖片位置</label>
+                                    <select value={content.imagePosition || 'left'} onChange={e => handleChange('imagePosition', e.target.value)} className="w-full bg-[#111] border border-white/10 p-3 text-white focus:outline-none focus:border-[#d8aa5b]">
+                                        <option value="left">左</option>
+                                        <option value="right">右</option>
+                                    </select>
+                                </div>
+                            </div>
                             <MultiImagePicker
                                 label="視覺圖片"
                                 values={content.images || (content.image ? [content.image] : [])}
@@ -252,13 +369,6 @@ function EditModal({ section, onClose, onSave }: { section: Section; onClose: ()
                                     if (vals.length > 0) handleChange('image', vals[0]);
                                 }}
                             />
-                            <div>
-                                <label className="block text-xs uppercase text-gray-500 mb-2">圖片位置</label>
-                                <select value={content.imagePosition || 'left'} onChange={e => handleChange('imagePosition', e.target.value)} className="w-full bg-[#111] border border-white/10 p-3 text-white focus:outline-none focus:border-[#d8aa5b]">
-                                    <option value="left">左</option>
-                                    <option value="right">右</option>
-                                </select>
-                            </div>
                         </>
                     )}
 
@@ -280,14 +390,18 @@ function EditModal({ section, onClose, onSave }: { section: Section; onClose: ()
                     )}
 
                     {section.type === 'rich-text' && (
-                        <div>
-                            <label className="block text-xs uppercase text-gray-500 mb-2">編輯器 (支援 Markdown/HTML)</label>
-                            <textarea value={content.text} onChange={e => handleChange('text', e.target.value)} className="w-full bg-[#111] border border-white/10 p-3 text-white focus:outline-none focus:border-[#d8aa5b]" rows={12} />
+                        <div className="space-y-6">
+                            <AlignControl value={content.textAlign} onChange={v => handleChange('textAlign', v)} />
+                            <div>
+                                <label className="block text-xs uppercase text-gray-500 mb-2">編輯器 (支援 Markdown/HTML)</label>
+                                <textarea value={content.text} onChange={e => handleChange('text', e.target.value)} className="w-full bg-[#111] border border-white/10 p-3 text-white focus:outline-none focus:border-[#d8aa5b]" rows={12} />
+                            </div>
                         </div>
                     )}
 
                     {section.type === 'quote' && (
                         <>
+                            <AlignControl value={content.textAlign} onChange={v => handleChange('textAlign', v)} />
                             <div>
                                 <label className="block text-xs uppercase text-gray-500 mb-2">引用文字</label>
                                 <textarea value={content.text} onChange={e => handleChange('text', e.target.value)} className="w-full bg-[#111] border border-white/10 p-3 text-white focus:outline-none focus:border-[#d8aa5b]" rows={3} />
@@ -321,10 +435,133 @@ function EditModal({ section, onClose, onSave }: { section: Section; onClose: ()
                     )}
 
                     {section.type === 'purchase' && (
-                        <div className="text-center py-10 border border-dashed border-white/10">
-                            <ShoppingBag className="mx-auto mb-4 text-[#d8aa5b]" size={32} />
-                            <p className="text-white text-sm font-display">購買介面</p>
-                            <p className="text-gray-500 text-[10px] uppercase tracking-widest mt-2 px-10">此區塊將自動顯示當前產品的購買/添加按鈕。</p>
+                        <div className="space-y-10">
+                            <div className="bg-[#d8aa5b]/10 p-6 border border-[#d8aa5b]/20 rounded-sm">
+                                <p className="text-[#d8aa5b] text-xs uppercase tracking-widest font-bold mb-2">購買介面配置</p>
+                                <p className="text-gray-400 text-[10px] leading-relaxed italic">
+                                    此區域將展示產品主圖輪播、價格以及購買按鈕。
+                                </p>
+                            </div>
+
+                            <MediaPicker
+                                label="產品輪播圖片 (多張)"
+                                value={content.images?.[0] || ""}
+                                onChange={val => {
+                                    const currentImages = content.images || [];
+                                    handleChange('images', [val, ...currentImages.slice(1)]);
+                                }}
+                            />
+                            {/* Simple list for additional images if needed */}
+                            {content.images?.length > 1 && (
+                                <div className="grid grid-cols-4 gap-2">
+                                    {content.images.map((img: string, i: number) => (
+                                        <div key={i} className="relative aspect-square bg-[#111] border border-white/10 group">
+                                            <img src={img} className="w-full h-full object-cover" />
+                                            <button
+                                                onClick={() => handleChange('images', content.images.filter((_: any, idx: number) => idx !== i))}
+                                                className="absolute top-1 right-1 bg-red-500 text-white p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                                            >
+                                                <Trash2 size={10} />
+                                            </button>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                            <button
+                                onClick={() => {
+                                    const url = prompt("請輸入圖片 URL 或再次點擊上傳按鈕 (目前僅支援手動新增或從主 Picker 新增)");
+                                    if (url) handleChange('images', [...(content.images || []), url]);
+                                }}
+                                className="text-[10px] uppercase text-[#d8aa5b] hover:text-white transition-colors"
+                            >
+                                + 新增輪播圖片
+                            </button>
+
+                            <hr className="border-white/5" />
+
+                            <div className="space-y-4">
+                                <div className="flex justify-between items-center">
+                                    <label className="text-xs uppercase text-gray-500 font-bold tracking-widest">屬性小卡 (Feature Cards)</label>
+                                    <button
+                                        onClick={() => handleChange('featureCards', [...(content.featureCards || []), { iconType: 'Scent', label: '標籤', value: '內容' }])}
+                                        className="text-[10px] text-[#d8aa5b] hover:underline"
+                                    >
+                                        + 新增卡片
+                                    </button>
+                                </div>
+                                <div className="grid grid-cols-1 gap-4">
+                                    {(content.featureCards || []).map((card: any, i: number) => (
+                                        <div key={i} className="bg-white/5 p-4 rounded-sm grid grid-cols-3 gap-3 items-end">
+                                            <div>
+                                                <label className="block text-[9px] uppercase text-gray-600 mb-1">圖示</label>
+                                                <select value={card.iconType} onChange={e => {
+                                                    const newCards = [...content.featureCards];
+                                                    newCards[i].iconType = e.target.value;
+                                                    handleChange('featureCards', newCards);
+                                                }} className="w-full bg-black border border-white/10 text-[10px] p-2 text-white outline-none">
+                                                    <option value="Scent">香氣 (Scent)</option>
+                                                    <option value="Material">材質 (Material)</option>
+                                                </select>
+                                            </div>
+                                            <div>
+                                                <label className="block text-[9px] uppercase text-gray-600 mb-1">標題</label>
+                                                <input value={card.label} onChange={e => {
+                                                    const newCards = [...content.featureCards];
+                                                    newCards[i].label = e.target.value;
+                                                    handleChange('featureCards', newCards);
+                                                }} className="w-full bg-black border border-white/10 text-[10px] p-2 text-white outline-none" />
+                                            </div>
+                                            <div className="relative">
+                                                <label className="block text-[9px] uppercase text-gray-600 mb-1">數值</label>
+                                                <input value={card.value} onChange={e => {
+                                                    const newCards = [...content.featureCards];
+                                                    newCards[i].value = e.target.value;
+                                                    handleChange('featureCards', newCards);
+                                                }} className="w-full bg-black border border-white/10 text-[10px] p-2 text-white outline-none pr-8" />
+                                                <button onClick={() => handleChange('featureCards', content.featureCards.filter((_: any, idx: number) => idx !== i))} className="absolute right-2 bottom-2 text-red-500/50 hover:text-red-500">
+                                                    <Trash2 size={12} />
+                                                </button>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+
+                            <hr className="border-white/5" />
+
+                            <div className="space-y-4">
+                                <div className="flex justify-between items-center">
+                                    <label className="text-xs uppercase text-gray-500 font-bold tracking-widest">產品詳情清單 (Info List)</label>
+                                    <button
+                                        onClick={() => handleChange('infoList', [...(content.infoList || []), { title: '新項目', description: '描述細節...' }])}
+                                        className="text-[10px] text-[#d8aa5b] hover:underline"
+                                    >
+                                        + 新增項目
+                                    </button>
+                                </div>
+                                <div className="space-y-4">
+                                    {(content.infoList || []).map((item: any, i: number) => (
+                                        <div key={i} className="bg-white/5 p-4 rounded-sm space-y-3 relative group">
+                                            <button onClick={() => handleChange('infoList', content.infoList.filter((_: any, idx: number) => idx !== i))} className="absolute top-2 right-2 text-red-500 opacity-0 group-hover:opacity-50 hover:opacity-100 transition-opacity">
+                                                <Trash2 size={12} />
+                                            </button>
+                                            <div className="flex items-center gap-4">
+                                                <span className="text-[#d8aa5b] font-display text-sm">{(i + 1).toString().padStart(2, '0')}</span>
+                                                <input value={item.title} onChange={e => {
+                                                    const newList = [...content.infoList];
+                                                    newList[i].title = e.target.value;
+                                                    handleChange('infoList', newList);
+                                                }} className="flex-1 bg-black border border-white/10 text-[10px] p-2 text-white outline-none font-bold tracking-widest uppercase" />
+                                            </div>
+                                            <textarea value={item.description} onChange={e => {
+                                                const newList = [...content.infoList];
+                                                newList[i].description = e.target.value;
+                                                handleChange('infoList', newList);
+                                            }} className="w-full bg-black border border-white/10 text-[10px] p-2 text-white outline-none h-20 leading-relaxed font-light" />
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
                         </div>
                     )}
 
@@ -402,15 +639,20 @@ export default function UniversalSectionBuilder({
     initialSections,
     onSave,
     onChange,
-    isSaving = false
+    isSaving = false,
+    metadata,
+    onMetadataChange
 }: {
     initialSections: Section[];
     onSave: (sections: Section[]) => Promise<void>;
     onChange?: (sections: Section[]) => void;
     isSaving?: boolean;
+    metadata?: any;
+    onMetadataChange?: (metadata: any) => void;
 }) {
     const [sections, setSections] = useState<Section[]>(initialSections || []);
     const [editingSection, setEditingSection] = useState<Section | null>(null);
+    const [isEditingMetadata, setIsEditingMetadata] = useState(false);
 
     // Sync with parent for live preview
     useEffect(() => {
@@ -457,7 +699,20 @@ export default function UniversalSectionBuilder({
             'rich-text': { text: "主要內容..." },
             video: { videoUrl: "", thumbnail: "", label: "觀看儀式" },
             quote: { text: "名言...", author: "SØMNUS" },
-            spacer: { height: 60 }
+            spacer: { height: 60 },
+            purchase: {
+                label: "儀式收藏",
+                description: "",
+                images: [],
+                featureCards: [
+                    { iconType: 'Scent', label: '香氣輪廓', value: '薰衣草與檀香' },
+                    { iconType: 'Material', label: '材質', value: '100% 桑蠶絲' }
+                ],
+                infoList: [
+                    { title: "環境營造", description: "點燃香氛蠟燭，開啟晚間的感官旅程。" },
+                    { title: "沈靜包裹", description: "戴上絲綢眼罩，徹底阻絕外界視覺噪音。" }
+                ]
+            }
         };
 
         const newSection: Section = {
@@ -482,6 +737,14 @@ export default function UniversalSectionBuilder({
     return (
         <div className="space-y-6">
             <div className="flex flex-wrap items-center gap-2 mb-6">
+                {metadata && (
+                    <button
+                        onClick={() => setIsEditingMetadata(true)}
+                        className="flex items-center gap-2 text-[10px] uppercase tracking-widest bg-[#d8aa5b] text-black px-4 py-2 rounded-sm font-bold shadow-[0_0_15px_rgba(216,170,91,0.3)] hover:bg-white transition-all mr-4"
+                    >
+                        <Zap size={12} /> 核心資料編輯
+                    </button>
+                )}
                 <button onClick={() => addNewSection('hero')} className="flex items-center gap-2 text-[10px] uppercase tracking-widest bg-white/5 hover:bg-white/10 text-white/70 px-4 py-2 rounded-sm border border-white/10 transition-colors">
                     <Layout size={12} /> + 英雄區塊
                 </button>
@@ -553,6 +816,90 @@ export default function UniversalSectionBuilder({
 
             {editingSection && (
                 <EditModal section={editingSection} onClose={() => setEditingSection(null)} onSave={handleUpdateSection} />
+            )}
+
+            {isEditingMetadata && metadata && (
+                <div className="fixed inset-0 z-[110] bg-black/95 backdrop-blur-md flex items-center justify-center p-4">
+                    <div className="bg-[#0a0a09] border border-white/10 w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-sm p-10 shadow-2xl relative">
+                        <div className="flex justify-between items-center mb-10 border-b border-white/5 pb-6">
+                            <div>
+                                <h2 className="text-white font-display text-3xl uppercase tracking-widest mb-1">核心資料管理</h2>
+                                <p className="text-gray-500 text-[10px] uppercase tracking-[0.3em]">同步更新產品或文章的全局屬性</p>
+                            </div>
+                            <button onClick={() => setIsEditingMetadata(false)} className="text-white/30 hover:text-white transition-colors">
+                                <Plus size={32} className="rotate-45" />
+                            </button>
+                        </div>
+
+                        <div className="space-y-8">
+                            {/* Common fields based on metadata structure */}
+                            {metadata.name !== undefined && (
+                                <div className="grid grid-cols-2 gap-6">
+                                    <div className="space-y-2">
+                                        <label className="block text-[10px] uppercase text-[#d8aa5b] font-bold tracking-widest">名稱 / 標題</label>
+                                        <input
+                                            value={metadata.name || metadata.title || ''}
+                                            onChange={e => onMetadataChange?.({ ...metadata, name: e.target.value, title: e.target.value })}
+                                            className="w-full bg-white/5 border border-white/10 p-4 text-white focus:outline-none focus:border-[#d8aa5b] font-display text-xl transition-all"
+                                        />
+                                    </div>
+                                    {metadata.price !== undefined && (
+                                        <div className="space-y-2">
+                                            <label className="block text-[10px] uppercase text-gray-500 font-bold tracking-widest">投資金額 ($)</label>
+                                            <input
+                                                type="number"
+                                                value={metadata.price || ''}
+                                                onChange={e => onMetadataChange?.({ ...metadata, price: parseFloat(e.target.value) })}
+                                                className="w-full bg-white/5 border border-white/10 p-4 text-white focus:outline-none focus:border-[#d8aa5b] font-display text-xl transition-all"
+                                            />
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+
+                            {metadata.snippet !== undefined && (
+                                <div className="space-y-2">
+                                    <label className="block text-[10px] uppercase text-gray-500 font-bold tracking-widest">引言 (Snippet / 列表摘要)</label>
+                                    <textarea
+                                        value={metadata.snippet || ''}
+                                        onChange={e => onMetadataChange?.({ ...metadata, snippet: e.target.value })}
+                                        className="w-full bg-white/5 border border-white/10 p-4 text-white focus:outline-none focus:border-[#d8aa5b] min-h-[100px] resize-none font-light leading-relaxed text-sm"
+                                        placeholder="輸入吸引人的短段落..."
+                                    />
+                                </div>
+                            )}
+
+                            <div className="bg-[#111] p-6 border border-white/5 rounded-sm space-y-6">
+                                <h3 className="text-xs uppercase tracking-[0.2em] text-[#d8aa5b] font-bold">SEO 與 搜尋優化</h3>
+                                <div className="space-y-4">
+                                    <div>
+                                        <label className="block text-[9px] uppercase text-gray-600 mb-2 tracking-widest">Meta Title (SEO 標題)</label>
+                                        <input
+                                            value={metadata.metaTitle || ''}
+                                            onChange={e => onMetadataChange?.({ ...metadata, metaTitle: e.target.value })}
+                                            className="w-full bg-black/40 border border-white/10 p-3 text-white focus:outline-none focus:border-[#d8aa5b] text-xs"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-[9px] uppercase text-gray-600 mb-2 tracking-widest">Meta Description (SEO 描述)</label>
+                                        <textarea
+                                            value={metadata.metaDescription || ''}
+                                            onChange={e => onMetadataChange?.({ ...metadata, metaDescription: e.target.value })}
+                                            className="w-full bg-black/40 border border-white/10 p-3 text-white focus:outline-none focus:border-[#d8aa5b] text-xs h-20 resize-none"
+                                        />
+                                    </div>
+                                </div>
+                            </div>
+
+                            <button
+                                onClick={() => setIsEditingMetadata(false)}
+                                className="w-full bg-white text-black py-4 font-bold uppercase tracking-widest hover:bg-[#d8aa5b] transition-all rounded-sm shadow-xl"
+                            >
+                                確認並繼續編輯佈局
+                            </button>
+                        </div>
+                    </div>
+                </div>
             )}
         </div>
     );

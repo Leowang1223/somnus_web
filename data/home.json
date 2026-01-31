@@ -4,10 +4,14 @@
       "id": "hero-main",
       "type": "hero",
       "content": {
-        "title": "SØMNUS:\nThe Golden 30 Minutes",
+        "title": "SØMNUS :\nThe Golden 5 Minutes",
         "subtitle": "Master the art of the evening wind-down through curated ritual and sensory depth.",
         "ctaText": "Explore The Collection",
-        "ctaLink": "/collection"
+        "ctaLink": "/collection",
+        "enableGlow": true,
+        "titleColor": "#d8aa5b",
+        "enableTitleBgGlow": true,
+        "enableTitleGlow": true
       },
       "isEnabled": true
     },
@@ -28,7 +32,7 @@
       "content": {
         "heading": "夜晚，不只是結束一天",
         "text": "在這個永遠在線的世界裡，\n真正稀缺的不是時間，而是「慢下來的空間」。\n\n我們開始重新思考：\n睡眠，是否能不只是關燈與躺下？",
-        "imagePosition": "left"
+        "imagePosition": "right"
       },
       "isEnabled": true
     }

@@ -157,3 +157,44 @@ export async function translateAction(text: string, targetLang: string) {
     const translated = mocks[targetLang]?.[text] || `[${targetLang}] ${text}`;
     return { translated };
 }
+
+export async function updateProductMetadataAction(id: string, metadata: any) {
+    const { getProducts, saveProduct } = await import("@/lib/db");
+    const products = await getProducts();
+    const product = products.find((p: any) => p.id === id);
+    if (product) {
+        if (metadata.name) {
+            product.name = metadata.name;
+            product.slug = metadata.name.toLowerCase().trim().replace(/[^a-z0-9]/g, '-');
+        }
+        if (metadata.price !== undefined) product.price = Number(metadata.price);
+        if (metadata.category) product.category = metadata.category;
+
+        await saveProduct(product);
+        revalidatePath('/admin/products');
+        revalidatePath('/collection');
+        revalidatePath(`/product/${product.slug}`);
+    }
+    return { success: true };
+}
+
+export async function updateArticleMetadataAction(id: string, metadata: any) {
+    const { getArticles, saveArticle } = await import("@/lib/db");
+    const articles = await getArticles();
+    const article = articles.find((a: any) => a.id === id);
+    if (article) {
+        if (metadata.title) {
+            article.title = metadata.title;
+            article.slug = metadata.title.toLowerCase().trim().replace(/[^a-z0-9]/g, '-');
+        }
+        if (metadata.snippet !== undefined) article.snippet = metadata.snippet;
+        if (metadata.metaTitle !== undefined) article.metaTitle = metadata.metaTitle;
+        if (metadata.metaDescription !== undefined) article.metaDescription = metadata.metaDescription;
+
+        await saveArticle(article);
+        revalidatePath('/admin/journal');
+        revalidatePath('/journal');
+        revalidatePath(`/journal/${article.slug}`);
+    }
+    return { success: true };
+}

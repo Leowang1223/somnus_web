@@ -3,13 +3,15 @@
 import { Section } from "@/types/cms";
 import UniversalSectionBuilder from "@/components/admin/UniversalSectionBuilder";
 import SectionRenderer from "@/components/sections/SectionRenderer";
-import { updateProductSectionsAction } from "@/app/actions";
+import { updateProductSectionsAction, updateProductMetadataAction } from "@/app/actions";
 import { useState } from "react";
-import { Eye, Monitor, Smartphone, Globe } from "lucide-react";
+import { Eye, Monitor, Smartphone, Globe, ChevronLeft } from "lucide-react";
+import Link from 'next/link';
 
-export default function ProductBuilderClient({ id, initialSections }: { id: string, initialSections: Section[] }) {
+export default function ProductBuilderClient({ id, initialSections, product }: { id: string, initialSections: Section[], product: any }) {
     const [isSaving, setIsSaving] = useState(false);
     const [sections, setSections] = useState<Section[]>(initialSections);
+    const [meta, setMeta] = useState(product);
     const [isLiveStudio, setIsLiveStudio] = useState(false);
     const [previewDevice, setPreviewDevice] = useState<'desktop' | 'mobile'>('desktop');
 
@@ -17,9 +19,10 @@ export default function ProductBuilderClient({ id, initialSections }: { id: stri
         setIsSaving(true);
         try {
             await updateProductSectionsAction(id, publishedSections);
-            alert("產品佈局已成功發佈。");
+            await updateProductMetadataAction(id, meta);
+            alert("產品資料與佈局已成功同步發佈。");
         } catch (e) {
-            alert("儲存佈局時出錯。");
+            alert("儲存時出錯。");
         } finally {
             setIsSaving(false);
         }
@@ -58,6 +61,8 @@ export default function ProductBuilderClient({ id, initialSections }: { id: stri
                         onSave={handleSave}
                         isSaving={isSaving}
                         onChange={setSections}
+                        metadata={meta}
+                        onMetadataChange={setMeta}
                     />
                 </div>
 
@@ -67,7 +72,7 @@ export default function ProductBuilderClient({ id, initialSections }: { id: stri
                         <div className="absolute inset-0 opacity-10 pointer-events-none bg-[url('https://grainy-gradients.vercel.app/noise.svg')] bg-repeat"></div>
 
                         <div className={`bg-[#050505] shadow-[0_0_100px_rgba(0,0,0,1)] border border-white/5 transition-all duration-700 overflow-y-auto h-full ${previewDevice === 'mobile' ? 'w-[375px] max-h-[812px] rounded-[40px] border-[8px] border-[#111]' : 'w-full h-full'}`}>
-                            <SectionRenderer sections={sections} />
+                            <SectionRenderer sections={sections} productContext={meta} />
                         </div>
                     </div>
                 )}

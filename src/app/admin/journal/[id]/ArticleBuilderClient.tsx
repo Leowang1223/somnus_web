@@ -2,19 +2,22 @@
 
 import { Section } from "@/types/cms";
 import UniversalSectionBuilder from "@/components/admin/UniversalSectionBuilder";
-import { updateArticleSectionsAction } from "@/app/actions";
+import { updateArticleSectionsAction, updateArticleMetadataAction } from "@/app/actions";
 import { useState } from "react";
 
-export default function ArticleBuilderClient({ id, initialSections }: { id: string, initialSections: Section[] }) {
+export default function ArticleBuilderClient({ id, initialSections, article }: { id: string, initialSections: Section[], article: any }) {
     const [isSaving, setIsSaving] = useState(false);
+    const [sections, setSections] = useState<Section[]>(initialSections);
+    const [meta, setMeta] = useState(article);
 
-    const handleSave = async (sections: Section[]) => {
+    const handleSave = async (publishedSections: Section[]) => {
         setIsSaving(true);
         try {
-            await updateArticleSectionsAction(id, sections);
-            alert("文章已成功發佈。");
+            await updateArticleSectionsAction(id, publishedSections);
+            await updateArticleMetadataAction(id, meta);
+            alert("文章內容與基本資料已成功發佈。");
         } catch (e) {
-            alert("儲存佈局時出錯。");
+            alert("儲存時出錯。");
         } finally {
             setIsSaving(false);
         }
@@ -25,6 +28,9 @@ export default function ArticleBuilderClient({ id, initialSections }: { id: stri
             initialSections={initialSections}
             onSave={handleSave}
             isSaving={isSaving}
+            onChange={setSections}
+            metadata={meta}
+            onMetadataChange={setMeta}
         />
     );
 }

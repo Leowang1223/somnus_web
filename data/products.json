@@ -1,64 +1,99 @@
 [
-    {
-        "id": "1",
-        "slug": "nyx-silk-mask",
-        "name": "Nyx Silk Mask",
-        "price": 85,
-        "description": "Pure Mulberry Silk / Obsidian. Complete optical isolation.",
-        "category": "Touch",
-        "image": "#1a1a1a",
-        "sections": [
-            {
-                "id": "prod-hero-1",
-                "type": "hero",
-                "content": {
-                    "title": "Nyx Silk Mask",
-                    "subtitle": "Complete optical isolation in pure mulberry silk.",
-                    "ctaText": "Add to Ritual",
-                    "ctaLink": "#"
-                },
-                "isEnabled": true
-            },
-            {
-                "id": "prod-story-1",
-                "type": "text-image",
-                "content": {
-                    "heading": "Total Darkness.",
-                    "text": "Weighted for comfort, our mask signals the brain for immediate melatonin production.",
-                    "imagePosition": "right"
-                },
-                "isEnabled": true
-            }
-        ]
+  {
+    "id": "1",
+    "slug": "nyx-silk-mask",
+    "name": "Nyx Silk Mask",
+    "price": 85,
+    "description": "Pure Mulberry Silk / Obsidian. Complete optical isolation.",
+    "category": "Touch",
+    "image": "#1a1a1a",
+    "sections": [
+      {
+        "id": "prod-hero-1",
+        "type": "hero",
+        "content": {
+          "title": "Nyx Silk Mask",
+          "subtitle": "Complete optical isolation in pure mulberry silk.",
+          "ctaText": "Add to Ritual",
+          "ctaLink": "#"
+        },
+        "isEnabled": true
+      },
+      {
+        "id": "prod-story-1",
+        "type": "text-image",
+        "content": {
+          "heading": "Total Darkness.",
+          "text": "Weighted for comfort, our mask signals the brain for immediate melatonin production.",
+          "imagePosition": "right"
+        },
+        "isEnabled": true
+      }
+    ]
+  },
+  {
+    "id": "2",
+    "slug": "ember-candle",
+    "name": "Ember Candle",
+    "price": 62,
+    "description": "Smoked Sandalwood & Amber. Olfactory anchor for the evening.",
+    "category": "Scent",
+    "image": "#2a2a2a",
+    "sections": []
+  },
+  {
+    "id": "3",
+    "slug": "nocturnal-mist",
+    "name": "Nocturnal Mist",
+    "price": 48,
+    "description": "Lavender & Vetiver Hydrosol. Signal to the nervous system.",
+    "category": "Scent",
+    "image": "#151515",
+    "sections": []
+  },
+  {
+    "id": "4",
+    "slug": "midnight-ritual-kit",
+    "name": "Midnight Ritual Kit",
+    "price": 145,
+    "description": "The complete collection for the dedicated sleeper.",
+    "category": "Kit",
+    "image": "#222",
+    "sections": []
+  },
+  {
+    "id": "prod-1769848231619",
+    "name": "線香",
+    "price": 280,
+    "category": "Visual",
+    "description": "自然芳香",
+    "slug": "--",
+    "status": "published",
+    "aspectRatio": "4:5",
+    "tags": [
+      "woody"
+    ],
+    "focusPoint": {
+      "x": 50,
+      "y": 50
     },
-    {
-        "id": "2",
-        "slug": "ember-candle",
-        "name": "Ember Candle",
-        "price": 62,
-        "description": "Smoked Sandalwood & Amber. Olfactory anchor for the evening.",
-        "category": "Scent",
-        "image": "#2a2a2a",
-        "sections": []
-    },
-    {
-        "id": "3",
-        "slug": "nocturnal-mist",
-        "name": "Nocturnal Mist",
-        "price": 48,
-        "description": "Lavender & Vetiver Hydrosol. Signal to the nervous system.",
-        "category": "Scent",
-        "image": "#151515",
-        "sections": []
-    },
-    {
-        "id": "4",
-        "slug": "midnight-ritual-kit",
-        "name": "Midnight Ritual Kit",
-        "price": 145,
-        "description": "The complete collection for the dedicated sleeper.",
-        "category": "Kit",
-        "image": "#222",
-        "sections": []
-    }
+    "sections": [
+      {
+        "id": "purchase-1769848231620",
+        "type": "purchase",
+        "isEnabled": true,
+        "content": {}
+      },
+      {
+        "id": "text-image-1769851445996",
+        "type": "text-image",
+        "content": {
+          "heading": "新故事",
+          "text": "長篇描述...",
+          "imagePosition": "left"
+        },
+        "isEnabled": true
+      }
+    ]
+  }
 ]

@@ -8,9 +8,10 @@ import { useEffect, useState } from "react";
 import { motion, useScroll } from "framer-motion";
 
 export default function Navbar() {
-    const { role } = useAuth();
+    const { role, logout } = useAuth();
     const { toggleCart, items } = useCart();
     const itemCount = items.reduce((acc, item) => acc + item.quantity, 0);
+    const [showUserMenu, setShowUserMenu] = useState(false);
 
     const { scrollY } = useScroll();
     const [isScrolled, setIsScrolled] = useState(false);
@@ -62,14 +63,46 @@ export default function Navbar() {
                     <span className="hidden md:inline">Cart ({itemCount})</span>
                 </button>
 
-                {role === 'admin' ? (
-                    <Link href="/admin" className="flex items-center gap-2 text-[#d8aa5b] hover:text-white transition-colors">
-                        <span className="hidden md:inline border-b border-[#d8aa5b]">Admin Panel</span>
-                    </Link>
+                {role ? (
+                    <div className="relative">
+                        <button
+                            onClick={() => setShowUserMenu(!showUserMenu)}
+                            className="flex items-center gap-2 hover:text-[#d8aa5b] transition-colors"
+                        >
+                            <User size={18} />
+                            <span className="hidden md:inline">{role === 'admin' ? 'Admin' : 'Account'}</span>
+                        </button>
+                        {showUserMenu && (
+                            <div className="absolute right-0 top-full mt-4 bg-[#0a0a09] border border-white/10 rounded-sm min-w-[180px] shadow-2xl overflow-hidden">
+                                {role === 'admin' && (
+                                    <Link
+                                        href="/admin"
+                                        onClick={() => setShowUserMenu(false)}
+                                        className="block px-6 py-3 text-sm hover:bg-white/5 transition-colors border-b border-white/5"
+                                    >
+                                        Admin Panel
+                                    </Link>
+                                )}
+                                <Link
+                                    href="/profile"
+                                    onClick={() => setShowUserMenu(false)}
+                                    className="block px-6 py-3 text-sm hover:bg-white/5 transition-colors border-b border-white/5"
+                                >
+                                    Profile
+                                </Link>
+                                <button
+                                    onClick={() => { logout(); setShowUserMenu(false); }}
+                                    className="w-full text-left px-6 py-3 text-sm hover:bg-white/5 transition-colors text-red-400 hover:text-red-300"
+                                >
+                                    Logout
+                                </button>
+                            </div>
+                        )}
+                    </div>
                 ) : (
-                    <Link href={role ? "/profile" : "/login"} className="flex items-center gap-2 hover:text-[#d8aa5b] transition-colors">
+                    <Link href="/login" className="flex items-center gap-2 hover:text-[#d8aa5b] transition-colors">
                         <User size={18} />
-                        <span className="hidden md:inline">{role === 'consumer' ? 'Sanctuary' : 'Enter'}</span>
+                        <span className="hidden md:inline">Enter</span>
                     </Link>
                 )}
             </div>

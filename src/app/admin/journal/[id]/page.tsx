@@ -23,7 +23,7 @@ export default async function AdminArticleBuilderPage({ params }: { params: Prom
             </header>
 
             <div className="bg-[#111] border border-white/5 p-8 rounded-sm">
-                <ArticleBuilderClient id={id} initialSections={article.sections || []} />
+                <ArticleBuilderClient id={id} initialSections={article.sections || []} article={article} />
             </div>
         </div>
     );

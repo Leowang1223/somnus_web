@@ -1,9 +1,33 @@
 'use client';
 
 import { Section } from "@/types/cms";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence, useScroll, useSpring, useInView } from "framer-motion";
 import Link from "next/link";
 import { ArrowRight, Play, ShoppingBag, Zap, ChevronLeft, ChevronRight } from "lucide-react";
+import { useState, useEffect, useRef } from "react";
+import { useCart } from "@/context/CartContext";
+import { useAuth } from "@/context/AuthContext";
+import { useRouter, useSearchParams } from "next/navigation";
+
+// --- Side Navigation Component ---
+const SideNavigation = ({ sections, activeIndex, onDotClick }: { sections: Section[], activeIndex: number, onDotClick: (i: number) => void }) => {
+    return (
+        <div className="fixed right-8 top-1/2 -translate-y-1/2 z-50 flex flex-col gap-4">
+            {sections.map((section, i) => (
+                <button
+                    key={section.id}
+                    onClick={() => onDotClick(i)}
+                    className="group relative flex items-center justify-end"
+                >
+                    <span className={`absolute right-8 text-[10px] uppercase tracking-[0.3em] font-bold text-[#d8aa5b] opacity-0 group-hover:opacity-100 transition-all duration-500 whitespace-nowrap ${i === activeIndex ? 'translate-x-0' : 'translate-x-4'}`}>
+                        {section.content?.label || section.type}
+                    </span>
+                    <div className={`h-2 rounded-full transition-all duration-700 ${i === activeIndex ? 'w-8 bg-[#d8aa5b] shadow-[0_0_15px_rgba(216,170,91,0.6)]' : 'w-2 bg-white/10 group-hover:bg-white/30'}`} />
+                </button>
+            ))}
+        </div>
+    );
+};
 
 // --- Reusable Carousel Component ---
 const UniversalCarousel = ({
@@ -101,21 +125,13 @@ const UniversalCarousel = ({
         </div>
     );
 };
-import { useCart } from "@/context/CartContext";
-import { useAuth } from "@/context/AuthContext";
-import { useRouter, useSearchParams } from "next/navigation";
-import { useEffect, useState, useRef } from "react";
-import { AnimatePresence } from "framer-motion";
-
 // --- Section Components ---
 
-const HeroSection = ({ content }: { content: any }) => {
+const HeroSection = ({ content, isInView }: { content: any, isInView?: boolean }) => {
     const images = content.backgroundImages || (content.backgroundImage ? [content.backgroundImage] : []);
 
     return (
-        <section className="h-screen w-full flex flex-col justify-center items-center relative overflow-hidden">
-            <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_#050505_0%,_#000_100%)] opacity-80 z-0"></div>
-            <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-[#050505] z-10"></div>
+        <section className="relative w-full h-full flex items-center justify-center overflow-hidden">
             <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[60vw] h-[60vw] bg-[radial-gradient(circle,_rgba(216,170,91,0.15)_0%,_transparent_70%)] blur-[100px] z-0 animate-pulse duration-[8000ms]"></div>
 
             <UniversalCarousel
@@ -124,42 +140,67 @@ const HeroSection = ({ content }: { content: any }) => {
                 overlayOpacity={0.5}
             />
 
-            <div className="relative z-20 text-center flex flex-col items-center max-w-4xl px-4 mx-auto">
-                <motion.h1
-                    initial={{ opacity: 0, y: 30 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    className="font-display text-5xl md:text-8xl mb-4 leading-tight whitespace-pre-wrap"
+            <div
+                className={`relative z-20 flex flex-col px-6 md:px-24 transition-all duration-700`}
+                style={{
+                    width: '100%',
+                    maxWidth: `${content.containerWidth || 95}vw`,
+                    textAlign: content.textAlign || 'center',
+                    alignItems: content.textAlign === 'left' ? 'flex-start' : content.textAlign === 'right' ? 'flex-end' : 'center',
+                    marginLeft: content.textAlign === 'left' ? '0' : content.textAlign === 'right' ? 'auto' : 'auto',
+                    marginRight: content.textAlign === 'right' ? '0' : content.textAlign === 'left' ? 'auto' : 'auto',
+                } as React.CSSProperties}
+            >
+                {/* Background Glow Layer for Text */}
+                {content.enableTitleBgGlow && (
+                    <div
+                        className="absolute inset-0 z-0 pointer-events-none bg-breathing-glow rounded-full blur-[100px]"
+                        style={{
+                            backgroundColor: content.titleBgGlowColor || 'rgba(216, 170, 91, 0.1)',
+                            '--glow-color': content.titleBgGlowColor || 'rgba(216, 170, 91, 0.4)'
+                        } as React.CSSProperties}
+                    />
+                )}
+
+                <h1
+                    className={`font-display text-5xl md:text-8xl mb-4 leading-tight whitespace-pre-wrap relative z-10 reveal-text ${isInView ? 'active' : ''} ${content.enableTitleGlow ? 'text-breathing-glow' : ''}`}
+                    style={{
+                        color: content.titleColor || '#ffffff',
+                        '--glow-color': content.titleGlowColor || 'rgba(216, 170, 91, 0.4)'
+                    } as React.CSSProperties}
                 >
                     {content.title}
-                </motion.h1>
+                </h1>
                 {content.subtitle && (
-                    <motion.p
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        transition={{ delay: 0.5 }}
-                        className="text-white/60 text-sm md:text-base tracking-widest uppercase mt-4 mb-12 max-w-lg"
+                    <p
+                        className={`text-sm md:text-base tracking-widest uppercase mt-4 mb-12 max-w-2xl relative z-10 reveal-text delay-1 ${isInView ? 'active' : ''}`}
+                        style={{ color: content.subtitleColor || '#ffffff', opacity: content.subtitleColor ? 1 : 0.7 }}
                     >
                         {content.subtitle}
-                    </motion.p>
+                    </p>
                 )}
                 {content.ctaText && (
-                    <motion.div
-                        initial={{ opacity: 0, scale: 0.9 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        transition={{ delay: 0.8 }}
+                    <div
+                        className={`relative z-10 reveal-text delay-2 ${isInView ? 'active' : ''}`}
                     >
-                        <Link href={content.ctaLink || '/'} className="group relative inline-flex items-center gap-3 px-8 py-4 bg-[#d8aa5b] text-[#050505] font-display text-sm tracking-widest uppercase breathing-glow hover:bg-white transition-colors duration-500 rounded-sm">
+                        <Link
+                            href={content.ctaLink || '/'}
+                            className={`group relative inline-flex items-center gap-3 px-8 py-4 bg-[#d8aa5b] text-[#050505] font-display text-sm tracking-widest uppercase hover:bg-white transition-all duration-500 rounded-sm ${content.enableGlow ? 'breathing-glow' : ''}`}
+                            style={{
+                                '--glow-color': content.glowColor || 'rgba(216, 170, 91, 0.4)'
+                            } as React.CSSProperties}
+                        >
                             {content.ctaText}
                             <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform duration-300" />
                         </Link>
-                    </motion.div>
+                    </div>
                 )}
             </div>
         </section>
     );
 };
 
-const TextImageSection = ({ content }: { content: any }) => {
+const TextImageSection = ({ content, isInView }: { content: any, isInView?: boolean }) => {
     const images = content.images || (content.image ? [content.image] : []);
 
     return (
@@ -175,42 +216,58 @@ const TextImageSection = ({ content }: { content: any }) => {
 
                     <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent pointer-events-none"></div>
                     {content.caption && (
-                        <div className="absolute bottom-8 left-8 text-[#d8aa5b] font-display text-2xl max-w-[200px] z-20">
+                        <div className={`absolute bottom-8 left-8 text-[#d8aa5b] font-display text-2xl max-w-[200px] z-20 reveal-text ${isInView ? 'active' : ''}`}>
                             "{content.caption}"
                         </div>
                     )}
                 </div>
-                <div className="flex-1 space-y-8">
-                    <h2 className="font-display text-4xl md:text-5xl text-white whitespace-pre-wrap">{content.heading}</h2>
-                    <div className="text-gray-400 leading-relaxed max-w-md font-light whitespace-pre-wrap">{content.text}</div>
+                <div
+                    className={`flex-1 space-y-8 flex flex-col`}
+                    style={{
+                        textAlign: content.textAlign || (content.imagePosition === 'right' ? 'left' : 'left'),
+                        alignItems: content.textAlign === 'center' ? 'center' : content.textAlign === 'right' ? 'flex-end' : 'flex-start'
+                    } as React.CSSProperties}
+                >
+                    <h2 className={`font-display text-4xl md:text-5xl text-white whitespace-pre-wrap reveal-text ${isInView ? 'active' : ''}`}>{content.heading}</h2>
+                    <div className={`text-gray-400 leading-relaxed max-w-md font-light whitespace-pre-wrap reveal-text delay-1 ${isInView ? 'active' : ''}`}>{content.text}</div>
                 </div>
             </div>
         </section>
     );
 };
 
-const RichTextSection = ({ content }: { content: any }) => (
-    <section className="py-20 px-6 bg-[#050505] text-white">
-        <div className="container mx-auto max-w-3xl">
-            <div className="prose prose-invert prose-amber max-w-none text-gray-300 leading-relaxed text-lg whitespace-pre-wrap">
+const RichTextSection = ({ content, isInView }: { content: any, isInView?: boolean }) => (
+    <section
+        className="py-12 px-6 bg-transparent"
+        style={{ textAlign: content.textAlign || 'center' } as React.CSSProperties}
+    >
+        <div className={`w-full flex flex-col ${content.textAlign === 'left' ? 'items-start' : content.textAlign === 'right' ? 'items-end' : 'items-center'} reveal-text ${isInView ? 'active' : ''}`}>
+            <div className="max-w-4xl text-gray-400 leading-relaxed font-light text-lg whitespace-pre-wrap w-full">
                 {content.text}
             </div>
         </div>
     </section>
 );
 
-const QuoteSection = ({ content }: { content: any }) => (
-    <section className="py-24 px-6 bg-[#0a0a09] relative overflow-hidden">
-        <div className="container mx-auto max-w-4xl text-center relative z-10">
-            <div className="text-[#d8aa5b] text-6xl font-display mb-8 opacity-20">"</div>
-            <blockquote className="font-display text-3xl md:text-5xl text-white mb-8 leading-tight italic">
-                {content.text}
-            </blockquote>
-            {content.author && (
-                <cite className="text-[#d8aa5b] text-sm uppercase tracking-[0.3em] font-medium not-italic">
-                    — {content.author}
-                </cite>
-            )}
+const QuoteSection = ({ content, isInView }: { content: any, isInView?: boolean }) => (
+    <section
+        className="py-24 px-6 bg-transparent relative overflow-hidden"
+        style={{ textAlign: content.textAlign || 'center' } as React.CSSProperties}
+    >
+        <div className={`w-full flex flex-col ${content.textAlign === 'left' ? 'items-start' : content.textAlign === 'right' ? 'items-end' : 'items-center'} relative z-10`}>
+            <div className="max-w-4xl w-full">
+                <div className={`text-[#d8aa5b] mb-12 reveal-text ${isInView ? 'active' : ''}`}>
+                    <Zap size={48} className={`opacity-20 ${content.textAlign === 'left' ? 'mr-auto' : content.textAlign === 'right' ? 'ml-auto' : 'mx-auto'}`} />
+                </div>
+                <blockquote className={`font-display text-3xl md:text-5xl text-white leading-tight mb-12 italic reveal-text delay-1 ${isInView ? 'active' : ''}`}>
+                    "{content.text}"
+                </blockquote>
+                {content.author && (
+                    <div className={`text-[#d8aa5b] uppercase tracking-[0.3em] text-xs font-bold reveal-text delay-2 ${isInView ? 'active' : ''}`}>
+                        — {content.author} —
+                    </div>
+                )}
+            </div>
         </div>
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-[#d8aa5b] opacity-[0.03] blur-[150px] rounded-full"></div>
     </section>
@@ -273,7 +330,7 @@ const SpacerSection = ({ content }: { content: any }) => (
     <div style={{ height: `${content.height || 60}px` }} className="w-full bg-[#050505]"></div>
 );
 
-const PurchaseSection = ({ content, productContext }: { content: any, productContext?: any }) => {
+const PurchaseSection = ({ content, productContext, isInView }: { content: any, productContext?: any, isInView?: boolean }) => {
     const { addToCart, toggleCart } = useCart();
     const { isAuthenticated } = useAuth();
     const router = useRouter();
@@ -281,161 +338,308 @@ const PurchaseSection = ({ content, productContext }: { content: any, productCon
     const [bought, setBought] = useState(false);
 
     const product = productContext || content.productInfo || { name: 'Unknown Artifact', price: 0, id: 'temp' };
+    const images = content.images || (product.image ? [product.image] : []);
+    const featureCards = content.featureCards || [];
+    const infoList = content.infoList || [];
 
-    const handleBuyNow = () => {
-        if (!isAuthenticated) {
-            router.push(`/login?redirect=${window.location.pathname}&action=buynow`);
-            return;
+    // CRITICAL DEBUG: Track component lifecycle
+    useEffect(() => {
+        console.log("═══ PurchaseSection Mounted ═══");
+        console.log("Product context:", product);
+        console.log("Product ID:", product.id);
+        console.log("Product Name:", product.name);
+        console.log("Product Price:", product.price);
+
+        (window as any).emergencyAddToCart = () => {
+            console.log("🚨 EMERGENCY TRIGGER for:", product.id);
+            addToCart(product);
+        };
+
+        console.log("Window function ready: emergencyAddToCart()");
+    }, [product, addToCart]);
+
+    // DEBUG: Expose cart actions globally
+    useEffect(() => {
+        (window as any).debugAddToCart = () => {
+            console.log("Global add trigger:", product);
+            addToCart(product);
+        };
+    }, [product, addToCart]);
+
+    const handleBuyNow = (e?: React.MouseEvent) => {
+        if (e) {
+            e.preventDefault();
+            e.stopPropagation();
         }
         addToCart(product);
         toggleCart();
     };
 
-    const handleAddToCart = () => {
+    const handleAddToCart = (e?: React.MouseEvent) => {
+        if (e) {
+            e.preventDefault();
+            e.stopPropagation();
+        }
         addToCart(product);
+        toggleCart();
     };
 
-    // Auto-trigger if returning from login
     useEffect(() => {
         if (isAuthenticated && searchParams.get('action') === 'buynow' && !bought) {
             setBought(true);
             addToCart(product);
             toggleCart();
-            // Clean URL
             router.replace(window.location.pathname);
         }
     }, [isAuthenticated, searchParams, product, addToCart, toggleCart, router, bought]);
 
     return (
-        <section className="py-24 px-6 bg-[#0a0a09] border-y border-white/5">
-            <div className="container mx-auto max-w-4xl text-center">
-                <span className="text-[#d8aa5b] text-[10px] uppercase tracking-[0.4em] mb-4 block">Acquire Artifact</span>
-                <h2 className="font-display text-4xl md:text-6xl text-white mb-4">{product.name}</h2>
-                <p className="text-[#d8aa5b] font-display text-2xl mb-12">${product.price}</p>
-
-                <div className="flex flex-col md:flex-row items-center justify-center gap-6">
-                    <button
-                        onClick={handleAddToCart}
-                        className="group relative flex items-center gap-3 px-12 py-5 border border-white/10 text-white font-display text-sm tracking-widest uppercase hover:bg-white hover:text-black transition-all duration-500 rounded-sm w-full md:w-auto"
-                    >
-                        <ShoppingBag size={18} className="opacity-50 group-hover:opacity-100" />
-                        Add to Ritual
-                    </button>
-
-                    <button
-                        onClick={handleBuyNow}
-                        className="group relative flex items-center gap-3 px-12 py-5 bg-[#d8aa5b] text-black font-display text-sm tracking-widest uppercase hover:bg-white transition-all duration-500 rounded-sm w-full md:w-auto overflow-hidden shadow-[0_0_30px_rgba(216,170,91,0.2)]"
-                    >
-                        <Zap size={18} />
-                        Buy Now
-                        <div className="absolute inset-x-0 bottom-0 h-[2px] bg-black/20 origin-left scale-x-0 group-hover:scale-x-100 transition-transform duration-500"></div>
-                    </button>
+        <section className="w-full h-full flex items-center justify-center bg-[#050505] py-24 md:py-0">
+            <div className="container mx-auto px-6 h-full flex flex-col md:flex-row items-center gap-12 md:gap-24">
+                {/* Left: Enhanced Image/Carousel */}
+                <div className="flex-1 w-full h-[60vh] md:h-[80vh] relative group">
+                    <div className="absolute -inset-4 bg-[#d8aa5b]/5 blur-3xl opacity-30 group-hover:opacity-60 transition-opacity duration-1000"></div>
+                    <div className="relative w-full h-full overflow-hidden rounded-sm border border-white/5 bg-[#0a0a0a]">
+                        <UniversalCarousel
+                            images={images.length > 0 ? images : ['https://images.unsplash.com/photo-1616137422495-1e9e46e2aa77?q=80&w=1000']}
+                            className="absolute inset-0"
+                            overlayOpacity={0.9}
+                            imageClassName="w-full h-full object-cover"
+                        />
+                    </div>
                 </div>
 
-                <p className="mt-8 text-gray-500 text-[10px] uppercase tracking-widest opacity-50 italic">
-                    — Secure transaction via SØMNUS Vault —
-                </p>
+                {/* Right: Product Details */}
+                <div className="flex-1 flex flex-col items-start text-left">
+                    <span className="text-[#d8aa5b] text-[10px] uppercase tracking-[0.5em] mb-4 font-bold opacity-60">
+                        {content.label || (product.category ? `${product.category} Collection` : 'Ritual Artifact')}
+                    </span>
+                    <h2 className="font-display text-4xl md:text-7xl text-white mb-6 leading-tight">
+                        {product.name}
+                    </h2>
+                    <p className="text-gray-400 text-sm md:text-base leading-relaxed mb-10 max-w-xl font-light">
+                        {content.description || product.description || 'A cinematic descent into stillness. Elevate your sleep ritual with our signature collection designed to bridge the gap between day and dreams.'}
+                    </p>
+
+                    <div className="flex flex-col md:flex-row items-start md:items-center gap-12 w-full mb-12">
+                        <div>
+                            <span className="text-[10px] uppercase tracking-widest text-gray-500 block mb-2 font-bold">Investment</span>
+                            <span className="text-[#d8aa5b] font-display text-3xl md:text-4xl leading-none">
+                                ${product.price}
+                            </span>
+                        </div>
+                        <div className="flex flex-col sm:flex-row gap-4 w-full" style={{ position: 'relative', zIndex: 9999 }}>
+                            <button
+                                type="button"
+                                onClick={handleAddToCart}
+                                className="flex-1 group relative flex items-center justify-center gap-4 px-8 py-5 bg-white text-black font-display text-[10px] tracking-[0.2em] uppercase hover:bg-[#d8aa5b] transition-all duration-700 rounded-sm cursor-pointer"
+                                style={{ pointerEvents: 'auto', position: 'relative', zIndex: 10000 }}
+                            >
+                                <span>Add to Ritual</span>
+                                <ShoppingBag size={14} />
+                            </button>
+
+                            <button
+                                type="button"
+                                onClick={handleBuyNow}
+                                className="flex-1 group relative flex items-center justify-center gap-4 px-8 py-5 bg-[#d8aa5b] text-black font-display text-[10px] tracking-[0.2em] uppercase hover:bg-white transition-all duration-700 shadow-[0_0_40px_rgba(216,170,91,0.15)] rounded-sm cursor-pointer"
+                                style={{ pointerEvents: 'auto', position: 'relative', zIndex: 10000 }}
+                            >
+                                <span>Buy Now</span>
+                                <Zap size={14} className="fill-current" />
+                            </button>
+                        </div>
+                    </div>
+
+                    {/* Feature Cards Grid */}
+                    {featureCards.length > 0 && (
+                        <div className="grid grid-cols-2 gap-4 w-full mb-12">
+                            {featureCards.map((card: any, idx: number) => (
+                                <div key={idx} className="bg-white/[0.03] border border-white/5 p-6 rounded-sm flex flex-col gap-3 group hover:border-[#d8aa5b]/20 transition-all duration-500">
+                                    <div className="text-[#d8aa5b] opacity-40 group-hover:opacity-100 transition-opacity">
+                                        {card.iconType === 'Scent' ? <Zap size={20} /> : <ShoppingBag size={20} />}
+                                    </div>
+                                    <div>
+                                        <span className="text-[9px] uppercase tracking-widest text-gray-600 block mb-1 font-bold">{card.label}</span>
+                                        <span className="text-white text-sm font-medium">{card.value}</span>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    )}
+
+                    {/* Info List (Repurposed Ritual Steps) */}
+                    {infoList.length > 0 && (
+                        <div className="w-full border-t border-white/10 pt-10 mt-4 space-y-8">
+                            <span className="text-[10px] uppercase tracking-[0.3em] text-gray-500 font-bold block mb-4">Product Attributes</span>
+                            {infoList.map((item: any, idx: number) => (
+                                <div key={idx} className="flex gap-6 items-start group">
+                                    <span className="text-[#d8aa5b] font-display text-lg opacity-40 leading-none pt-1">
+                                        {(idx + 1).toString().padStart(2, '0')}
+                                    </span>
+                                    <div>
+                                        <h4 className="text-white text-sm uppercase tracking-widest font-bold mb-2 group-hover:text-[#d8aa5b] transition-colors">{item.title}</h4>
+                                        <p className="text-gray-500 text-xs leading-relaxed font-light">{item.description}</p>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    )}
+                </div>
             </div>
+            {/* Background Glow Layer for Text - Global Ambient */}
+            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[60vw] h-[60vw] bg-[radial-gradient(circle,_rgba(216,170,91,0.05)_0%,_transparent_70%)] blur-[100px] z-0 animate-pulse duration-[10000ms]"></div>
         </section>
     );
 };
 
-const SectionWrapper = ({ section, children }: { section: Section, children: React.ReactNode }) => {
+const SectionWrapper = ({ section, isFirst, noSnap, productContext }: { section: Section, isFirst?: boolean, noSnap?: boolean, productContext?: any }) => {
     const bg = section.backgroundConfig;
+    const ref = useRef(null);
+    const isInView = useInView(ref, { amount: 0.3, margin: "0px 0px -10% 0px" });
 
     return (
-        <div className="relative overflow-hidden w-full min-h-[10vh]">
-            {/* Background Layer */}
-            {bg && bg.url && (
-                <motion.div
-                    initial={{ opacity: 0 }}
-                    whileInView={{ opacity: bg.opacity ?? 1 }}
-                    viewport={{ once: false, amount: 0.1 }}
-                    transition={{ duration: 1.5, ease: "easeInOut" }}
-                    className="absolute inset-0 z-0 pointer-events-none"
-                    style={{
-                        filter: `blur(${bg.blur ?? 0}px)`,
-                    }}
-                >
-                    {bg.type === 'video' ? (
-                        <video
-                            src={bg.url}
-                            autoPlay
-                            muted
-                            loop
-                            playsInline
-                            className="w-full h-full object-cover"
-                        />
-                    ) : (
-                        <img
-                            src={bg.url}
-                            alt=""
-                            className="w-full h-full object-cover"
-                        />
-                    )}
+        <section ref={ref} className={`${noSnap ? 'relative w-full' : 'snap-section relative'} group`}>
+            <motion.div
+                className={`w-full ${noSnap ? 'min-h-[50vh]' : 'h-full'} relative overflow-hidden`}
+                animate={{
+                    opacity: isInView ? 1 : 0.95,
+                    scale: isInView ? 1 : 1.02
+                }}
+                transition={{ duration: 1.5, ease: [0.16, 1, 0.3, 1] }}
+            >
+                {/* Background Layer */}
+                {bg && bg.url && (
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: bg.opacity ?? 1 }}
+                        transition={{ duration: 1.5 }}
+                        className="absolute inset-0 z-0 pointer-events-none"
+                        style={{
+                            filter: `blur(${bg.blur ?? 0}px)`,
+                        }}
+                    >
+                        {bg.type === 'video' ? (
+                            <video
+                                src={bg.url}
+                                autoPlay
+                                muted
+                                loop
+                                playsInline
+                                className="w-full h-full object-cover"
+                            />
+                        ) : (
+                            <img
+                                src={bg.url}
+                                alt=""
+                                className="w-full h-full object-cover"
+                            />
+                        )}
 
-                    {/* Film Grain Overlay */}
-                    {(bg.grain || 0) > 0 && (
-                        <div
-                            className="absolute inset-0 mix-blend-overlay pointer-events-none grain-overlay"
-                            style={{ opacity: (bg.grain || 0) / 100 }}
-                        ></div>
-                    )}
-                </motion.div>
-            )}
+                        {/* Film Grain Overlay */}
+                        {(bg.grain || 0) > 0 && (
+                            <div
+                                className="absolute inset-0 mix-blend-overlay pointer-events-none grain-overlay"
+                                style={{ opacity: (bg.grain || 0) / 100 }}
+                            ></div>
+                        )}
+                    </motion.div>
+                )}
 
-            {/* Content Layer */}
-            <div className="relative z-10 w-full h-full">
-                {children}
-            </div>
-        </div>
+                {/* Content Layer */}
+                <div className={`relative z-10 w-full px-6 md:px-24 ${noSnap ? '' : `h-full flex ${section.type.toLowerCase().includes('rich') ? 'items-start pt-[10vh]' : 'items-center'} ${section.content.textAlign === 'left' ? 'justify-start' : section.content.textAlign === 'right' ? 'justify-end' : 'justify-center'}`}`}>
+                    <SectionContent section={section} isInView={isInView} productContext={productContext} />
+                </div>
+            </motion.div>
+        </section>
     );
 };
 
 // --- Main Renderer ---
 
-export default function SectionRenderer({ sections, productContext }: { sections: Section[], productContext?: any }) {
+// Helper to dispatch section rendering
+const SectionContent = ({ section, isInView, productContext }: { section: Section, isInView?: boolean, productContext?: any }) => {
+    switch (section.type) {
+        case 'hero':
+            return <HeroSection content={section.content} isInView={isInView} />;
+        case 'text-image':
+            return <TextImageSection content={section.content} isInView={isInView} />;
+        case 'rich-text':
+        case 'richText':
+            return <RichTextSection content={section.content} isInView={isInView} />;
+        case 'quote':
+            return <QuoteSection content={section.content} isInView={isInView} />;
+        case 'video':
+            return <VideoSection content={section.content} />;
+        case 'full-image':
+            return <FullImageSection content={section.content} />;
+        case 'spacer':
+            return <SpacerSection content={section.content} />;
+        case 'purchase':
+            return <PurchaseSection content={section.content} productContext={productContext} isInView={isInView} />;
+        default:
+            return <div className="p-10 text-center text-white/20 border border-dashed border-white/10 my-10 mx-auto container">Unknown Block Type: {section.type}</div>;
+    }
+};
+
+export default function SectionRenderer({
+    sections,
+    productContext,
+    showNav = true,
+    noSnap = false
+}: {
+    sections: Section[],
+    productContext?: any,
+    showNav?: boolean,
+    noSnap?: boolean
+}) {
+    const scrollContainerRef = useRef<HTMLDivElement>(null);
+    const [activeIndex, setActiveIndex] = useState(0);
+
+    const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
+        const scrollTop = e.currentTarget.scrollTop;
+        const height = e.currentTarget.clientHeight;
+        const index = Math.round(scrollTop / height);
+        if (index !== activeIndex) {
+            setActiveIndex(index);
+        }
+    };
+
+    const scrollToSection = (i: number) => {
+        if (scrollContainerRef.current) {
+            scrollContainerRef.current.scrollTo({
+                top: i * scrollContainerRef.current.clientHeight,
+                behavior: 'smooth'
+            });
+        }
+    };
+
     if (!sections || sections.length === 0) return null;
 
-    return (
-        <div className="flex flex-col bg-[#050505]">
-            {sections.filter(s => s.isEnabled).map((section) => {
-                let component;
-                switch (section.type) {
-                    case 'hero':
-                        component = <HeroSection key={section.id} content={section.content} />;
-                        break;
-                    case 'text-image':
-                        component = <TextImageSection key={section.id} content={section.content} />;
-                        break;
-                    case 'rich-text':
-                        component = <RichTextSection key={section.id} content={section.content} />;
-                        break;
-                    case 'quote':
-                        component = <QuoteSection key={section.id} content={section.content} />;
-                        break;
-                    case 'video':
-                        component = <VideoSection key={section.id} content={section.content} />;
-                        break;
-                    case 'full-image':
-                        component = <FullImageSection key={section.id} content={section.content} />;
-                        break;
-                    case 'spacer':
-                        component = <SpacerSection key={section.id} content={section.content} />;
-                        break;
-                    case 'purchase':
-                        component = <PurchaseSection key={section.id} content={section.content} productContext={productContext} />;
-                        break;
-                    default:
-                        component = <div key={section.id} className="p-10 text-center text-white/20 border border-dashed border-white/10 my-10 mx-auto container">Unknown Block Type: {section.type}</div>;
-                }
+    const enabledSections = sections.filter(s => s.isEnabled);
 
-                return (
-                    <SectionWrapper key={section.id} section={section}>
-                        {component}
-                    </SectionWrapper>
-                );
-            })}
+    return (
+        <div
+            ref={scrollContainerRef}
+            onScroll={handleScroll}
+            className={`${noSnap ? 'bg-[#050505] min-h-screen' : 'snap-container bg-[#050505]'}`}
+        >
+            {showNav && (
+                <SideNavigation
+                    sections={enabledSections}
+                    activeIndex={activeIndex}
+                    onDotClick={scrollToSection}
+                />
+            )}
+            {enabledSections.map((section, idx) => (
+                <SectionWrapper
+                    key={section.id}
+                    section={section}
+                    isFirst={idx === 0}
+                    noSnap={noSnap}
+                    productContext={productContext}
+                />
+            ))}
         </div>
     );
 }

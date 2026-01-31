@@ -7,7 +7,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { X, Minus, Plus, Trash2 } from "lucide-react";
 
 export default function CartDrawer() {
-    const { isOpen, toggleCart, items, removeFromCart, cartTotal } = useCart();
+    const { isOpen, toggleCart, items, removeFromCart, updateQuantity, cartTotal } = useCart();
     const { isAuthenticated } = useAuth();
     const router = useRouter();
 
@@ -71,9 +71,19 @@ export default function CartDrawer() {
                                             <p className="text-[#d8aa5b] font-display mb-4">${item.product.price}</p>
                                             <div className="flex items-center gap-4">
                                                 <div className="flex items-center gap-3 border border-white/10 px-3 py-1 rounded-sm text-white/60 text-xs">
-                                                    <button className="hover:text-white"><Minus size={10} /></button>
-                                                    <span>{item.quantity}</span>
-                                                    <button className="hover:text-white"><Plus size={10} /></button>
+                                                    <button
+                                                        onClick={() => updateQuantity(item.product.id, -1)}
+                                                        className="hover:text-white transition-colors p-1"
+                                                    >
+                                                        <Minus size={10} />
+                                                    </button>
+                                                    <span className="min-w-[1.2rem] text-center">{item.quantity}</span>
+                                                    <button
+                                                        onClick={() => updateQuantity(item.product.id, 1)}
+                                                        className="hover:text-white transition-colors p-1"
+                                                    >
+                                                        <Plus size={10} />
+                                                    </button>
                                                 </div>
                                             </div>
                                         </div>

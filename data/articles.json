@@ -51,5 +51,40 @@
     "readTime": "",
     "snippet": "開啟夜用低光燈\r\n\r\n夜浴或溫熱淋浴\r\n\r\n點燃線香\r\n\r\n熱敷肩頸\r\n\r\n戴上熱敷眼罩\r\n\r\n關燈，上床",
     "slug": "熱敷眼罩"
+  },
+  {
+    "id": "art-1769848572634",
+    "title": "睡覺前10分鐘的重要性",
+    "category": "Ritual",
+    "readTime": "5 min read",
+    "snippet": "睡覺一是可以增加睡眠深度15-20%",
+    "status": "published",
+    "slug": "---10------",
+    "tags": [],
+    "metaTitle": "",
+    "metaDescription": "",
+    "date": "2026-01-31",
+    "sections": [
+      {
+        "id": "hero-1769848572635",
+        "type": "hero",
+        "isEnabled": true,
+        "content": {
+          "title": "睡覺前10分鐘的重要性",
+          "subtitle": "A SØMNUS Editorial",
+          "ctaText": "",
+          "ctaLink": ""
+        }
+      },
+      {
+        "id": "rich-text-1769849704754",
+        "type": "rich-text",
+        "content": {
+          "text": "睡眠質量可以提升15-20%",
+          "textAlign": "left"
+        },
+        "isEnabled": true
+      }
+    ]
   }
 ]

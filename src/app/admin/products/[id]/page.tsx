@@ -24,7 +24,7 @@ export default async function AdminProductBuilderPage({ params }: { params: Prom
             </header>
 
             <div className="bg-[#111] border border-white/5 p-8 rounded-sm">
-                <ProductBuilderClient id={id} initialSections={product.sections || []} />
+                <ProductBuilderClient id={id} initialSections={product.sections || []} product={product} />
             </div>
         </div>
     );

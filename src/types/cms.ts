@@ -5,6 +5,7 @@ export type SectionType =
     | 'features'
     | 'video'
     | 'rich-text'
+    | 'richText'
     | 'quote'
     | 'grid'
     | 'full-image'

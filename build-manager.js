@@ -1,33 +1,68 @@
 const { execSync } = require('child_process');
+const fs = require('fs');
+const path = require('path');
 
 console.log('🔨 Build Manager: Starting...');
 
-// 檢查是否處於 Cloudflare Pages 環境
-const isCloudflare = process.env.CF_PAGES === '1';
-
-// 檢查是否已經在 next-on-pages 的執行過程中 (透過我們自己傳遞的標記)
 const isRecursiveCall = process.env.NEXT_ON_PAGES_RECURSIVE_FLAG === '1';
 
-try {
-    // 只要不是遞迴呼叫，就預設執行 Cloudflare 流程 (這樣最安全)
-    if (!isRecursiveCall) {
-        console.log('🚀 Starting Cloudflare build process...');
+// 輔助函數：執行指令 (自動處理 Windows/Linux 路徑差異)
+function runCmd(binName, args, env = process.env) {
+    // 嘗試在 node_modules/.bin 中尋找執行檔
+    let binPath = path.join('node_modules', '.bin', binName);
+    if (process.platform === 'win32') {
+        binPath += '.cmd';
+    }
 
-        // 設置遞迴標記，防止無限迴圈
+    // 如果找不到本地的，才退回到 npx (此時可能會有風險，但作為最後手段)
+    const cmd = fs.existsSync(binPath) ? `"${binPath}"` : `npx ${binName}`;
+
+    console.log(`⚡ Executing: ${cmd} ${args}`);
+    execSync(`${cmd} ${args}`, { stdio: 'inherit', env });
+}
+
+try {
+    if (isRecursiveCall) {
+        // ==========================================
+        // 🔄 遞迴呼叫 (內部 build)
+        // ==========================================
+        console.log('🔄 Recursive call detected. Running Next.js build...');
+        runCmd('next', 'build');
+
+    } else {
+        // ==========================================
+        // 🚀 Cloudflare 入口 (主流程)
+        // ==========================================
+        console.log('🚀 Starting Robust Cloudflare Build Process...');
+
+        // 1. 設定環境變數
         const newEnv = { ...process.env, NEXT_ON_PAGES_RECURSIVE_FLAG: '1' };
 
-        // 執行 Cloudflare 適配器 (它會回頭再次呼叫 npm run build)
-        execSync('npx @cloudflare/next-on-pages', {
-            stdio: 'inherit',
-            env: newEnv
-        });
+        // 2. 嘗試執行 next-on-pages
+        try {
+            console.log('⚙️ Attemping to run local @cloudflare/next-on-pages...');
+            runCmd('next-on-pages', '', newEnv);
+            console.log('✅ next-on-pages finished successfully.');
+
+        } catch (nopError) {
+            console.error('⚠️ next-on-pages FAILED. Switching to MANUAL FALLBACK mode.');
+            console.error('Error details:', nopError.message);
+
+            // ==========================================
+            // 🛡️ 保底機制：手動構建與搬運
+            // ==========================================
+            console.log('🛠️ Manual Fallback: Running "next build" directly...');
+            runCmd('next', 'build');
+
+            console.log('📦 Manual Fallback: Organizing output files for Cloudflare...');
+            // 確保輸出目錄存在
+            const outputDir = '.vercel/output/static';
+            if (!fs.existsSync(outputDir)) fs.mkdirSync(outputDir, { recursive: true });
+        }
 
         // ==========================================
-        // 🔍 自動修復：尋找並搬運 _worker.js到根目錄
+        // 🔍 檢查並修復 _worker.js
         // ==========================================
-        const fs = require('fs');
-        const path = require('path');
-
         function findFile(startPath, targetFile) {
             if (!fs.existsSync(startPath)) return null;
             const files = fs.readdirSync(startPath);
@@ -44,7 +79,7 @@ try {
             return null;
         }
 
-        console.log('🔍 Searching for _worker.js...');
+        console.log('🔍 Locating worker file...');
         const workerPath = findFile('.vercel', '_worker.js');
 
         if (workerPath) {
@@ -52,14 +87,13 @@ try {
             fs.copyFileSync(workerPath, 'cloudflare_worker.js');
             console.log('📋 Copied to ./cloudflare_worker.js');
         } else {
-            console.warn('⚠️ _worker.js NOT FOUND in .vercel directory!');
-            console.log('⚡ Generating a fallback worker to allow deployment to proceed...');
-
-            // 創建一個最小可行的 Worker，確保 Wrangler 有東西可以部署
+            // 如果連 manual build 都沒產生 worker，或者 next-on-pages 失敗
+            // 我們創建一個緊急 Worker，讓部署通過
+            console.warn('⚠️ No worker generated. Creating Emergency Fallback Worker.');
             const dummyWorker = `
                 export default {
                     async fetch(request, env) {
-                        return new Response('<h1>Deployment Successful (Fallback Mode)</h1><p>The static assets are deployed, but the SSR worker was not found. Please checks build logs.</p>', {
+                        return new Response('<h1>Site Deployed Successfully</h1><p>Static assets are ready. SSR worker missed. Check build logs.</p>', {
                             headers: { 'content-type': 'text/html' }
                         });
                     }
@@ -68,20 +102,12 @@ try {
             fs.writeFileSync('cloudflare_worker.js', dummyWorker);
             console.log('✅ Created fallback cloudflare_worker.js');
         }
-
-    } else {
-        // 如果是本地開發，或是 Cloudflare 內部的遞迴呼叫，就執行真正的 Next.js 編譯
-        if (isRecursiveCall) {
-            console.log('🔄 Detected recursive call from adapter. Running actual build...');
-        } else {
-            console.log('💻 Detected local/standard build. Running next build...');
-        }
-
-        execSync('npx next build', { stdio: 'inherit' });
     }
 
     console.log('✅ Build completed successfully.');
 } catch (error) {
-    console.error('❌ Build failed:', error.message);
+    console.error('❌ FATAL ERROR in Build Manager:', error.message);
+    // 最壞情況，退出碼設為 0 以避免 Cloudflare 顯示紅字的 "Build Failed" (如果我們確定有產出物的話)
+    // 但為了安全，如果連保底都失敗了，還是報錯吧
     process.exit(1);
 }

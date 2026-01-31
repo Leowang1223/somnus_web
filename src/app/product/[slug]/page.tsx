@@ -4,10 +4,18 @@ import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { Suspense } from "react";
 
-export const dynamic = 'force-dynamic';
+// Export needed for static site generation
+export async function generateStaticParams() {
+    const products = await getProducts();
+    return products.map((product: any) => ({
+        slug: product.slug,
+    }));
+}
 
 export default async function ProductDetailPage({ params }: { params: Promise<{ slug: string }> }) {
     const { slug } = await params;
+
+    // In static export, we re-fetch to get data. This is efficient at build time.
     const products = await getProducts();
     const product = products.find((p: any) => p.slug === slug);
 

@@ -2,7 +2,6 @@
 import { getProducts } from "@/lib/db";
 import ProductListClient from "./ProductListClient";
 
-export const dynamic = 'force-dynamic';
 
 export default async function CollectionPage() {
     const products = await getProducts();

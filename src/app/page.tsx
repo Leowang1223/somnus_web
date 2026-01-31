@@ -2,7 +2,6 @@ import { getHomeLayout } from "@/lib/db";
 import SectionRenderer from "@/components/sections/SectionRenderer";
 import { Suspense } from "react";
 
-export const dynamic = 'force-dynamic';
 
 export default async function Home() {
     const layout = await getHomeLayout();

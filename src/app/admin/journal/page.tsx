@@ -2,7 +2,6 @@
 import { getArticles } from "@/lib/db";
 import AdminJournalClient from "./AdminJournalClient";
 
-export const dynamic = 'force-dynamic';
 
 export default async function AdminJournalPage() {
     const articles = await getArticles();

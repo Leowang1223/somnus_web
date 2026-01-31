@@ -1,5 +1,5 @@
 {
-    "name": "somnus-web",
+    "name": "somnushub",
     "compatibility_date": "2024-09-23",
     "main": "cloudflare_worker.js",
     "assets": {

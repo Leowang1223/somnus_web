@@ -4,5 +4,8 @@
     "main": "cloudflare_worker.js",
     "assets": {
         "directory": ".vercel/output/static"
+    },
+    "build": {
+        "command": "npm run build"
     }
 }

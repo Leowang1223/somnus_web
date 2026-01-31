@@ -9,9 +9,9 @@ const isCloudflare = process.env.CF_PAGES === '1';
 const isRecursiveCall = process.env.NEXT_ON_PAGES_RECURSIVE_FLAG === '1';
 
 try {
-    if (isCloudflare && !isRecursiveCall) {
-        console.log('☁️ Detected Cloudflare Pages root build.');
-        console.log('🚀 Launching @cloudflare/next-on-pages...');
+    // 只要不是遞迴呼叫，就預設執行 Cloudflare 流程 (這樣最安全)
+    if (!isRecursiveCall) {
+        console.log('🚀 Starting Cloudflare build process...');
 
         // 設置遞迴標記，防止無限迴圈
         const newEnv = { ...process.env, NEXT_ON_PAGES_RECURSIVE_FLAG: '1' };
@@ -49,13 +49,24 @@ try {
 
         if (workerPath) {
             console.log(`✅ Found worker at: ${workerPath}`);
-            // 複製到根目錄，確保 wrangler deploy 一定找得到
             fs.copyFileSync(workerPath, 'cloudflare_worker.js');
             console.log('📋 Copied to ./cloudflare_worker.js');
         } else {
-            console.warn('⚠️ _worker.js not found in .vercel. Creating simple fallback.');
-            // 如果真的因為純靜態導致沒有 worker，給一個 dummy one 讓 deploy 通過
-            fs.writeFileSync('cloudflare_worker.js', 'export default { fetch: () => new Response("Static site loading...") }');
+            console.warn('⚠️ _worker.js NOT FOUND in .vercel directory!');
+            console.log('⚡ Generating a fallback worker to allow deployment to proceed...');
+
+            // 創建一個最小可行的 Worker，確保 Wrangler 有東西可以部署
+            const dummyWorker = `
+                export default {
+                    async fetch(request, env) {
+                        return new Response('<h1>Deployment Successful (Fallback Mode)</h1><p>The static assets are deployed, but the SSR worker was not found. Please checks build logs.</p>', {
+                            headers: { 'content-type': 'text/html' }
+                        });
+                    }
+                };
+            `;
+            fs.writeFileSync('cloudflare_worker.js', dummyWorker);
+            console.log('✅ Created fallback cloudflare_worker.js');
         }
 
     } else {

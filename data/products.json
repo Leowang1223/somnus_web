@@ -95,5 +95,40 @@
         "isEnabled": true
       }
     ]
+  },
+  {
+    "id": "prod-1769863252347",
+    "name": "蠟燭",
+    "price": 0,
+    "category": "Touch",
+    "description": "燭光",
+    "slug": "--",
+    "status": "published",
+    "aspectRatio": "4:5",
+    "tags": [
+      "cnadle"
+    ],
+    "focusPoint": {
+      "x": 50,
+      "y": 50
+    },
+    "sections": [
+      {
+        "id": "purchase-1769863252348",
+        "type": "purchase",
+        "isEnabled": true,
+        "content": {}
+      },
+      {
+        "id": "text-image-1769863274878",
+        "type": "text-image",
+        "content": {
+          "heading": "新故事",
+          "text": "長篇描述...",
+          "imagePosition": "left"
+        },
+        "isEnabled": true
+      }
+    ]
   }
 ]

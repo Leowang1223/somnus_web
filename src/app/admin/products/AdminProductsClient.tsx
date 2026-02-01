@@ -103,6 +103,7 @@ export default function AdminProductsClient({ initialProducts }: { initialProduc
         setCurrentProduct({
             name: '',
             price: 0,
+            cost: 0,
             category: 'Touch',
             description: '',
             slug: '',
@@ -295,6 +296,10 @@ export default function AdminProductsClient({ initialProducts }: { initialProduc
                                             <div>
                                                 <label className="block text-xs uppercase tracking-widest text-gray-500 mb-2">價格 ($)</label>
                                                 <input name="price" type="number" defaultValue={currentProduct.price} className="w-full bg-white/5 border border-white/10 p-4 text-white focus:outline-none focus:border-[#d8aa5b]" required />
+                                            </div>
+                                            <div>
+                                                <label className="block text-xs uppercase tracking-widest text-gray-500 mb-2">成本/原價 ($)</label>
+                                                <input name="cost" type="number" defaultValue={currentProduct.cost || 0} className="w-full bg-white/5 border border-white/10 p-4 text-white focus:outline-none focus:border-[#d8aa5b]" />
                                             </div>
                                         </div>
 

@@ -64,6 +64,75 @@ export async function getHomeLayout() {
     }
 }
 
+
 export async function saveHomeLayout(layout: any) {
     await fs.writeFile(path.join(DATA_DIR, 'home.json'), JSON.stringify(layout, null, 2));
+}
+
+// ==========================================
+// 🛍️ Order Management
+// ==========================================
+export async function getOrders() {
+    const filePath = path.join(DATA_DIR, 'orders.json');
+    try {
+        const fileContent = await fs.readFile(filePath, 'utf-8');
+        return JSON.parse(fileContent);
+    } catch (error) {
+        return [];
+    }
+}
+
+export async function saveOrder(order: any) {
+    const orders = await getOrders();
+    // Check if order exists (update) or push new
+    const index = orders.findIndex((o: any) => o.id === order.id);
+    if (index >= 0) {
+        orders[index] = order;
+    } else {
+        orders.push(order);
+    }
+    await fs.writeFile(path.join(DATA_DIR, 'orders.json'), JSON.stringify(orders, null, 2));
+}
+
+// ==========================================
+// 👥 User Management
+// ==========================================
+export async function getUsers() {
+    const filePath = path.join(DATA_DIR, 'users.json');
+    try {
+        const fileContent = await fs.readFile(filePath, 'utf-8');
+        return JSON.parse(fileContent);
+    } catch (error) {
+        return [];
+    }
+}
+
+export async function saveUser(user: any) {
+    const users = await getUsers();
+    const index = users.findIndex((u: any) => u.id === user.id);
+    if (index >= 0) {
+        users[index] = user;
+    } else {
+        users.push(user);
+    }
+    await fs.writeFile(path.join(DATA_DIR, 'users.json'), JSON.stringify(users, null, 2));
+}
+
+// ==========================================
+// 📊 Analytics (Simple Persistent Store)
+// ==========================================
+export async function getAnalytics() {
+    const filePath = path.join(DATA_DIR, 'analytics.json');
+    try {
+        const fileContent = await fs.readFile(filePath, 'utf-8');
+        return JSON.parse(fileContent);
+    } catch (error) {
+        return { totalVisitors: 0, dailyVisits: {} };
+    }
+}
+
+export async function updateAnalytics(data: any) {
+    const current = await getAnalytics();
+    const updated = { ...current, ...data };
+    await fs.writeFile(path.join(DATA_DIR, 'analytics.json'), JSON.stringify(updated, null, 2));
 }

@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { updateProductAction, uploadFileAction } from "@/app/actions";
-import { Edit, Plus, Save, X, Layout, Trash2, Upload, Loader2, Image as ImageIcon, ChevronDown, Check, Zap } from "lucide-react";
+import { Edit, Plus, Save, X, Layout, Trash2, Upload, Loader2, Image as ImageIcon, ChevronDown, Check, Zap, DollarSign } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
 import { CMSProduct } from '@/types/cms';
@@ -29,7 +29,11 @@ function MediaPicker({ label, value, onChange, focusPoint, onFocusChange, prefix
 
         try {
             const result = await uploadFileAction(formData);
-            onChange(result.url);
+            if (result.url) {
+                onChange(result.url);
+            } else {
+                alert("上傳失敗: 無法取得檔案 URL");
+            }
         } catch (err) {
             alert("上傳失敗");
         } finally {
@@ -84,6 +88,7 @@ export default function AdminProductsClient({ initialProducts }: { initialProduc
     const [isEditing, setIsEditing] = useState(false);
     const [currentProduct, setCurrentProduct] = useState<any>(null);
     const [selectedIds, setSelectedIds] = useState<string[]>([]);
+    const [activeLang, setActiveLang] = useState<'en' | 'zh' | 'jp' | 'ko'>('zh');
 
     const handleEdit = (product: any) => {
         setCurrentProduct(product);
@@ -111,9 +116,27 @@ export default function AdminProductsClient({ initialProducts }: { initialProduc
             status: 'draft',
             tags: [],
             aspectRatio: '4:5',
-            focusPoint: { x: 50, y: 50 }
+            focusPoint: { x: 50, y: 50 },
+            // Init multi-lang fields
+            name_zh: '', name_jp: '', name_ko: '',
+            description_zh: '', description_jp: '', description_ko: ''
         });
         setIsEditing(true);
+    };
+
+    // Helper to get current field value based on activeLang
+    const getFieldValue = (field: string) => {
+        if (activeLang === 'en') return currentProduct[field];
+        return currentProduct[`${field}_${activeLang}`] || '';
+    };
+
+    // Helper to set field value based on activeLang
+    const setFieldValue = (field: string, value: string) => {
+        if (activeLang === 'en') {
+            setCurrentProduct({ ...currentProduct, [field]: value });
+        } else {
+            setCurrentProduct({ ...currentProduct, [`${field}_${activeLang}`]: value });
+        }
     };
 
     return (
@@ -167,7 +190,10 @@ export default function AdminProductsClient({ initialProducts }: { initialProduc
                                         <div className="w-10 h-10 bg-white/5 rounded-sm overflow-hidden border border-white/5">
                                             {product.image && <img src={product.image} className="w-full h-full object-cover" alt="" />}
                                         </div>
-                                        <span className="font-display">{product.name}</span>
+                                        <div>
+                                            <span className="font-display block">{product.name}</span>
+                                            {product.name_zh && <span className="text-xs text-gray-500 block">{product.name_zh}</span>}
+                                        </div>
                                     </div>
                                 </td>
                                 <td className="p-6 text-sm text-gray-500">{product.category}</td>
@@ -203,7 +229,7 @@ export default function AdminProductsClient({ initialProducts }: { initialProduc
                             {/* Decorative background source */}
                             <div className="absolute top-0 right-0 w-64 h-64 bg-[#d8aa5b] opacity-[0.03] blur-[100px] -mr-32 -mt-32"></div>
 
-                            <div className="flex justify-between items-center mb-10 relative z-10">
+                            <div className="flex justify-between items-center mb-6 relative z-10">
                                 <div>
                                     <h2 className="font-display text-3xl text-white mb-1">{currentProduct.id ? '優化產品資料' : '創建新產品'}</h2>
                                     <p className="text-gray-500 text-xs uppercase tracking-widest">核心產品元數據</p>
@@ -214,6 +240,11 @@ export default function AdminProductsClient({ initialProducts }: { initialProduc
                             <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
                                 {/* Form Side */}
                                 <form action={async (formData) => {
+                                    // Append all language fields
+                                    ['zh', 'jp', 'ko'].forEach(lang => {
+                                        formData.append(`name_${lang}`, currentProduct[`name_${lang}`] || '');
+                                        formData.append(`description_${lang}`, currentProduct[`description_${lang}`] || '');
+                                    });
                                     await updateProductAction(formData);
                                     setIsEditing(false);
                                     router.refresh();
@@ -221,125 +252,156 @@ export default function AdminProductsClient({ initialProducts }: { initialProduc
                                     <input type="hidden" name="id" value={currentProduct.id || ''} />
                                     <input type="hidden" name="focusPoint" value={JSON.stringify(currentProduct.focusPoint || { x: 50, y: 50 })} />
 
-                                    <div className="flex justify-between items-center bg-[#d8aa5b]/5 border border-[#d8aa5b]/20 p-4 rounded-sm">
-                                        <div className="flex items-center gap-3">
-                                            <div className="w-8 h-8 rounded-full bg-[#d8aa5b] flex items-center justify-center text-black">
-                                                <Zap size={14} />
-                                            </div>
-                                            <div>
-                                                <p className="text-[10px] text-white font-bold uppercase tracking-widest">全球佈局</p>
-                                                <p className="text-[10px] text-[#d8aa5b] uppercase opacity-70">AI 手動翻譯儀式</p>
-                                            </div>
+                                    {/* Language Tabs */}
+                                    <div className="flex items-center gap-2 border-b border-white/10 pb-4 mb-4">
+                                        {[
+                                            { code: 'zh', label: '🇹🇼 繁體中文', name: 'name_zh', desc: 'description_zh' },
+                                            { code: 'en', label: '🇺🇸 English', name: 'name', desc: 'description' },
+                                            { code: 'jp', label: '🇯🇵 日本語', name: 'name_jp', desc: 'description_jp' },
+                                            { code: 'ko', label: '🇰🇷 한국어', name: 'name_ko', desc: 'description_ko' },
+                                        ].map((lang: any) => (
+                                            <button
+                                                key={lang.code}
+                                                type="button"
+                                                onClick={() => setActiveLang(lang.code)}
+                                                className={`px-4 py-2 text-xs font-bold uppercase tracking-widest rounded-sm transition-all ${activeLang === lang.code ? 'bg-[#d8aa5b] text-black' : 'text-gray-500 hover:text-white'}`}
+                                            >
+                                                {lang.label}
+                                            </button>
+                                        ))}
+
+                                        <div className="ml-auto">
+                                            <button
+                                                type="button"
+                                                onClick={async () => {
+                                                    const btn = document.activeElement as HTMLButtonElement;
+                                                    const originalText = btn.innerHTML;
+                                                    btn.innerHTML = `<span class="animate-pulse">✨ Translating...</span>`;
+                                                    btn.disabled = true;
+
+                                                    const { autoTranslateAction } = await import("@/app/actions");
+
+                                                    // Get current content
+                                                    const currentName = getFieldValue('name');
+                                                    const currentDesc = getFieldValue('description');
+
+                                                    if (!currentName && !currentDesc) {
+                                                        alert("請先輸入內容再進行翻譯");
+                                                        btn.innerHTML = originalText;
+                                                        btn.disabled = false;
+                                                        return;
+                                                    }
+
+                                                    // Calls REAL Google Gemini API
+                                                    const nameRes = await autoTranslateAction(currentName, activeLang, ['en', 'zh', 'jp', 'ko']);
+                                                    const descRes = await autoTranslateAction(currentDesc, activeLang, ['en', 'zh', 'jp', 'ko']);
+
+                                                    // Apply translations
+                                                    const newProduct = { ...currentProduct };
+
+                                                    if (nameRes.success && nameRes.translations) {
+                                                        ['en', 'zh', 'jp', 'ko'].forEach(lang => {
+                                                            if (lang === activeLang) return;
+                                                            const key = lang === 'en' ? 'name' : `name_${lang}`;
+                                                            newProduct[key] = nameRes.translations![lang] || newProduct[key];
+                                                        });
+                                                    }
+
+                                                    if (descRes.success && descRes.translations) {
+                                                        ['en', 'zh', 'jp', 'ko'].forEach(lang => {
+                                                            if (lang === activeLang) return;
+                                                            const key = lang === 'en' ? 'description' : `description_${lang}`;
+                                                            newProduct[key] = descRes.translations![lang] || newProduct[key];
+                                                        });
+                                                    }
+
+                                                    setCurrentProduct(newProduct);
+                                                    btn.innerHTML = originalText;
+                                                    btn.disabled = false;
+                                                }}
+                                                className="px-3 py-2 bg-purple-500/10 text-purple-400 hover:bg-purple-500 hover:text-white rounded-sm text-[10px] uppercase font-bold tracking-widest flex items-center gap-2 transition-all border border-purple-500/30"
+                                            >
+                                                <Zap size={14} /> AI Auto-Translate
+                                            </button>
                                         </div>
-                                        <button
-                                            type="button"
-                                            onClick={async () => {
-                                                const btn = document.activeElement as HTMLButtonElement;
-                                                const originalText = btn.innerText;
-                                                btn.innerText = "儀式進行中...";
-                                                btn.disabled = true;
-
-                                                const { translateAction } = await import("@/app/actions");
-                                                const result = await translateAction(currentProduct.name, 'zh'); // Example target
-                                                alert(`AI 建議翻譯： ${result.translated}`);
-
-                                                btn.innerText = originalText;
-                                                btn.disabled = false;
-                                            }}
-                                            className="px-4 py-2 bg-[#d8aa5b] text-black text-[10px] font-bold uppercase tracking-widest hover:bg-white transition-all rounded-sm"
-                                        >
-                                            翻譯為繁體中文
-                                        </button>
                                     </div>
 
                                     <div className="space-y-6">
-                                        <div className="grid grid-cols-2 gap-6">
+                                        <div className="space-y-6">
                                             <div>
-                                                <label className="block text-xs uppercase tracking-widest text-[#d8aa5b] mb-2 font-bold">產品名稱</label>
+                                                <label className="block text-xs uppercase tracking-widest text-[#d8aa5b] mb-2 font-bold">{activeLang === 'en' ? 'Product Name' : activeLang === 'zh' ? '產品名稱' : activeLang === 'jp' ? '商品名' : '상품명'}</label>
                                                 <input
-                                                    name="name"
-                                                    defaultValue={currentProduct.name}
-                                                    onChange={e => setCurrentProduct({ ...currentProduct, name: e.target.value })}
+                                                    value={getFieldValue('name')}
+                                                    onChange={e => setFieldValue('name', e.target.value)}
                                                     className="w-full bg-white/5 border border-white/10 p-4 text-white focus:outline-none focus:border-[#d8aa5b] transition-all font-display text-xl"
-                                                    placeholder="例如：Midnight Mist"
-                                                    required
+                                                    placeholder={activeLang === 'en' ? "e.g. Midnight Mist" : "例如：午夜迷霧"}
                                                 />
                                             </div>
-                                            <div>
-                                                <label className="block text-xs uppercase tracking-widest text-gray-500 mb-2">顯示狀態</label>
-                                                <select name="status" defaultValue={currentProduct.status || 'draft'} className="w-full bg-white/5 border border-white/10 p-4 text-white focus:outline-none focus:border-[#d8aa5b] appearance-none">
-                                                    <option value="draft">草稿 (隱藏)</option>
-                                                    <option value="published">已發佈 (公開)</option>
-                                                    <option value="archived">已歸檔</option>
-                                                </select>
-                                            </div>
-                                        </div>
 
-                                        <div className="grid grid-cols-3 gap-6">
                                             <div>
-                                                <label className="block text-xs uppercase tracking-widest text-gray-500 mb-2">類別</label>
-                                                <select name="category" defaultValue={currentProduct.category} className="w-full bg-white/5 border border-white/10 p-4 text-white focus:outline-none focus:border-[#d8aa5b] appearance-none">
-                                                    <option value="Touch">Touch</option>
-                                                    <option value="Scent">Scent</option>
-                                                    <option value="Kit">Kit</option>
-                                                    <option value="Visual">Visual</option>
-                                                </select>
+                                                <label className="block text-xs uppercase tracking-widest text-gray-500 mb-2">{activeLang === 'en' ? 'Description' : activeLang === 'zh' ? '氛圍描述' : activeLang === 'jp' ? '説明' : '설명'}</label>
+                                                <textarea
+                                                    value={getFieldValue('description')}
+                                                    onChange={e => setFieldValue('description', e.target.value)}
+                                                    rows={4}
+                                                    className="w-full bg-white/5 border border-white/10 p-4 text-white focus:outline-none focus:border-[#d8aa5b] resize-none font-light"
+                                                    placeholder="..."
+                                                />
                                             </div>
-                                            <div>
-                                                <label className="block text-xs uppercase tracking-widest text-gray-500 mb-2">寬高比</label>
-                                                <select name="aspectRatio" defaultValue={currentProduct.aspectRatio || '4:5'} className="w-full bg-white/5 border border-white/10 p-4 text-white focus:outline-none focus:border-[#d8aa5b] appearance-none">
-                                                    <option value="4:5">縱向 (4:5)</option>
-                                                    <option value="1:1">正方形 (1:1)</option>
-                                                    <option value="16:9">橫向 (16:9)</option>
-                                                </select>
-                                            </div>
-                                            <div>
-                                                <label className="block text-xs uppercase tracking-widest text-gray-500 mb-2">價格 ($)</label>
-                                                <input name="price" type="number" defaultValue={currentProduct.price} className="w-full bg-white/5 border border-white/10 p-4 text-white focus:outline-none focus:border-[#d8aa5b]" required />
-                                            </div>
-                                            <div>
-                                                <label className="block text-xs uppercase tracking-widest text-gray-500 mb-2">成本/原價 ($)</label>
-                                                <input name="cost" type="number" defaultValue={currentProduct.cost || 0} className="w-full bg-white/5 border border-white/10 p-4 text-white focus:outline-none focus:border-[#d8aa5b]" />
-                                            </div>
-                                        </div>
 
-                                        <div>
-                                            <label className="block text-xs uppercase tracking-widest text-gray-500 mb-2">感官標籤 (以逗號分隔)</label>
-                                            <input
-                                                name="tags"
-                                                defaultValue={(currentProduct.tags || []).join(', ')}
-                                                className="w-full bg-white/5 border border-white/10 p-4 text-white focus:outline-none focus:border-[#d8aa5b] text-xs font-mono"
-                                                placeholder="例如：Woody, Warm, Quiet"
+                                            <div className="border-t border-white/10 pt-6 mt-6">
+                                                <div className="grid grid-cols-2 gap-6">
+                                                    <div>
+                                                        <label className="block text-xs uppercase tracking-widest text-gray-500 mb-2">顯示狀態</label>
+                                                        <select name="status" defaultValue={currentProduct.status || 'draft'} className="w-full bg-white/5 border border-white/10 p-4 text-white focus:outline-none focus:border-[#d8aa5b] appearance-none">
+                                                            <option value="draft">草稿 (隱藏)</option>
+                                                            <option value="published">已發佈 (公開)</option>
+                                                            <option value="archived">已歸檔</option>
+                                                        </select>
+                                                    </div>
+                                                    {/* Other fields unrelated to lang */}
+                                                    <div>
+                                                        <label className="block text-xs uppercase tracking-widest text-gray-500 mb-2">類別</label>
+                                                        <select name="category" defaultValue={currentProduct.category} className="w-full bg-white/5 border border-white/10 p-4 text-white focus:outline-none focus:border-[#d8aa5b] appearance-none">
+                                                            <option value="Touch">Touch</option>
+                                                            <option value="Scent">Scent</option>
+                                                            <option value="Kit">Kit</option>
+                                                            <option value="Visual">Visual</option>
+                                                        </select>
+                                                    </div>
+                                                </div>
+                                                <div className="mt-6">
+                                                    <label className="block text-xs uppercase tracking-widest text-gray-500 mb-2">價格 ($)</label>
+                                                    <input name="price" type="number" defaultValue={currentProduct.price} className="w-full bg-white/5 border border-white/10 p-4 text-white focus:outline-none focus:border-[#d8aa5b]" required />
+                                                </div>
+                                            </div>
+
+                                            <MediaPicker
+                                                label="產品主要圖片"
+                                                value={currentProduct.image}
+                                                onChange={(val) => setCurrentProduct({ ...currentProduct, image: val })}
+                                                focusPoint={currentProduct.focusPoint}
+                                                onFocusChange={(fp) => setCurrentProduct({ ...currentProduct, focusPoint: fp })}
+                                                prefix={currentProduct.name}
                                             />
                                         </div>
 
-                                        <MediaPicker
-                                            label="產品主要圖片"
-                                            value={currentProduct.image}
-                                            onChange={(val) => setCurrentProduct({ ...currentProduct, image: val })}
-                                            focusPoint={currentProduct.focusPoint}
-                                            onFocusChange={(fp) => setCurrentProduct({ ...currentProduct, focusPoint: fp })}
-                                            prefix={currentProduct.name}
-                                        />
-
-                                        <MediaPicker
-                                            label="懸停動態媒體 (影片/GIF)"
-                                            value={currentProduct.hoverVideo || ''}
-                                            onChange={(val) => setCurrentProduct({ ...currentProduct, hoverVideo: val })}
-                                            prefix={`${currentProduct.name}-hover`}
-                                        />
-
-                                        <div>
-                                            <label className="block text-xs uppercase tracking-widest text-gray-500 mb-2">氛圍描述</label>
-                                            <textarea name="description" defaultValue={currentProduct.description} rows={4} className="w-full bg-white/5 border border-white/10 p-4 text-white focus:outline-none focus:border-[#d8aa5b] resize-none font-light" placeholder="描述感官體驗..." required />
+                                        <div className="flex gap-4 pt-6">
+                                            <button type="submit" className="flex-1 bg-[#d8aa5b] text-black h-16 font-bold uppercase tracking-[0.2em] hover:bg-white transition-all shadow-xl flex items-center justify-center gap-3">
+                                                <Save size={18} /> {currentProduct.id ? '確認變更' : '初始化產品'}
+                                            </button>
                                         </div>
                                     </div>
 
-                                    <div className="flex gap-4 pt-6">
-                                        <button type="submit" className="flex-1 bg-[#d8aa5b] text-black h-16 font-bold uppercase tracking-[0.2em] hover:bg-white transition-all shadow-xl flex items-center justify-center gap-3">
-                                            <Save size={18} /> {currentProduct.id ? '確認變更' : '初始化產品'}
-                                        </button>
-                                    </div>
+                                    {/* HIDDEN INPUTS FOR PERSISTENCE: Ensure all lang fields are submitted no matter which tab is active */}
+                                    {['zh', 'jp', 'ko'].map(lang => (
+                                        <div key={lang}>
+                                            <input type="hidden" name={`name_${lang}`} value={currentProduct[`name_${lang}`] || ''} />
+                                            <input type="hidden" name={`description_${lang}`} value={currentProduct[`description_${lang}`] || ''} />
+                                        </div>
+                                    ))}
+                                    <input type="hidden" name="name" value={currentProduct.name || ''} /> {/* EN fallback */}
+                                    <input type="hidden" name="description" value={currentProduct.description || ''} />
                                 </form>
 
                                 {/* Preview / Info Side */}
@@ -369,11 +431,11 @@ export default function AdminProductsClient({ initialProducts }: { initialProduc
                                     <div className="space-y-4">
                                         <div className="bg-[#d8aa5b]/5 border-l-2 border-[#d8aa5b] p-4">
                                             <p className="text-xs text-[#d8aa5b] font-medium leading-relaxed">
-                                                SEO 提示：資產將自動重命名為產品名稱，以利於搜尋引擎索引。
+                                                正在編輯：{activeLang === 'en' ? 'English' : activeLang === 'zh' ? 'Traditional Chinese' : activeLang === 'jp' ? 'Japanese' : 'Korean'}
                                             </p>
                                         </div>
                                         <p className="text-[10px] text-gray-600 uppercase tracking-widest leading-loose">
-                                            焦點確保您的產品在不同螢幕尺寸（桌面 vs 手機）下都能保持居中。
+                                            AI 翻譯將根據您當前輸入的語言，自動生成其他語言的充滿詩意的文案。
                                         </p>
                                     </div>
                                 </div>

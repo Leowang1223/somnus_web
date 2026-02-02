@@ -94,9 +94,14 @@ function MediaPicker({ label, value, onChange, focusPoint, onFocusChange, prefix
 
         try {
             const result = await uploadFileAction(formData);
-            onChange(result.url);
-        } catch (err) {
-            alert("上傳失敗");
+            if (result.error) {
+                alert(`上傳錯誤: ${result.error}`);
+            } else if (result.url) {
+                onChange(result.url);
+            }
+        } catch (err: any) {
+            console.error("Upload error:", err);
+            alert(`上傳失敗 (系統): ${err.message || "未知錯誤"}`);
         } finally {
             setIsUploading(false);
         }
@@ -216,9 +221,15 @@ function AlignControl({ value, onChange, label = '文字對齊方式' }: { value
 // Editor Modal Component
 function EditModal({ section, onClose, onSave }: { section: Section; onClose: () => void; onSave: (s: Section) => void }) {
     const [content, setContent] = useState(section.content);
+    // Fix: Manage backgroundConfig in local state to prevent modal closing on change
+    const [backgroundConfig, setBackgroundConfig] = useState(section.backgroundConfig || { opacity: 1, blur: 0, grain: 0 });
 
     const handleChange = (key: string, value: any) => {
         setContent({ ...content, [key]: value });
+    };
+
+    const handleBackgroundChange = (key: string, value: any) => {
+        setBackgroundConfig((prev: any) => ({ ...prev, [key]: value }));
     };
 
     return (
@@ -335,7 +346,8 @@ function EditModal({ section, onClose, onSave }: { section: Section; onClose: ()
                                 values={content.backgroundImages || (content.backgroundImage ? [content.backgroundImage] : [])}
                                 onChange={vals => {
                                     handleChange('backgroundImages', vals);
-                                    if (vals.length > 0) handleChange('backgroundImage', vals[0]);
+                                    if (vals.length > 0) setContent((prev: any) => ({ ...prev, backgroundImages: vals, backgroundImage: vals[0] }));
+                                    else setContent((prev: any) => ({ ...prev, backgroundImages: vals }));
                                 }}
                             />
                         </>
@@ -345,7 +357,7 @@ function EditModal({ section, onClose, onSave }: { section: Section; onClose: ()
                         <>
                             <div>
                                 <label className="block text-xs uppercase text-gray-500 mb-2">標題</label>
-                                <input value={content.heading} onChange={e => handleChange('heading', e.target.value)} className="w-full bg-[#111] border border-white/10 p-3 text-white focus:outline-none focus:border-[#d8aa5b]" />
+                                <textarea value={content.heading} onChange={e => handleChange('heading', e.target.value)} className="w-full bg-[#111] border border-white/10 p-3 text-white focus:outline-none focus:border-[#d8aa5b]" rows={2} />
                             </div>
                             <div>
                                 <label className="block text-xs uppercase text-gray-500 mb-2">正文</label>
@@ -365,10 +377,20 @@ function EditModal({ section, onClose, onSave }: { section: Section; onClose: ()
                                 label="視覺圖片"
                                 values={content.images || (content.image ? [content.image] : [])}
                                 onChange={vals => {
-                                    handleChange('images', vals);
-                                    if (vals.length > 0) handleChange('image', vals[0]);
+                                    if (vals.length > 0) setContent((prev: any) => ({ ...prev, images: vals, image: vals[0] }));
+                                    else setContent((prev: any) => ({ ...prev, images: vals }));
                                 }}
                             />
+                            <div>
+                                <label className="block text-xs uppercase text-gray-500 mb-2">圖片上的黃字 Caption (選填)</label>
+                                <textarea
+                                    value={content.caption || ''}
+                                    onChange={e => handleChange('caption', e.target.value)}
+                                    className="w-full bg-[#111] border border-white/10 p-3 text-white focus:outline-none focus:border-[#d8aa5b]"
+                                    rows={2}
+                                    placeholder="留空則不顯示..."
+                                />
+                            </div>
                         </>
                     )}
 
@@ -378,13 +400,13 @@ function EditModal({ section, onClose, onSave }: { section: Section; onClose: ()
                                 label="高解析度輪播圖片"
                                 values={content.images || (content.image ? [content.image] : [])}
                                 onChange={vals => {
-                                    handleChange('images', vals);
-                                    if (vals.length > 0) handleChange('image', vals[0]);
+                                    if (vals.length > 0) setContent((prev: any) => ({ ...prev, images: vals, image: vals[0] }));
+                                    else setContent((prev: any) => ({ ...prev, images: vals }));
                                 }}
                             />
                             <div>
                                 <label className="block text-xs uppercase text-gray-500 mb-2">疊蓋說明 (選填)</label>
-                                <input value={content.caption} onChange={e => handleChange('caption', e.target.value)} className="w-full bg-[#111] border border-white/10 p-3 text-white focus:outline-none focus:border-[#d8aa5b]" />
+                                <textarea value={content.caption} onChange={e => handleChange('caption', e.target.value)} className="w-full bg-[#111] border border-white/10 p-3 text-white focus:outline-none focus:border-[#d8aa5b]" rows={2} />
                             </div>
                         </>
                     )}
@@ -436,46 +458,30 @@ function EditModal({ section, onClose, onSave }: { section: Section; onClose: ()
 
                     {section.type === 'purchase' && (
                         <div className="space-y-10">
-                            <div className="bg-[#d8aa5b]/10 p-6 border border-[#d8aa5b]/20 rounded-sm">
-                                <p className="text-[#d8aa5b] text-xs uppercase tracking-widest font-bold mb-2">購買介面配置</p>
-                                <p className="text-gray-400 text-[10px] leading-relaxed italic">
-                                    此區域將展示產品主圖輪播、價格以及購買按鈕。
-                                </p>
+                            <div className="bg-[#d8aa5b]/10 p-6 border border-[#d8aa5b]/20 rounded-sm space-y-4">
+                                <div>
+                                    <p className="text-[#d8aa5b] text-xs uppercase tracking-widest font-bold mb-2">購買介面配置</p>
+                                    <p className="text-gray-400 text-[10px] leading-relaxed italic">
+                                        此區域將展示產品主圖輪播、價格以及購買按鈕。
+                                    </p>
+                                </div>
+                                <div className="grid grid-cols-1 gap-4 pt-2 border-t border-[#d8aa5b]/20">
+                                    <div>
+                                        <label className="block text-[10px] uppercase text-[#d8aa5b]/70 mb-2">小標籤 (Label Override)</label>
+                                        <input value={content.label} onChange={e => handleChange('label', e.target.value)} className="w-full bg-black/20 border border-[#d8aa5b]/20 p-2 text-white text-xs focus:outline-none focus:border-[#d8aa5b]" placeholder="不填則顯示預設類別..." />
+                                    </div>
+                                    <div>
+                                        <label className="block text-[10px] uppercase text-[#d8aa5b]/70 mb-2">產品描述 (Description Override)</label>
+                                        <textarea value={content.description} onChange={e => handleChange('description', e.target.value)} className="w-full bg-black/20 border border-[#d8aa5b]/20 p-2 text-white text-xs focus:outline-none focus:border-[#d8aa5b]" rows={3} placeholder="不填則顯示產品原描述..." />
+                                    </div>
+                                </div>
                             </div>
 
-                            <MediaPicker
+                            <MultiImagePicker
                                 label="產品輪播圖片 (多張)"
-                                value={content.images?.[0] || ""}
-                                onChange={val => {
-                                    const currentImages = content.images || [];
-                                    handleChange('images', [val, ...currentImages.slice(1)]);
-                                }}
+                                values={content.images || []}
+                                onChange={vals => handleChange('images', vals)}
                             />
-                            {/* Simple list for additional images if needed */}
-                            {content.images?.length > 1 && (
-                                <div className="grid grid-cols-4 gap-2">
-                                    {content.images.map((img: string, i: number) => (
-                                        <div key={i} className="relative aspect-square bg-[#111] border border-white/10 group">
-                                            <img src={img} className="w-full h-full object-cover" />
-                                            <button
-                                                onClick={() => handleChange('images', content.images.filter((_: any, idx: number) => idx !== i))}
-                                                className="absolute top-1 right-1 bg-red-500 text-white p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
-                                            >
-                                                <Trash2 size={10} />
-                                            </button>
-                                        </div>
-                                    ))}
-                                </div>
-                            )}
-                            <button
-                                onClick={() => {
-                                    const url = prompt("請輸入圖片 URL 或再次點擊上傳按鈕 (目前僅支援手動新增或從主 Picker 新增)");
-                                    if (url) handleChange('images', [...(content.images || []), url]);
-                                }}
-                                className="text-[10px] uppercase text-[#d8aa5b] hover:text-white transition-colors"
-                            >
-                                + 新增輪播圖片
-                            </button>
 
                             <hr className="border-white/5" />
 
@@ -572,47 +578,38 @@ function EditModal({ section, onClose, onSave }: { section: Section; onClose: ()
                             <div className="space-y-6">
                                 <MediaPicker
                                     label="區塊背景 (覆蓋)"
-                                    value={section.backgroundConfig?.url || ''}
+                                    value={backgroundConfig.url || ''}
                                     onChange={val => {
-                                        const config = section.backgroundConfig || {};
-                                        onSave({ ...section, backgroundConfig: { ...config, url: val, type: val.match(/\.(mp4|webm)$/) ? 'video' : 'image' } });
+                                        handleBackgroundChange('url', val);
+                                        handleBackgroundChange('type', val.match(/\.(mp4|webm)$/) ? 'video' : 'image');
                                     }}
                                 />
                                 <div className="grid grid-cols-2 gap-4">
                                     <div>
-                                        <label className="block text-[10px] uppercase text-gray-500 mb-2">不透明度 ({section.backgroundConfig?.opacity ?? 1})</label>
+                                        <label className="block text-[10px] uppercase text-gray-500 mb-2">不透明度 ({backgroundConfig.opacity ?? 1})</label>
                                         <input
                                             type="range" min="0" max="1" step="0.1"
-                                            value={section.backgroundConfig?.opacity ?? 1}
-                                            onChange={e => {
-                                                const config = section.backgroundConfig || {};
-                                                onSave({ ...section, backgroundConfig: { ...config, opacity: parseFloat(e.target.value) } });
-                                            }}
+                                            value={backgroundConfig.opacity ?? 1}
+                                            onChange={e => handleBackgroundChange('opacity', parseFloat(e.target.value))}
                                             className="w-full accent-[#d8aa5b]"
                                         />
                                     </div>
                                     <div>
-                                        <label className="block text-[10px] uppercase text-gray-500 mb-2">模糊 ({section.backgroundConfig?.blur ?? 0}px)</label>
+                                        <label className="block text-[10px] uppercase text-gray-500 mb-2">模糊 ({backgroundConfig.blur ?? 0}px)</label>
                                         <input
                                             type="range" min="0" max="100" step="5"
-                                            value={section.backgroundConfig?.blur ?? 0}
-                                            onChange={e => {
-                                                const config = section.backgroundConfig || {};
-                                                onSave({ ...section, backgroundConfig: { ...config, blur: parseInt(e.target.value) } });
-                                            }}
+                                            value={backgroundConfig.blur ?? 0}
+                                            onChange={e => handleBackgroundChange('blur', parseInt(e.target.value))}
                                             className="w-full accent-[#d8aa5b]"
                                         />
                                     </div>
                                 </div>
                                 <div>
-                                    <label className="block text-[10px] uppercase text-gray-500 mb-2">底片顆粒 ({section.backgroundConfig?.grain ?? 0}%)</label>
+                                    <label className="block text-[10px] uppercase text-gray-500 mb-2">底片顆粒 ({backgroundConfig.grain ?? 0}%)</label>
                                     <input
                                         type="range" min="0" max="100" step="5"
-                                        value={section.backgroundConfig?.grain ?? 0}
-                                        onChange={e => {
-                                            const config = section.backgroundConfig || {};
-                                            onSave({ ...section, backgroundConfig: { ...config, grain: parseInt(e.target.value) } });
-                                        }}
+                                        value={backgroundConfig.grain ?? 0}
+                                        onChange={e => handleBackgroundChange('grain', parseInt(e.target.value))}
                                         className="w-full accent-[#d8aa5b]"
                                     />
                                 </div>
@@ -628,7 +625,7 @@ function EditModal({ section, onClose, onSave }: { section: Section; onClose: ()
 
                 <div className="flex justify-end gap-4 mt-12 pt-8 border-t border-white/5">
                     <button onClick={onClose} className="text-white/40 hover:text-white px-4 py-2 transition-colors uppercase text-[10px] tracking-widest font-bold">取消</button>
-                    <button onClick={() => onSave({ ...section, content })} className="bg-[#d8aa5b] text-black px-8 py-3 font-bold uppercase tracking-widest hover:bg-white rounded-sm transition-all shadow-[0_4px_20px_rgba(216,170,91,0.2)]">儲存變更</button>
+                    <button onClick={() => onSave({ ...section, content, backgroundConfig })} className="bg-[#d8aa5b] text-black px-8 py-3 font-bold uppercase tracking-widest hover:bg-white rounded-sm transition-all shadow-[0_4px_20px_rgba(216,170,91,0.2)]">儲存變更</button>
                 </div>
             </div>
         </div>
@@ -636,19 +633,15 @@ function EditModal({ section, onClose, onSave }: { section: Section; onClose: ()
 }
 
 export default function UniversalSectionBuilder({
-    initialSections,
-    onSave,
-    onChange,
-    isSaving = false,
-    metadata,
-    onMetadataChange
+    initialSections, onSave, isSaving, onChange, metadata, onMetadataChange, isOwner = false
 }: {
     initialSections: Section[];
     onSave: (sections: Section[]) => Promise<void>;
-    onChange?: (sections: Section[]) => void;
     isSaving?: boolean;
+    onChange?: (sections: Section[]) => void;
     metadata?: any;
-    onMetadataChange?: (metadata: any) => void;
+    onMetadataChange?: (meta: any) => void;
+    isOwner?: boolean;
 }) {
     const [sections, setSections] = useState<Section[]>(initialSections || []);
     const [editingSection, setEditingSection] = useState<Section | null>(null);
@@ -854,6 +847,19 @@ export default function UniversalSectionBuilder({
                                             />
                                         </div>
                                     )}
+                                </div>
+                            )}
+
+                            {isOwner && metadata.cost !== undefined && (
+                                <div className="space-y-2 animate-in fade-in slide-in-from-top-2">
+                                    <label className="block text-[10px] uppercase text-red-500/70 font-bold tracking-widest">產品成本 (Cost)</label>
+                                    <input
+                                        type="number"
+                                        value={metadata.cost || 0}
+                                        onChange={e => onMetadataChange?.({ ...metadata, cost: parseFloat(e.target.value) })}
+                                        className="w-full bg-white/5 border border-white/10 p-4 text-red-400 focus:outline-none focus:border-red-500 font-display text-xl transition-all font-mono"
+                                    />
+                                    <p className="text-[10px] text-gray-500">此欄位僅供負責人查看，用於計算淨利。</p>
                                 </div>
                             )}
 

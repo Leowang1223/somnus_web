@@ -67,7 +67,7 @@
     "price": 280,
     "category": "Visual",
     "description": "自然芳香",
-    "slug": "--",
+    "slug": "incense",
     "status": "published",
     "aspectRatio": "4:5",
     "tags": [
@@ -99,15 +99,13 @@
   {
     "id": "prod-1769863252347",
     "name": "蠟燭",
-    "price": 0,
+    "price": 50,
     "category": "Touch",
     "description": "燭光",
-    "slug": "--",
+    "slug": "candle",
     "status": "published",
     "aspectRatio": "4:5",
-    "tags": [
-      "cnadle"
-    ],
+    "tags": [],
     "focusPoint": {
       "x": 50,
       "y": 50
@@ -129,6 +127,9 @@
         },
         "isEnabled": true
       }
-    ]
+    ],
+    "cost": 0,
+    "variants": [],
+    "supplier": {}
   }
 ]

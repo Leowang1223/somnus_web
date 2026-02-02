@@ -1,0 +1,21 @@
+[
+  {
+    "id": "tkt-seed-return-1",
+    "type": "return",
+    "department": "Warranty & Repair",
+    "status": "closed",
+    "assignedTo": "admin-1",
+    "orderId": "ORD-2024-001",
+    "message": "The ceramic coating is chipped on the base.",
+    "messages": [
+      {
+        "id": "msg-1",
+        "sender": "user",
+        "content": "The ceramic coating is chipped on the base. I received it yesterday.",
+        "timestamp": 1706800000000
+      }
+    ],
+    "createdAt": "2026-02-01T12:00:00.000Z",
+    "updatedAt": "2026-02-01T12:00:00.000Z"
+  }
+]

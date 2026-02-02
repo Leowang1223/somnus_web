@@ -34,8 +34,9 @@ export interface CMSProduct {
     id: string;
     slug: string;
     name: string;
-    price: number;
     description: string;
+    [key: string]: any; // Allow dynamic language fields (name_zh, description_jp, etc.)
+    price: number;
     category: string;
     image: string;
     hoverVideo?: string;
@@ -49,12 +50,13 @@ export interface CMSProduct {
 export interface CMSArticle {
     id: string;
     title: string;
+    slug: string;
+    [key: string]: any; // Allow dynamic language fields
     category: string;
     readTime: string;
     snippet: string;
     image?: string;
     sections?: Section[];
-    slug: string;
     metaTitle?: string;
     metaDescription?: string;
     tags?: string[];

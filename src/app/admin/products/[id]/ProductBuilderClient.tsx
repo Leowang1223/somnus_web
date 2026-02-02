@@ -7,8 +7,10 @@ import { updateProductSectionsAction, updateProductMetadataAction } from "@/app/
 import { useState } from "react";
 import { Eye, Monitor, Smartphone, Globe, ChevronLeft } from "lucide-react";
 import Link from 'next/link';
+import { useAuth } from "@/context/AuthContext";
 
 export default function ProductBuilderClient({ id, initialSections, product }: { id: string, initialSections: Section[], product: any }) {
+    const { isOwner } = useAuth();
     const [isSaving, setIsSaving] = useState(false);
     const [sections, setSections] = useState<Section[]>(initialSections);
     const [meta, setMeta] = useState(product);
@@ -63,6 +65,7 @@ export default function ProductBuilderClient({ id, initialSections, product }: {
                         onChange={setSections}
                         metadata={meta}
                         onMetadataChange={setMeta}
+                        isOwner={isOwner}
                     />
                 </div>
 

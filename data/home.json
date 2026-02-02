@@ -13,28 +13,68 @@
         "enableTitleBgGlow": true,
         "enableTitleGlow": true
       },
-      "isEnabled": true
+      "isEnabled": true,
+      "backgroundConfig": {
+        "opacity": 1,
+        "blur": 0,
+        "grain": 0
+      }
     },
     {
       "id": "philosophy-section",
       "type": "text-image",
       "content": {
-        "heading": "The Architecture of Silence.",
-        "text": "Verbalizing sleep is not a passive state, but a ritual to be performed. Our collection is designed to signal the brain, transition the body, and soothe the spirit.",
+        "heading": "We don’t fail to sleep.\n We fail to let the day end.\n",
+        "text": "Tonight’s problem isn’t energy.\nIt’s attention that never shuts off.\n\nWe’re not awake.\nWe’re still switched on.",
         "imagePosition": "left",
-        "caption": "The final moments of consciousness are the most sacred."
+        "caption": "",
+        "images": [
+          "/uploads/final_fixed.png"
+        ],
+        "image": "/uploads/final_fixed.png"
       },
-      "isEnabled": true
+      "isEnabled": true,
+      "backgroundConfig": {
+        "opacity": 0.9
+      }
     },
     {
       "id": "text-image-1769697573846",
       "type": "text-image",
       "content": {
-        "heading": "夜晚，不只是結束一天",
-        "text": "在這個永遠在線的世界裡，\n真正稀缺的不是時間，而是「慢下來的空間」。\n\n我們開始重新思考：\n睡眠，是否能不只是關燈與躺下？",
-        "imagePosition": "right"
+        "heading": "Not a sleep product.\n It’s a permission to slow down.\n",
+        "text": "You don’t buy this\n to sleep better.\nYou buy it\n to stop scrolling,\n stop pushing,\n and start ending the day gently.",
+        "imagePosition": "right",
+        "images": [
+          "/uploads/somnus-1769967212533-gemini-generated-image-tzkvv4tzkvv4tzkv.png"
+        ],
+        "image": "/uploads/somnus-1769967212533-gemini-generated-image-tzkvv4tzkvv4tzkv.png"
       },
-      "isEnabled": true
+      "isEnabled": true,
+      "backgroundConfig": {
+        "opacity": 1,
+        "blur": 0,
+        "grain": 0
+      }
+    },
+    {
+      "id": "text-image-1769967265245",
+      "type": "text-image",
+      "content": {
+        "heading": "For people who are tired,\n and still trying.\n",
+        "text": "For those who give their mind, their heart, and their energy all day long.\n\nTired — but still planning what comes next.\n\nWe don’t help you sleep.\nWe help you close the day gently.",
+        "imagePosition": "left",
+        "images": [
+          "/uploads/somnus-1769967370677-gemini-generated-image-79bg0u79bg0u79bg.png"
+        ],
+        "image": "/uploads/somnus-1769967370677-gemini-generated-image-79bg0u79bg0u79bg.png"
+      },
+      "isEnabled": true,
+      "backgroundConfig": {
+        "opacity": 1,
+        "blur": 0,
+        "grain": 0
+      }
     }
   ]
 }

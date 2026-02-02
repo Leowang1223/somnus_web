@@ -6,6 +6,8 @@ import { Lock, User } from "lucide-react";
 import { useState, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 
+import { loginAction } from "@/app/actions";
+
 function LoginContent() {
     const { login } = useAuth();
     const searchParams = useSearchParams();
@@ -13,7 +15,7 @@ function LoginContent() {
     const [password, setPassword] = useState("");
     const [error, setError] = useState("");
 
-    const handleLogin = (e: React.FormEvent) => {
+    const handleLogin = async (e: React.FormEvent) => {
         e.preventDefault();
         setError("");
 
@@ -25,12 +27,16 @@ function LoginContent() {
             target += (target.includes('?') ? '&' : '?') + `action=${action}`;
         }
 
-        if (email === "admin@somnus.com" && password === "admin123") {
-            login('admin', redirect || '/admin');
-        } else if (email === "user@somnus.com" && password === "user123") {
-            login('consumer', target);
+        const formData = new FormData();
+        formData.append('email', email);
+        formData.append('password', password);
+
+        const result = await loginAction(formData);
+
+        if (result.success && result.user) {
+            login(result.user.role as any, target); // login from AuthContext automatically redirects if needed
         } else {
-            setError("Invalid credentials. Try the test accounts.");
+            setError(result.error || "Invalid credentials.");
         }
     };
 

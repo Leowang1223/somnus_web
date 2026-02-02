@@ -1,0 +1,19 @@
+{
+    "nav.home": "ホーム",
+    "nav.shop": "ショップ",
+    "nav.journal": "ジャーナル",
+    "nav.support": "サポート",
+    "nav.cart": "カート",
+    "nav.login": "ログイン",
+    "nav.admin": "管理パネル",
+    "nav.profile": "プロフィール",
+    "nav.logout": "ログアウト",
+    "hero.title": "静寂の香り",
+    "hero.subtitle": "香りを通して、虚無を体験する。",
+    "hero.cta": "コレクションを見る",
+    "cart.title": "カートの中身",
+    "cart.empty": "カートは空です。",
+    "cart.checkout": "お会計",
+    "common.loading": "読み込み中...",
+    "common.currency": "¥"
+}

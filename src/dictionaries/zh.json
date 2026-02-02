@@ -1,0 +1,19 @@
+{
+    "nav.home": "首頁",
+    "nav.shop": "商店",
+    "nav.journal": "日誌",
+    "nav.support": "客服",
+    "nav.cart": "購物車",
+    "nav.login": "登入",
+    "nav.admin": "管理後台",
+    "nav.profile": "個人檔案",
+    "nav.logout": "登出",
+    "hero.title": "寂靜之香",
+    "hero.subtitle": "透過香氛，體驗虛無。",
+    "hero.cta": "探索系列",
+    "cart.title": "您的選購",
+    "cart.empty": "購物車是空的。",
+    "cart.checkout": "結帳",
+    "common.loading": "讀取中...",
+    "common.currency": "NT$"
+}

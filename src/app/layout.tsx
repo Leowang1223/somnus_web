@@ -3,7 +3,9 @@ import "./globals.css";
 import Navbar from "@/components/Navbar";
 import { AuthProvider } from "@/context/AuthContext";
 import { CartProvider } from "@/context/CartContext";
+import { LanguageProvider } from "@/context/LanguageContext";
 import CartDrawer from "@/components/CartDrawer";
+import LanguageSelector from "@/components/LanguageSelector";
 
 export const metadata: Metadata = {
   title: "SØMNUS | The Golden 30 Minutes",
@@ -19,11 +21,14 @@ export default function RootLayout({
     <html lang="en">
       <body className="antialiased">
         <AuthProvider>
-          <CartProvider>
-            <Navbar />
-            <CartDrawer />
-            {children}
-          </CartProvider>
+          <LanguageProvider>
+            <CartProvider>
+              <LanguageSelector />
+              <Navbar />
+              <CartDrawer />
+              {children}
+            </CartProvider>
+          </LanguageProvider>
         </AuthProvider>
       </body>
     </html>

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { updateArticleAction, uploadFileAction } from "@/app/actions";
+import { updateArticleAction, uploadFileAction, deleteArticlesAction } from "@/app/actions";
 import { Edit, Plus, Save, X, BookOpen, Upload, Loader2, Image as ImageIcon, Zap, Check } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
@@ -22,7 +22,11 @@ function MediaPicker({ label, value, onChange, prefix }: { label: string, value:
 
         try {
             const result = await uploadFileAction(formData);
-            onChange(result.url);
+            if (result.url) {
+                onChange(result.url);
+            } else {
+                alert("上傳失敗: 無法取得檔案 URL");
+            }
         } catch (err) {
             alert("上傳失敗");
         } finally {
@@ -86,6 +90,24 @@ export default function AdminJournalClient({ initialArticles }: { initialArticle
         setIsEditing(true);
     };
 
+    const handleDelete = async () => {
+        if (!confirm(`確定要刪除 ${selectedIds.length} 篇文章嗎？此操作無法復原。`)) return;
+
+        try {
+            const result = await deleteArticlesAction(selectedIds);
+            if (result.success) {
+                const remainingArticles = articles.filter(a => !selectedIds.includes(a.id));
+                setArticles(remainingArticles);
+                setSelectedIds([]);
+                router.refresh();
+            } else {
+                alert('刪除失敗');
+            }
+        } catch (err) {
+            alert('刪除失敗');
+        }
+    };
+
     return (
         <div>
             <div className="flex justify-between items-center mb-6">
@@ -99,7 +121,12 @@ export default function AdminJournalClient({ initialArticles }: { initialArticle
                             <span className="text-[#d8aa5b] text-[10px] uppercase font-bold tracking-widest">{selectedIds.length} 個已選擇</span>
                             <div className="h-4 w-[1px] bg-[#d8aa5b]/20" />
                             <button className="text-white hover:text-[#d8aa5b] text-[10px] uppercase tracking-widest font-bold transition-colors">發佈</button>
-                            <button className="text-white hover:text-red-400 text-[10px] uppercase tracking-widest font-bold transition-colors">刪除</button>
+                            <button
+                                onClick={handleDelete}
+                                className="text-white hover:text-red-400 text-[10px] uppercase tracking-widest font-bold transition-colors"
+                            >
+                                刪除
+                            </button>
                         </motion.div>
                     )}
                 </div>

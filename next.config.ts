@@ -1,7 +1,7 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  output: "export",
+  // output: "export", // Commented out to enable Server Actions (File Upload) in Dev. Re-enable for Static Build.
   images: {
     unoptimized: true, // Required for Cloudflare Pages unless using a specific loader
     remotePatterns: [
@@ -10,6 +10,11 @@ const nextConfig: NextConfig = {
         hostname: '**',
       },
     ],
+  },
+  experimental: {
+    serverActions: {
+      bodySizeLimit: '10mb',
+    },
   },
 };
 

@@ -4,19 +4,19 @@ import { useAuth } from "@/context/AuthContext";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 import Link from "next/link";
-import { LayoutDashboard, ShoppingBag, BookOpen, Home, LogOut } from "lucide-react";
+import { LayoutDashboard, ShoppingBag, BookOpen, Home, LogOut, Headphones, Package, Users } from "lucide-react";
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
-    const { role, logout, isAuthenticated } = useAuth();
+    const { role, logout, isAuthenticated, isOwner } = useAuth();
     const router = useRouter();
 
     useEffect(() => {
-        if (!isAuthenticated || role !== 'admin') {
+        if (!isAuthenticated || (role !== 'admin' && role !== 'owner' && role !== 'support')) {
             router.push('/login');
         }
     }, [role, isAuthenticated, router]);
 
-    if (!isAuthenticated || role !== 'admin') {
+    if (!isAuthenticated || (role !== 'admin' && role !== 'owner' && role !== 'support')) {
         return <div className="min-h-screen bg-[#050505] flex items-center justify-center text-white">驗證中...</div>
     }
 
@@ -35,6 +35,10 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                         <ShoppingBag size={18} />
                         <span className="text-sm uppercase tracking-wider">產品管理</span>
                     </Link>
+                    <Link href="/admin/orders" className="flex items-center gap-3 text-white/60 hover:text-white hover:bg-white/5 p-3 rounded-sm transition-colors">
+                        <Package size={18} />
+                        <span className="text-sm uppercase tracking-wider">訂單管理</span>
+                    </Link>
                     <Link href="/admin/journal" className="flex items-center gap-3 text-white/60 hover:text-white hover:bg-white/5 p-3 rounded-sm transition-colors">
                         <BookOpen size={18} />
                         <span className="text-sm uppercase tracking-wider">日誌管理</span>
@@ -43,6 +47,17 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                         <Home size={18} />
                         <span className="text-sm uppercase tracking-wider">首頁佈局</span>
                     </Link>
+                    <Link href="/admin/cs" className="flex items-center gap-3 text-white/60 hover:text-white hover:bg-white/5 p-3 rounded-sm transition-colors">
+                        <Headphones size={18} />
+                        <span className="text-sm uppercase tracking-wider">客服中心</span>
+                    </Link>
+
+                    {isOwner && (
+                        <Link href="/admin/team" className="flex items-center gap-3 text-white/60 hover:text-white hover:bg-white/5 p-3 rounded-sm transition-colors">
+                            <Users size={18} />
+                            <span className="text-sm uppercase tracking-wider">團隊管理</span>
+                        </Link>
+                    )}
                 </nav>
 
                 <div className="absolute bottom-8 left-6 w-[calc(100%-3rem)]">

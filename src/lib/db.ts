@@ -119,6 +119,30 @@ export async function saveUser(user: any) {
 }
 
 // ==========================================
+// 🎫 Customer Service Tickets
+// ==========================================
+export async function getTickets() {
+    const filePath = path.join(DATA_DIR, 'tickets.json');
+    try {
+        const fileContent = await fs.readFile(filePath, 'utf-8');
+        return JSON.parse(fileContent);
+    } catch (error) {
+        return [];
+    }
+}
+
+export async function saveTicket(ticket: any) {
+    const tickets = await getTickets();
+    const index = tickets.findIndex((t: any) => t.id === ticket.id);
+    if (index >= 0) {
+        tickets[index] = ticket;
+    } else {
+        tickets.push(ticket);
+    }
+    await fs.writeFile(path.join(DATA_DIR, 'tickets.json'), JSON.stringify(tickets, null, 2));
+}
+
+// ==========================================
 // 📊 Analytics (Simple Persistent Store)
 // ==========================================
 export async function getAnalytics() {

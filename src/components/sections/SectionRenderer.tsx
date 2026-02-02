@@ -74,25 +74,29 @@ const UniversalCarousel = ({
             onMouseEnter={() => setIsHovered(true)}
             onMouseLeave={() => setIsHovered(false)}
         >
-            <AnimatePresence initial={false} mode="popLayout">
-                <motion.div
-                    key={index}
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: overlayOpacity }}
-                    exit={{ opacity: 0 }}
-                    transition={{ duration: 2, ease: [0.16, 1, 0.3, 1] }}
-                    className="absolute inset-0 z-0"
-                >
-                    <motion.img
-                        src={images[index]}
+            {/* Render all images with explicit visibility control */}
+            {images.map((img, i) => {
+                const isActive = i === index;
+                return (
+                    <img
+                        key={i}
+                        src={img}
                         alt=""
-                        initial={{ scale: 1.15 }}
-                        animate={{ scale: 1.0 }}
-                        transition={{ duration: 8, ease: "linear" }}
-                        className={`w-full h-full object-cover ${imageClassName}`}
+                        className={`absolute inset-0 w-full h-full object-cover ${imageClassName}`}
+                        style={{
+                            opacity: isActive ? 1 : 0,
+                            zIndex: isActive ? 15 : 1,
+                            transition: 'opacity 1000ms ease-in-out',
+                            display: 'block',
+                            visibility: 'visible',
+                            pointerEvents: 'none'
+                        }}
+                        draggable={false}
+                        onLoad={() => console.log(`✅ Carousel image ${i} loaded:`, img)}
+                        onError={(e) => console.error(`❌ Carousel image ${i} failed:`, img, e)}
                     />
-                </motion.div>
-            </AnimatePresence>
+                );
+            })}
 
             {/* Manual Controls */}
             {images.length > 1 && (
@@ -109,8 +113,6 @@ const UniversalCarousel = ({
                     >
                         <ChevronRight size={20} />
                     </button>
-
-                    {/* Indicators */}
                     <div className="absolute bottom-8 left-1/2 -translate-x-1/2 z-30 flex gap-3 px-4 py-2 bg-black/20 backdrop-blur-sm rounded-full border border-white/5 opacity-0 group-hover:opacity-100 transition-opacity">
                         {images.map((_, i) => (
                             <button
@@ -205,31 +207,47 @@ const TextImageSection = ({ content, isInView }: { content: any, isInView?: bool
 
     return (
         <section className="py-32 px-6 bg-[#050505] relative z-20">
-            <div className={`container mx-auto flex flex-col ${content.imagePosition === 'right' ? 'md:flex-row-reverse' : 'md:flex-row'} items-center gap-16`}>
-                <div className="flex-1 w-full relative aspect-[4/5] bg-[#111] overflow-hidden rounded-sm group">
-                    <UniversalCarousel
-                        images={images}
-                        className="absolute inset-0"
-                        overlayOpacity={0.8}
-                        imageClassName="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
-                    />
+            <div className={`container mx-auto flex flex-col ${content.imagePosition === 'right' ? 'md:flex-row-reverse' : 'md:flex-row'} items-center gap-8 md:gap-12 lg:gap-16`}>
+                {/* Image - Fixed/Max Width */}
+                <div className="w-full md:w-[400px] lg:w-[450px] flex-shrink-0 relative aspect-[4/5] bg-[#111] overflow-hidden rounded-sm group">
+                    {/* Image Layer - z-10 */}
+                    <div className="absolute inset-0 z-10">
+                        <UniversalCarousel
+                            images={images}
+                            className="w-full h-full"
+                            overlayOpacity={1}
+                            imageClassName="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
+                        />
+                    </div>
 
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent pointer-events-none"></div>
+                    {/* Caption Layer - z-20 (above image) */}
                     {content.caption && (
                         <div className={`absolute bottom-8 left-8 text-[#d8aa5b] font-display text-2xl max-w-[200px] z-20 reveal-text ${isInView ? 'active' : ''}`}>
                             "{content.caption}"
                         </div>
                     )}
                 </div>
+
+                {/* Text - Flexible, expands as needed */}
                 <div
-                    className={`flex-1 space-y-8 flex flex-col`}
+                    className={`flex-grow min-w-0 space-y-6 md:space-y-8 flex flex-col`}
                     style={{
                         textAlign: content.textAlign || (content.imagePosition === 'right' ? 'left' : 'left'),
                         alignItems: content.textAlign === 'center' ? 'center' : content.textAlign === 'right' ? 'flex-end' : 'flex-start'
                     } as React.CSSProperties}
                 >
-                    <h2 className={`font-display text-4xl md:text-5xl text-white whitespace-pre-wrap reveal-text ${isInView ? 'active' : ''}`}>{content.heading}</h2>
-                    <div className={`text-gray-400 leading-relaxed max-w-md font-light whitespace-pre-wrap reveal-text delay-1 ${isInView ? 'active' : ''}`}>{content.text}</div>
+                    <h2
+                        className={`font-display text-4xl md:text-5xl lg:text-6xl text-white whitespace-pre-wrap reveal-text ${isInView ? 'active' : ''}`}
+                        style={{ lineHeight: '1.2' }}
+                    >
+                        {content.heading}
+                    </h2>
+                    <div
+                        className={`text-gray-400 text-base md:text-lg leading-relaxed font-light whitespace-pre-wrap reveal-text delay-1 ${isInView ? 'active' : ''}`}
+                        style={{ lineHeight: '1.8' }}
+                    >
+                        {content.text}
+                    </div>
                 </div>
             </div>
         </section>
@@ -336,62 +354,60 @@ const PurchaseSection = ({ content, productContext, isInView }: { content: any, 
     const router = useRouter();
     const searchParams = useSearchParams();
     const [bought, setBought] = useState(false);
+    const [selectedVariant, setSelectedVariant] = useState<any>(null);
 
     const product = productContext || content.productInfo || { name: 'Unknown Artifact', price: 0, id: 'temp' };
     const images = content.images || (product.image ? [product.image] : []);
     const featureCards = content.featureCards || [];
     const infoList = content.infoList || [];
+    const variants = product.variants || [];
+
+    // Auto-select first variant if available
+    useEffect(() => {
+        if (variants && variants.length > 0 && !selectedVariant) {
+            setSelectedVariant(variants[0]);
+        }
+    }, [variants]);
 
     // CRITICAL DEBUG: Track component lifecycle
     useEffect(() => {
         console.log("═══ PurchaseSection Mounted ═══");
-        console.log("Product context:", product);
-        console.log("Product ID:", product.id);
-        console.log("Product Name:", product.name);
-        console.log("Product Price:", product.price);
+        console.log("Product:", product.name);
+        console.log("Variants found:", variants);
 
         (window as any).emergencyAddToCart = () => {
-            console.log("🚨 EMERGENCY TRIGGER for:", product.id);
-            addToCart(product);
+            addToCart(product, selectedVariant);
         };
-
-        console.log("Window function ready: emergencyAddToCart()");
-    }, [product, addToCart]);
-
-    // DEBUG: Expose cart actions globally
-    useEffect(() => {
-        (window as any).debugAddToCart = () => {
-            console.log("Global add trigger:", product);
-            addToCart(product);
-        };
-    }, [product, addToCart]);
+    }, [product, addToCart, selectedVariant]);
 
     const handleBuyNow = (e?: React.MouseEvent) => {
-        if (e) {
-            e.preventDefault();
-            e.stopPropagation();
+        e?.preventDefault(); e?.stopPropagation();
+        if (variants.length > 0 && !selectedVariant) {
+            alert("Please select an option.");
+            return;
         }
-        addToCart(product);
+        addToCart(product, selectedVariant);
         toggleCart();
     };
 
     const handleAddToCart = (e?: React.MouseEvent) => {
-        if (e) {
-            e.preventDefault();
-            e.stopPropagation();
+        e?.preventDefault(); e?.stopPropagation();
+        if (variants.length > 0 && !selectedVariant) {
+            alert("Please select an option.");
+            return;
         }
-        addToCart(product);
+        addToCart(product, selectedVariant);
         toggleCart();
     };
 
     useEffect(() => {
         if (isAuthenticated && searchParams.get('action') === 'buynow' && !bought) {
             setBought(true);
-            addToCart(product);
+            addToCart(product, selectedVariant);
             toggleCart();
             router.replace(window.location.pathname);
         }
-    }, [isAuthenticated, searchParams, product, addToCart, toggleCart, router, bought]);
+    }, [isAuthenticated, searchParams, product, addToCart, toggleCart, router, bought, selectedVariant]);
 
     return (
         <section className="w-full h-full flex items-center justify-center bg-[#050505] py-24 md:py-0">
@@ -420,6 +436,27 @@ const PurchaseSection = ({ content, productContext, isInView }: { content: any, 
                     <p className="text-gray-400 text-sm md:text-base leading-relaxed mb-10 max-w-xl font-light">
                         {content.description || product.description || 'A cinematic descent into stillness. Elevate your sleep ritual with our signature collection designed to bridge the gap between day and dreams.'}
                     </p>
+
+                    {/* Variant Selector */}
+                    {variants.length > 0 && (
+                        <div className="mb-10 w-full">
+                            <span className="text-[10px] uppercase tracking-widest text-gray-500 block mb-4 font-bold">Select Variation</span>
+                            <div className="flex flex-wrap gap-3">
+                                {variants.map((v: any, idx: number) => (
+                                    <button
+                                        key={v.id || idx}
+                                        onClick={() => setSelectedVariant(v)}
+                                        className={`px-6 py-3 text-[10px] font-bold uppercase tracking-widest border transition-all duration-300 ${selectedVariant?.id === v.id
+                                            ? 'bg-[#d8aa5b] border-[#d8aa5b] text-black shadow-[0_0_15px_rgba(216,170,91,0.3)]'
+                                            : 'bg-white/5 border-white/10 text-white/60 hover:border-white/30 hover:text-white'
+                                            }`}
+                                    >
+                                        {v.name}
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+                    )}
 
                     <div className="flex flex-col md:flex-row items-start md:items-center gap-12 w-full mb-12">
                         <div>

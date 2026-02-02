@@ -1,5 +1,6 @@
 'use client';
 
+import { useLanguage } from "@/context/LanguageContext";
 import { useAuth } from "@/context/AuthContext";
 import { useCart } from "@/context/CartContext";
 import Link from "next/link";
@@ -8,6 +9,7 @@ import { useEffect, useState } from "react";
 import { motion, useScroll } from "framer-motion";
 
 export default function Navbar() {
+    const { t } = useLanguage();
     const { role, logout } = useAuth();
     const { toggleCart, items } = useCart();
     const itemCount = items.reduce((acc, item) => acc + item.quantity, 0);
@@ -37,15 +39,15 @@ export default function Navbar() {
             {/* Left Links */}
             <div className="flex gap-8 text-sm tracking-[0.2em] font-medium uppercase text-white/90">
                 <Link href="/" className="hover:text-[#d8aa5b] transition-colors relative group">
-                    Home
+                    {t('nav.home')}
                     <span className="absolute -bottom-1 left-0 w-0 h-[1px] bg-[#d8aa5b] transition-all group-hover:w-full"></span>
                 </Link>
                 <Link href="/collection" className="hover:text-[#d8aa5b] transition-colors relative group">
-                    Shop
+                    {t('nav.shop')}
                     <span className="absolute -bottom-1 left-0 w-0 h-[1px] bg-[#d8aa5b] transition-all group-hover:w-full"></span>
                 </Link>
                 <Link href="/journal" className="hover:text-[#d8aa5b] transition-colors relative group">
-                    Journal
+                    {t('nav.journal')}
                     <span className="absolute -bottom-1 left-0 w-0 h-[1px] bg-[#d8aa5b] transition-all group-hover:w-full"></span>
                 </Link>
             </div>
@@ -60,7 +62,7 @@ export default function Navbar() {
             <div className="flex items-center gap-8 text-sm tracking-[0.2em] uppercase text-white/90">
                 <button onClick={toggleCart} className="flex items-center gap-2 hover:text-[#d8aa5b] transition-colors relative group">
                     <ShoppingBag size={18} />
-                    <span className="hidden md:inline">Cart ({itemCount})</span>
+                    <span className="hidden md:inline">{t('nav.cart')} ({itemCount})</span>
                 </button>
 
                 {role ? (
@@ -70,17 +72,17 @@ export default function Navbar() {
                             className="flex items-center gap-2 hover:text-[#d8aa5b] transition-colors"
                         >
                             <User size={18} />
-                            <span className="hidden md:inline">{role === 'admin' ? 'Admin' : 'Account'}</span>
+                            <span className="hidden md:inline">{(role === 'admin' || role === 'owner' || role === 'support') ? 'Admin' : t('nav.profile')}</span>
                         </button>
                         {showUserMenu && (
                             <div className="absolute right-0 top-full mt-4 bg-[#0a0a09] border border-white/10 rounded-sm min-w-[180px] shadow-2xl overflow-hidden">
-                                {role === 'admin' && (
+                                {(role === 'admin' || role === 'owner' || role === 'support') && (
                                     <Link
                                         href="/admin"
                                         onClick={() => setShowUserMenu(false)}
                                         className="block px-6 py-3 text-sm hover:bg-white/5 transition-colors border-b border-white/5"
                                     >
-                                        Admin Panel
+                                        {t('nav.admin')}
                                     </Link>
                                 )}
                                 <Link
@@ -88,13 +90,20 @@ export default function Navbar() {
                                     onClick={() => setShowUserMenu(false)}
                                     className="block px-6 py-3 text-sm hover:bg-white/5 transition-colors border-b border-white/5"
                                 >
-                                    Profile
+                                    {t('nav.profile')}
+                                </Link>
+                                <Link
+                                    href="/support"
+                                    onClick={() => setShowUserMenu(false)}
+                                    className="block px-6 py-3 text-sm hover:bg-white/5 transition-colors border-b border-white/5"
+                                >
+                                    {t('nav.support')}
                                 </Link>
                                 <button
                                     onClick={() => { logout(); setShowUserMenu(false); }}
                                     className="w-full text-left px-6 py-3 text-sm hover:bg-white/5 transition-colors text-red-400 hover:text-red-300"
                                 >
-                                    Logout
+                                    {t('nav.logout')}
                                 </button>
                             </div>
                         )}
@@ -102,7 +111,7 @@ export default function Navbar() {
                 ) : (
                     <Link href="/login" className="flex items-center gap-2 hover:text-[#d8aa5b] transition-colors">
                         <User size={18} />
-                        <span className="hidden md:inline">Enter</span>
+                        <span className="hidden md:inline">{t('nav.login')}</span>
                     </Link>
                 )}
             </div>

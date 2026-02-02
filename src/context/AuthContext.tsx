@@ -3,13 +3,14 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 
-type UserRole = 'admin' | 'consumer' | null;
+type UserRole = 'owner' | 'support' | 'consumer' | 'admin' | null;
 
 type AuthContextType = {
     role: UserRole;
     login: (role: UserRole, redirectTo?: string) => void;
     logout: () => void;
     isAuthenticated: boolean;
+    isOwner: boolean;
 };
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -20,7 +21,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     useEffect(() => {
         const savedRole = localStorage.getItem('somnus-role') as UserRole;
-        if (savedRole) setRole(savedRole);
+        if (savedRole === 'admin') {
+            // Legacy support: promote old 'admin' to 'owner'
+            setRole('owner');
+            localStorage.setItem('somnus-role', 'owner');
+        } else if (savedRole) {
+            setRole(savedRole);
+        }
     }, []);
 
     const login = (newRole: UserRole, redirectTo?: string) => {
@@ -29,7 +36,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
         if (redirectTo) {
             router.push(redirectTo);
-        } else if (newRole === 'admin') {
+        } else if (newRole === 'owner' || newRole === 'admin' || newRole === 'support') {
             router.push('/admin');
         } else if (newRole === 'consumer') {
             router.push('/');
@@ -43,7 +50,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     };
 
     return (
-        <AuthContext.Provider value={{ role, login, logout, isAuthenticated: !!role }}>
+        <AuthContext.Provider value={{ role, login, logout, isAuthenticated: !!role, isOwner: role === 'owner' || role === 'admin' }}>
             {children}
         </AuthContext.Provider>
     );

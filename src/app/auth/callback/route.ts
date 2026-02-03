@@ -21,7 +21,7 @@ export async function GET(request: Request) {
             const { data: userData, error: userError } = await supabase
                 .from('users')
                 .select('role, email')
-                .eq('email', session.user.email)
+                .eq('email', session.user.email!)
                 .single()
 
             if (userError || !userData) {
@@ -29,9 +29,9 @@ export async function GET(request: Request) {
                 const { error: insertError } = await supabase
                     .from('users')
                     .insert({
-                        email: session.user.email,
+                        email: session.user.email!,
                         role: 'consumer', // Default role for new users
-                        full_name: session.user.user_metadata?.full_name || session.user.email?.split('@')[0],
+                        full_name: session.user.user_metadata?.full_name || session.user.email!.split('@')[0],
                     })
 
                 if (insertError) {

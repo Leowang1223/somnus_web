@@ -19,4 +19,5 @@ const nextConfig: NextConfig = {
   },
 };
 
+// Configured for Railway Dockerfile deployment
 export default nextConfig;

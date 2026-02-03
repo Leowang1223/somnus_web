@@ -29,9 +29,9 @@
         "imagePosition": "left",
         "caption": "",
         "images": [
-          "/uploads/final_fixed.png"
+          "https://images.unsplash.com/photo-1519060825752-c0884f342e24?auto=format&fit=crop&q=80&w=2000"
         ],
-        "image": "/uploads/final_fixed.png"
+        "image": "https://images.unsplash.com/photo-1519060825752-c0884f342e24?auto=format&fit=crop&q=80&w=2000"
       },
       "isEnabled": true,
       "backgroundConfig": {

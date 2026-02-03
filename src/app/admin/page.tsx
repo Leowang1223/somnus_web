@@ -10,8 +10,8 @@ export default async function AdminDashboard() {
     // Get current user session
     const { data: { session } } = await supabase.auth.getSession();
 
-    if (!session?.user) {
-        // Not logged in - redirect to login
+    if (!session?.user?.email) {
+        // Not logged in or no email - redirect to login
         redirect('/login');
     }
 
@@ -28,7 +28,8 @@ export default async function AdminDashboard() {
     }
 
     // Only 'owner' and 'support' roles can access admin
-    if (userData.role !== 'owner' && userData.role !== 'support') {
+    const userRole = (userData as any).role as string;
+    if (userRole !== 'owner' && userRole !== 'support') {
         redirect('/');
     }
 

@@ -15,11 +15,14 @@ export default async function AdminDashboard() {
         redirect('/login');
     }
 
+    // At this point, TypeScript knows session.user.email exists
+    const userEmail = session.user.email;
+
     // Check user role from database
     const { data: userData, error } = await supabase
         .from('users')
         .select('role')
-        .eq('email', session.user.email!) // Non-null assertion - we checked above
+        .eq('email', userEmail)
         .single();
 
     if (error || !userData) {
@@ -27,8 +30,10 @@ export default async function AdminDashboard() {
         redirect('/');
     }
 
-    // Only 'owner' and 'support' roles can access admin
+    // Type assertion for role
     const userRole = (userData as any).role as string;
+
+    // Only 'owner' and 'support' roles can access admin
     if (userRole !== 'owner' && userRole !== 'support') {
         redirect('/');
     }
@@ -40,4 +45,3 @@ export default async function AdminDashboard() {
         <DashboardClient data={stats} />
     );
 }
-

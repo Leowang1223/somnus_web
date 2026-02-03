@@ -18,28 +18,42 @@ async function getServerModules() {
 
 export async function uploadFileAction(formData: FormData) {
     try {
-        const { fs, path } = await getServerModules();
-
         const file = formData.get('file') as File;
         const prefix = formData.get('prefix') as string || 'somnus';
         if (!file) throw new Error("No file uploaded");
 
+        // Read file as buffer
         const bytes = await file.arrayBuffer();
         const buffer = Buffer.from(bytes);
 
+        // Generate clean filename
         const cleanPrefix = prefix.toLowerCase().replace(/[^a-z0-9]/g, '-');
         const cleanFilename = file.name.toLowerCase().replace(/[^a-z0-9.]/g, '-');
         const filename = `${cleanPrefix}-${Date.now()}-${cleanFilename}`;
-        const uploadDir = path.join(process.cwd(), 'public', 'uploads');
 
-        // Ensure directory exists
-        await fs.mkdir(uploadDir, { recursive: true });
+        // Upload to Supabase Storage
+        const { createClient } = await import('@/lib/supabase/server');
+        const supabase = await createClient();
 
-        const fullPath = path.join(uploadDir, filename);
+        const { data, error } = await supabase.storage
+            .from('images') // Make sure this bucket exists in Supabase
+            .upload(filename, buffer, {
+                contentType: file.type,
+                upsert: false,
+            });
 
-        await fs.writeFile(fullPath, buffer);
-        console.log("✅ File uploaded successfully to:", fullPath);
-        return { url: `/uploads/${filename}` };
+        if (error) {
+            console.error("❌ Supabase upload failed:", error);
+            throw new Error(error.message);
+        }
+
+        // Get public URL
+        const { data: { publicUrl } } = supabase.storage
+            .from('images')
+            .getPublicUrl(filename);
+
+        console.log("✅ File uploaded successfully to Supabase:", publicUrl);
+        return { url: publicUrl };
     } catch (error: any) {
         console.error("❌ Upload Action Failed:", error);
         return { error: `Upload failed: ${error.message || String(error)}` };

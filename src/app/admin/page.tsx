@@ -19,7 +19,7 @@ export default async function AdminDashboard() {
     const { data: userData, error } = await supabase
         .from('users')
         .select('role')
-        .eq('email', session.user.email)
+        .eq('email', session.user.email!) // Non-null assertion - we checked above
         .single();
 
     if (error || !userData) {

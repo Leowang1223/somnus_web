@@ -1,16 +1,42 @@
 
 import { getDashboardStatsAction } from "@/app/actions";
 import DashboardClient from "./DashboardClient";
-
-// Add revalidation to ensure data is decently fresh even with ISG (or use dynamic const)
-// export const revalidate = 0; // Removed for static export compatibility
+import { createClient } from "@/lib/supabase/server";
+import { redirect } from "next/navigation";
 
 export default async function AdminDashboard() {
-    // This action runs on server (for SSR) or is executed during build for SSG
-    // Since we set revalidate = 0, it should be dynamic
+    const supabase = await createClient();
+
+    // Get current user session
+    const { data: { session } } = await supabase.auth.getSession();
+
+    if (!session?.user) {
+        // Not logged in - redirect to login
+        redirect('/login');
+    }
+
+    // Check user role from database
+    const { data: userData, error } = await supabase
+        .from('users')
+        .select('role')
+        .eq('email', session.user.email)
+        .single();
+
+    if (error || !userData) {
+        // User not found in database - not authorized
+        redirect('/');
+    }
+
+    // Only 'owner' and 'support' roles can access admin
+    if (userData.role !== 'owner' && userData.role !== 'support') {
+        redirect('/');
+    }
+
+    // User is authorized - load dashboard
     const stats = await getDashboardStatsAction();
 
     return (
         <DashboardClient data={stats} />
     );
 }
+

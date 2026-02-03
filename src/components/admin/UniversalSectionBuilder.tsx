@@ -691,7 +691,7 @@ export default function UniversalSectionBuilder({
             'text-image': { heading: "新故事", text: "長篇描述...", imagePosition: "left" },
             'rich-text': { text: "主要內容..." },
             video: { videoUrl: "", thumbnail: "", label: "觀看儀式" },
-            quote: { text: "名言...", author: "SØMNUS" },
+            quote: { text: "名言...", author: "SØMNS" },
             spacer: { height: 60 },
             purchase: {
                 label: "儀式收藏",

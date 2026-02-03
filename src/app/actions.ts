@@ -344,7 +344,7 @@ export async function updateArticleAction(formData: FormData) {
             metaDescription: formData.get('metaDescription') as string,
             date: existingArticle?.date || new Date().toISOString().split('T')[0],
             sections: existingArticle?.sections || [
-                { id: `hero-${Date.now()}`, type: 'hero', isEnabled: true, content: { title: title, subtitle: "A SØMNUS Editorial", ctaText: "", ctaLink: "" } },
+                { id: `hero-${Date.now()}`, type: 'hero', isEnabled: true, content: { title: title, subtitle: "A SØMNS Editorial", ctaText: "", ctaLink: "" } },
                 { id: `content-${Date.now()}`, type: 'richText', isEnabled: true, content: { text: "Begin your story here..." } }
             ]
         };

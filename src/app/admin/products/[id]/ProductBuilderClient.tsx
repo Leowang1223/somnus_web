@@ -51,7 +51,7 @@ export default function ProductBuilderClient({ id, initialSections, product }: {
                 </div>
 
                 {isLiveStudio && (
-                    <span className="text-gray-500 text-[10px] uppercase tracking-[0.4em] font-display">SØMNUS 實時工作室</span>
+                    <span className="text-gray-500 text-[10px] uppercase tracking-[0.4em] font-display">SØMNS 實時工作室</span>
                 )}
             </div>
 

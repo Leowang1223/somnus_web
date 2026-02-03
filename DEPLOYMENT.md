@@ -1,4 +1,4 @@
-# SØMNUS Deployment Guide
+# SØMNS Deployment Guide
 
 ## Prerequisites
 

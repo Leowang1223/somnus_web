@@ -1,4 +1,4 @@
-# SØMNUS - E-Commerce & Content Management Platform
+# SØMNS - E-Commerce & Content Management Platform
 
 > 精品睡眠用品電商平台，整合內容管理、訂單系統與客服功能
 

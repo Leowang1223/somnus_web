@@ -8,7 +8,7 @@ import CartDrawer from "@/components/CartDrawer";
 import LanguageSelector from "@/components/LanguageSelector";
 
 export const metadata: Metadata = {
-  title: "SØMNUS | The Golden 30 Minutes",
+  title: "SØMNS | The Golden 30 Minutes",
   description: "Master the art of the evening wind-down.",
 };
 

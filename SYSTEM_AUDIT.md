@@ -1,4 +1,4 @@
-# SØMNUS System Audit & Missing Features Report
+# SØMNS System Audit & Missing Features Report
 
 ## 執行日期: 2026-02-02
 ## 審核範圍: 完整系統功能與參數檢查

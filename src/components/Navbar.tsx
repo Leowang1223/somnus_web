@@ -55,7 +55,7 @@ export default function Navbar() {
             {/* Center Logo */}
             <Link href="/" className="absolute left-1/2 -translate-x-1/2 flex items-center gap-3 group">
                 <div className="w-3 h-3 bg-[#d8aa5b] shadow-[0_0_15px_rgba(216,170,91,0.5)] group-hover:scale-125 transition-transform duration-500"></div>
-                <span className="font-display text-2xl tracking-[0.2em] text-white group-hover:text-[#d8aa5b] transition-colors">SØMNUS</span>
+                <span className="font-display text-2xl tracking-[0.2em] text-white group-hover:text-[#d8aa5b] transition-colors">SØMNS</span>
             </Link>
 
             {/* Right Icons */}

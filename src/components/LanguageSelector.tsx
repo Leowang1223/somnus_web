@@ -34,7 +34,7 @@ export default function LanguageSelector() {
                     className="text-center space-y-12 max-w-2xl w-full"
                 >
                     <div className="space-y-4">
-                        <h1 className="font-display text-4xl tracking-widest uppercase text-[#d8aa5b]">SØMNUS</h1>
+                        <h1 className="font-display text-4xl tracking-widest uppercase text-[#d8aa5b]">SØMNS</h1>
                         <p className="text-gray-500 text-sm tracking-widest uppercase">Select Region / 語言選擇 / 言語選択 / 언어 선택</p>
                     </div>
 

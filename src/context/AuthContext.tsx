@@ -25,69 +25,105 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const [loading, setLoading] = useState(true);
     const router = useRouter();
 
-    // In browser, always try to create Supabase client
-    // Only skip during SSR if env vars are missing
-    let supabase = null;
-    try {
+    // Create Supabase client once using useState to ensure it persists across renders
+    const [supabase] = useState(() => {
         if (typeof window !== 'undefined') {
-            // We're in the browser - create client
-            supabase = createClient();
+            console.log('🔧 Creating Supabase client...');
+            try {
+                const client = createClient();
+                console.log('✅ Supabase client created successfully');
+                return client;
+            } catch (error) {
+                console.error('❌ Failed to create Supabase client:', error);
+                return null;
+            }
         }
-    } catch (error) {
-        console.warn('Failed to create Supabase client:', error);
-    }
+        console.log('⏭️ Skipping Supabase client creation (SSR)');
+        return null;
+    });
 
     useEffect(() => {
+        console.log('🔍 AuthContext mounted, supabase client:', supabase ? 'EXISTS' : 'NULL');
+
         if (!supabase) {
+            console.warn('⚠️ No Supabase client available');
             setLoading(false);
             return;
         }
 
         // Check active session on mount
         const checkSession = async () => {
+            console.log('🔄 Checking session...');
             try {
                 const { data: { session } } = await supabase.auth.getSession();
+                console.log('📊 Session data:', session ? {
+                    user_email: session.user?.email,
+                    expires_at: session.expires_at
+                } : 'NO SESSION');
 
                 if (session?.user) {
+                    console.log('👤 User found:', session.user.email);
                     setUser(session.user);
 
                     // Fetch role from database
-                    const { data: userData } = await supabase
+                    console.log('🔍 Fetching role from database...');
+                    const { data: userData, error: roleError } = await supabase
                         .from('users')
                         .select('role')
                         .eq('email', session.user.email!)
                         .single();
 
-                    setRole((userData?.role as UserRole) || 'consumer');
+                    if (roleError) {
+                        console.error('❌ Error fetching role:', roleError);
+                    } else {
+                        console.log('✅ User data from DB:', userData);
+                        const userRole = (userData?.role as UserRole) || 'consumer';
+                        console.log('👑 Setting role to:', userRole);
+                        setRole(userRole);
+                    }
                 } else {
+                    console.log('⚠️ No session found');
                     setUser(null);
                     setRole(null);
                 }
             } catch (error) {
-                console.error('Error checking session:', error);
+                console.error('❌ Error checking session:', error);
             } finally {
                 setLoading(false);
+                console.log('✓ Session check complete');
             }
         };
 
         checkSession();
 
         // Listen for auth changes
+        console.log('👂 Setting up auth state change listener...');
         const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-            console.log('Auth state changed:', event);
+            console.log('🔔 Auth state changed:', event, session ? {
+                user_email: session.user?.email
+            } : 'NO SESSION');
 
             if (session?.user) {
+                console.log('👤 Setting user:', session.user.email);
                 setUser(session.user);
 
                 // Fetch role from database
-                const { data: userData } = await supabase
+                console.log('🔍 Fetching role after auth change...');
+                const { data: userData, error: roleError } = await supabase
                     .from('users')
                     .select('role')
                     .eq('email', session.user.email!)
                     .single();
 
-                setRole((userData?.role as UserRole) || 'consumer');
+                if (roleError) {
+                    console.error('❌ Error fetching role:', roleError);
+                } else {
+                    const userRole = (userData?.role as UserRole) || 'consumer';
+                    console.log('👑 Setting role to:', userRole);
+                    setRole(userRole);
+                }
             } else {
+                console.log('🚪 User logged out or no session');
                 setUser(null);
                 setRole(null);
             }

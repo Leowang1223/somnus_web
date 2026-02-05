@@ -65,21 +65,34 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                     console.log('👤 User found:', session.user.email);
                     setUser(session.user);
 
-                    // Fetch role from database
-                    console.log('🔍 Fetching role from database...');
-                    const { data: userData, error: roleError } = await supabase
-                        .from('users')
-                        .select('role')
-                        .eq('email', session.user.email!)
-                        .single();
+                    // Fetch role from database with error handling
+                    try {
+                        console.log('🔍 Fetching role from database...');
+                        const { data: userData, error: roleError } = await supabase
+                            .from('users')
+                            .select('role')
+                            .eq('email', session.user.email!)
+                            .single();
 
-                    if (roleError) {
-                        console.error('❌ Error fetching role:', roleError);
-                    } else {
-                        console.log('✅ User data from DB:', userData);
-                        const userRole = (userData?.role as UserRole) || 'consumer';
-                        console.log('👑 Setting role to:', userRole);
-                        setRole(userRole);
+                        console.log('📦 Query result - Data:', userData, 'Error:', roleError);
+
+                        if (roleError) {
+                            console.error('❌ Error fetching role:', roleError);
+                            console.warn('⚠️ Setting default role: consumer (due to error)');
+                            setRole('consumer');
+                        } else if (userData && userData.role) {
+                            console.log('✅ User data from DB:', userData);
+                            const userRole = userData.role as UserRole;
+                            console.log('👑 Setting role to:', userRole);
+                            setRole(userRole);
+                        } else {
+                            console.warn('⚠️ No user data found, setting default role: consumer');
+                            setRole('consumer');
+                        }
+                    } catch (error) {
+                        console.error('💥 Exception while fetching role:', error);
+                        console.warn('⚠️ Setting default role: consumer (due to exception)');
+                        setRole('consumer');
                     }
                 } else {
                     console.log('⚠️ No session found');
@@ -103,24 +116,38 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 user_email: session.user?.email
             } : 'NO SESSION');
 
+
             if (session?.user) {
                 console.log('👤 Setting user:', session.user.email);
                 setUser(session.user);
 
-                // Fetch role from database
-                console.log('🔍 Fetching role after auth change...');
-                const { data: userData, error: roleError } = await supabase
-                    .from('users')
-                    .select('role')
-                    .eq('email', session.user.email!)
-                    .single();
+                // Fetch role from database with error handling
+                try {
+                    console.log('🔍 Fetching role after auth change...');
+                    const { data: userData, error: roleError } = await supabase
+                        .from('users')
+                        .select('role')
+                        .eq('email', session.user.email!)
+                        .single();
 
-                if (roleError) {
-                    console.error('❌ Error fetching role:', roleError);
-                } else {
-                    const userRole = (userData?.role as UserRole) || 'consumer';
-                    console.log('👑 Setting role to:', userRole);
-                    setRole(userRole);
+                    console.log('📦 Query result - Data:', userData, 'Error:', roleError);
+
+                    if (roleError) {
+                        console.error('❌ Error fetching role:', roleError);
+                        console.warn('⚠️ Setting default role: consumer (due to error)');
+                        setRole('consumer');
+                    } else if (userData && userData.role) {
+                        const userRole = userData.role as UserRole;
+                        console.log('👑 Setting role to:', userRole);
+                        setRole(userRole);
+                    } else {
+                        console.warn('⚠️ No user data found, setting default role: consumer');
+                        setRole('consumer');
+                    }
+                } catch (error) {
+                    console.error('💥 Exception while fetching role:', error);
+                    console.warn('⚠️ Setting default role: consumer (due to exception)');
+                    setRole('consumer');
                 }
             } else {
                 console.log('🚪 User logged out or no session');

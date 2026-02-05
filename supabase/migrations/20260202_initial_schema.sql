@@ -135,13 +135,13 @@ ALTER TABLE public.homepage_layout ENABLE ROW LEVEL SECURITY;
 -- Products Policies
 -- ==========================================
 
--- Anyone can view published products
+DROP POLICY IF EXISTS "Public products are viewable by everyone" ON public.products;
 CREATE POLICY "Public products are viewable by everyone"
   ON public.products
   FOR SELECT
   USING (status = 'published');
 
--- Admins (owner/support) can view all products
+DROP POLICY IF EXISTS "Admins can view all products" ON public.products;
 CREATE POLICY "Admins can view all products"
   ON public.products
   FOR SELECT
@@ -154,7 +154,7 @@ CREATE POLICY "Admins can view all products"
     )
   );
 
--- Only owners can manage products
+DROP POLICY IF EXISTS "Owners can manage products" ON public.products;
 CREATE POLICY "Owners can manage products"
   ON public.products
   FOR ALL
@@ -171,7 +171,7 @@ CREATE POLICY "Owners can manage products"
 -- Orders Policies
 -- ==========================================
 
--- Admins can view all orders
+DROP POLICY IF EXISTS "Admins can view all orders" ON public.orders;
 CREATE POLICY "Admins can view all orders"
   ON public.orders
   FOR SELECT
@@ -184,7 +184,7 @@ CREATE POLICY "Admins can view all orders"
     )
   );
 
--- Admins can update orders
+DROP POLICY IF EXISTS "Admins can update orders" ON public.orders;
 CREATE POLICY "Admins can update orders"
   ON public.orders
   FOR UPDATE
@@ -197,7 +197,7 @@ CREATE POLICY "Admins can update orders"
     )
   );
 
--- Anonymous users can create orders (checkout)
+DROP POLICY IF EXISTS "Anyone can create orders" ON public.orders;
 CREATE POLICY "Anyone can create orders"
   ON public.orders
   FOR INSERT
@@ -208,13 +208,13 @@ CREATE POLICY "Anyone can create orders"
 -- Articles Policies
 -- ==========================================
 
--- Anyone can view published articles
+DROP POLICY IF EXISTS "Public articles are viewable by everyone" ON public.articles;
 CREATE POLICY "Public articles are viewable by everyone"
   ON public.articles
   FOR SELECT
   USING (status = 'published');
 
--- Admins can view all articles
+DROP POLICY IF EXISTS "Admins can view all articles" ON public.articles;
 CREATE POLICY "Admins can view all articles"
   ON public.articles
   FOR SELECT
@@ -227,7 +227,7 @@ CREATE POLICY "Admins can view all articles"
     )
   );
 
--- Only owners can manage articles
+DROP POLICY IF EXISTS "Owners can manage articles" ON public.articles;
 CREATE POLICY "Owners can manage articles"
   ON public.articles
   FOR ALL
@@ -244,7 +244,7 @@ CREATE POLICY "Owners can manage articles"
 -- Tickets Policies
 -- ==========================================
 
--- Admins can view all tickets
+DROP POLICY IF EXISTS "Admins can view all tickets" ON public.tickets;
 CREATE POLICY "Admins can view all tickets"
   ON public.tickets
   FOR SELECT
@@ -257,7 +257,7 @@ CREATE POLICY "Admins can view all tickets"
     )
   );
 
--- Admins can update tickets
+DROP POLICY IF EXISTS "Admins can update tickets" ON public.tickets;
 CREATE POLICY "Admins can update tickets"
   ON public.tickets
   FOR UPDATE
@@ -270,7 +270,7 @@ CREATE POLICY "Admins can update tickets"
     )
   );
 
--- Anonymous users can create tickets
+DROP POLICY IF EXISTS "Anyone can create tickets" ON public.tickets;
 CREATE POLICY "Anyone can create tickets"
   ON public.tickets
   FOR INSERT
@@ -281,14 +281,14 @@ CREATE POLICY "Anyone can create tickets"
 -- Users Policies
 -- ==========================================
 
--- Users can read their own data
+DROP POLICY IF EXISTS "Users can view own data" ON public.users;
 CREATE POLICY "Users can view own data"
   ON public.users
   FOR SELECT
   TO authenticated
   USING (auth.uid() = id);
 
--- Only owners can view all users
+DROP POLICY IF EXISTS "Owners can view all users" ON public.users;
 CREATE POLICY "Owners can view all users"
   ON public.users
   FOR SELECT
@@ -301,7 +301,7 @@ CREATE POLICY "Owners can view all users"
     )
   );
 
--- Only owners can manage users
+DROP POLICY IF EXISTS "Owners can manage users" ON public.users;
 CREATE POLICY "Owners can manage users"
   ON public.users
   FOR ALL
@@ -318,14 +318,14 @@ CREATE POLICY "Owners can manage users"
 -- Analytics & Homepage Policies
 -- ==========================================
 
--- Anyone can read analytics (for public metrics)
+DROP POLICY IF EXISTS "Public can view analytics" ON public.analytics;
 CREATE POLICY "Public can view analytics"
   ON public.analytics
   FOR SELECT
   TO anon, authenticated
   USING (true);
 
--- Only admins can update analytics
+DROP POLICY IF EXISTS "Admins can update analytics" ON public.analytics;
 CREATE POLICY "Admins can update analytics"
   ON public.analytics
   FOR ALL
@@ -338,14 +338,14 @@ CREATE POLICY "Admins can update analytics"
     )
   );
 
--- Anyone can view homepage layout
+DROP POLICY IF EXISTS "Public can view homepage" ON public.homepage_layout;
 CREATE POLICY "Public can view homepage"
   ON public.homepage_layout
   FOR SELECT
   TO anon, authenticated
   USING (true);
 
--- Only owners can update homepage
+DROP POLICY IF EXISTS "Owners can update homepage" ON public.homepage_layout;
 CREATE POLICY "Owners can update homepage"
   ON public.homepage_layout
   FOR ALL
@@ -372,21 +372,27 @@ END;
 $$ LANGUAGE plpgsql;
 
 -- Apply trigger to relevant tables
+DROP TRIGGER IF EXISTS update_users_updated_at ON public.users;
 CREATE TRIGGER update_users_updated_at BEFORE UPDATE ON public.users
   FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
+DROP TRIGGER IF EXISTS update_products_updated_at ON public.products;
 CREATE TRIGGER update_products_updated_at BEFORE UPDATE ON public.products
   FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
+DROP TRIGGER IF EXISTS update_articles_updated_at ON public.articles;
 CREATE TRIGGER update_articles_updated_at BEFORE UPDATE ON public.articles
   FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
+DROP TRIGGER IF EXISTS update_tickets_updated_at ON public.tickets;
 CREATE TRIGGER update_tickets_updated_at BEFORE UPDATE ON public.tickets
   FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
+DROP TRIGGER IF EXISTS update_analytics_updated_at ON public.analytics;
 CREATE TRIGGER update_analytics_updated_at BEFORE UPDATE ON public.analytics
   FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
+DROP TRIGGER IF EXISTS update_homepage_updated_at ON public.homepage_layout;
 CREATE TRIGGER update_homepage_updated_at BEFORE UPDATE ON public.homepage_layout
   FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 

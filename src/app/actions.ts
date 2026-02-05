@@ -570,26 +570,45 @@ export async function loginAction(formData: FormData) {
     const password = formData.get('password') as string;
 
     try {
-        const { db } = await getServerModules();
-        const users = await db.getUsers();
+        const { createClient } = await import('@/lib/supabase/server');
+        const supabase = await createClient();
 
-        // 1. Check DB Users
-        const user = users.find((u: any) => u.email === email && u.password === password);
-        if (user) {
-            return { success: true, user: { email: user.email, role: user.role, name: user.name } };
+        // Use Supabase Auth for real authentication
+        const { data, error } = await supabase.auth.signInWithPassword({
+            email,
+            password,
+        });
+
+        if (error) {
+            console.error('Login error:', error);
+            return { success: false, error: error.message || 'Invalid credentials' };
         }
 
-        // 2. Fallback Hardcoded
-        if (email === "admin@somnus.com" && password === "admin123") {
-            return { success: true, user: { email, role: 'owner', name: 'Original Architect' } };
-        }
-        if (email === "user@somnus.com" && password === "user123") {
-            return { success: true, user: { email, role: 'consumer', name: 'Test User' } };
+        if (!data.user) {
+            return { success: false, error: 'No user returned' };
         }
 
-        return { success: false, error: 'Invalid credentials' };
-    } catch (e) {
-        return { success: false, error: 'System error' };
+        // Get user role from our database
+        const { data: userData } = await supabase
+            .from('users')
+            .select('role, name')
+            .eq('email', email)
+            .single();
+
+        const role = userData?.role || 'consumer';
+        const name = userData?.name || data.user.email?.split('@')[0] || 'User';
+
+        return {
+            success: true,
+            user: {
+                email: data.user.email!,
+                role,
+                name
+            }
+        };
+    } catch (e: any) {
+        console.error('Login system error:', e);
+        return { success: false, error: 'System error: ' + e.message };
     }
 }
 

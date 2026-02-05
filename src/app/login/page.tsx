@@ -34,7 +34,9 @@ function LoginContent() {
         const result = await loginAction(formData);
 
         if (result.success && result.user) {
-            login(result.user.role as any, target); // login from AuthContext automatically redirects if needed
+            // Login successful - Supabase session is now set
+            // Direct navigation instead of using AuthContext
+            window.location.href = target;
         } else {
             setError(result.error || "Invalid credentials.");
         }

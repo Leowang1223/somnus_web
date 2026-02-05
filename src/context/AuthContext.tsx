@@ -25,12 +25,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const [loading, setLoading] = useState(true);
     const router = useRouter();
 
-    // Skip Supabase initialization if environment variables are missing (e.g., during build)
-    const hasSupabaseConfig = typeof window !== 'undefined' &&
-        process.env.NEXT_PUBLIC_SUPABASE_URL &&
-        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-
-    const supabase = hasSupabaseConfig ? createClient() : null;
+    // In browser, always try to create Supabase client
+    // Only skip during SSR if env vars are missing
+    let supabase = null;
+    try {
+        if (typeof window !== 'undefined') {
+            // We're in the browser - create client
+            supabase = createClient();
+        }
+    } catch (error) {
+        console.warn('Failed to create Supabase client:', error);
+    }
 
     useEffect(() => {
         if (!supabase) {

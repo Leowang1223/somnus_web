@@ -10,13 +10,18 @@ import { motion, useScroll } from "framer-motion";
 
 export default function Navbar() {
     const { t } = useLanguage();
-    const { role, logout } = useAuth();
+    const { role, logout, isAuthenticated, user } = useAuth();
     const { toggleCart, items } = useCart();
     const itemCount = items.reduce((acc, item) => acc + item.quantity, 0);
     const [showUserMenu, setShowUserMenu] = useState(false);
 
     const { scrollY } = useScroll();
     const [isScrolled, setIsScrolled] = useState(false);
+
+    // DEBUG: Log auth state every render
+    useEffect(() => {
+        console.log('🎯 Navbar render - role:', role, '| isAuthenticated:', isAuthenticated, '| user:', user?.email);
+    }, [role, isAuthenticated, user]);
 
     useEffect(() => {
         return scrollY.onChange((latest) => {
@@ -65,18 +70,18 @@ export default function Navbar() {
                     <span className="hidden md:inline">{t('nav.cart')} ({itemCount})</span>
                 </button>
 
-                {role ? (
+                {isAuthenticated ? (
                     <div className="relative">
                         <button
                             onClick={() => setShowUserMenu(!showUserMenu)}
                             className="flex items-center gap-2 hover:text-[#d8aa5b] transition-colors"
                         >
                             <User size={18} />
-                            <span className="hidden md:inline">{(role === 'admin' || role === 'owner' || role === 'support') ? 'Admin' : t('nav.profile')}</span>
+                            <span className="hidden md:inline">{(role === 'owner' || role === 'support') ? 'Admin' : t('nav.profile')}</span>
                         </button>
                         {showUserMenu && (
                             <div className="absolute right-0 top-full mt-4 bg-[#0a0a09] border border-white/10 rounded-sm min-w-[180px] shadow-2xl overflow-hidden">
-                                {(role === 'admin' || role === 'owner' || role === 'support') && (
+                                {(role === 'owner' || role === 'support') && (
                                     <Link
                                         href="/admin"
                                         onClick={() => setShowUserMenu(false)}

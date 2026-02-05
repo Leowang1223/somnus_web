@@ -4,43 +4,51 @@ import { NextResponse } from 'next/server'
 export async function GET(request: Request) {
     const requestUrl = new URL(request.url)
     const code = requestUrl.searchParams.get('code')
+    const origin = requestUrl.origin
 
     if (code) {
         const supabase = await createClient()
 
         // Exchange code for session
-        const { data: { session }, error: sessionError } = await supabase.auth.exchangeCodeForSession(code)
+        const { data, error } = await supabase.auth.exchangeCodeForSession(code)
 
-        if (sessionError) {
-            console.error('❌ Auth callback error:', sessionError)
-            return NextResponse.redirect(`${requestUrl.origin}/login?error=auth_failed`)
+        if (error) {
+            console.error('❌ Auth callback error:', error)
+            return NextResponse.redirect(`${origin}/login?error=${encodeURIComponent(error.message)}`)
         }
 
-        if (session?.user) {
+        if (data?.session?.user) {
+            const user = data.session.user
+            console.log('✅ User logged in:', user.email)
+
             // Check if user exists in our database
             const { data: userData, error: userError } = await supabase
                 .from('users')
-                .select('role, email')
-                .eq('email', session.user.email!)
+                .select('id, email, role')
+                .eq('email', user.email!)
                 .single()
 
             if (userError || !userData) {
-                // User doesn't exist in our database - create with 'consumer' role
+                console.log('📝 Creating new user in database:', user.email)
+                // User doesn't exist - create with consumer role
                 const { error: insertError } = await supabase
                     .from('users')
                     .insert({
-                        email: session.user.email!,
-                        role: 'consumer', // Default role for new users
-                        full_name: session.user.user_metadata?.full_name || session.user.email!.split('@')[0],
+                        id: user.id,
+                        email: user.email!,
+                        role: 'consumer',
+                        name: user.user_metadata?.full_name || user.email!.split('@')[0],
                     })
 
                 if (insertError) {
                     console.error('❌ Failed to create user:', insertError)
                 }
+            } else {
+                console.log('✅ User found in database:', userData.email, 'Role:', userData.role)
             }
         }
     }
 
     // Redirect to home page
-    return NextResponse.redirect(`${requestUrl.origin}/`)
+    return NextResponse.redirect(`${origin}/`)
 }

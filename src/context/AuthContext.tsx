@@ -24,9 +24,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const [user, setUser] = useState<User | null>(null);
     const [loading, setLoading] = useState(true);
     const router = useRouter();
-    const supabase = createClient();
+
+    // Skip Supabase initialization if environment variables are missing (e.g., during build)
+    const hasSupabaseConfig = typeof window !== 'undefined' &&
+        process.env.NEXT_PUBLIC_SUPABASE_URL &&
+        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+    const supabase = hasSupabaseConfig ? createClient() : null;
 
     useEffect(() => {
+        if (!supabase) {
+            setLoading(false);
+            return;
+        }
+
         // Check active session on mount
         const checkSession = async () => {
             try {
@@ -96,7 +107,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     };
 
     const logout = async () => {
-        await supabase.auth.signOut();
+        if (supabase) {
+            await supabase.auth.signOut();
+        }
         setRole(null);
         setUser(null);
         router.push('/');

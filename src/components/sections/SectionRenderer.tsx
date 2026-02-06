@@ -93,7 +93,14 @@ const UniversalCarousel = ({
                         }}
                         draggable={false}
                         onLoad={() => console.log(`✅ Carousel image ${i} loaded:`, img)}
-                        onError={(e) => console.error(`❌ Carousel image ${i} failed:`, img, e)}
+                        onError={(e) => {
+                            console.error(`❌ Carousel image ${i} failed:`, img);
+                            e.currentTarget.style.display = 'none';
+                            // Ensure parent container has background
+                            if (e.currentTarget.parentElement) {
+                                e.currentTarget.parentElement.style.backgroundColor = '#111';
+                            }
+                        }}
                     />
                 );
             })}

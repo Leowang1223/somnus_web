@@ -128,53 +128,99 @@ export async function autoTranslateAction(text: string, sourceLang: string, targ
 
 export async function submitTicketAction(formData: FormData) {
     try {
-        const { db } = await getServerModules();
+        const { createClient } = await import('@/lib/supabase/server');
+        const supabase = await createClient(); // Use server client
+
         const type = formData.get('type') as string;
         const message = formData.get('message') as string;
         const orderId = formData.get('orderId') as string;
-        // const image = formData.get('image') as string; // Removed for now to simplify chat flow
         const department = formData.get('department') as string || 'General';
+
+        // Get current user if logged in
+        const { data: { session } } = await supabase.auth.getSession();
+        const userEmail = session?.user?.email;
 
         const ticket = {
             id: `tkt-${Date.now()}`,
-            type, // 'support' | 'return'
-            department, // 'General' | 'Order' | 'Product'
+            type,
+            department,
             status: 'pending',
-            assignedTo: null, // Initially unassigned
-            orderId: orderId || null,
+            order_id: orderId || null,
             messages: [
                 { id: `msg-${Date.now()}`, sender: 'user', content: message, timestamp: Date.now() }
             ],
-            createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString()
+            user_email: userEmail || null,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString()
         };
 
-        await db.saveTicket(ticket);
+        // Insert into Supabase
+        const { error } = await supabase
+            .from('tickets')
+            .insert(ticket)
+            .select()
+            .single();
+
+        if (error) {
+            console.error('❌ Failed to save ticket:', error);
+            return { success: false };
+        }
+
         return { success: true, ticketId: ticket.id };
-    } catch (e) { return { success: false }; }
+    } catch (e) {
+        console.error('Exception submitting ticket:', e);
+        return { success: false };
+    }
 }
 
 export async function replyToTicketAction(ticketId: string, content: string, sender: 'user' | 'admin') {
     try {
-        const { db } = await getServerModules();
-        const tickets = await db.getTickets();
-        const ticket = tickets.find((t: any) => t.id === ticketId);
+        const { createClient } = await import('@/lib/supabase/server');
+        const supabase = await createClient();
 
-        if (ticket) {
-            ticket.messages.push({
+        // 1. Fetch current ticket messages
+        const { data: ticket, error: fetchError } = await supabase
+            .from('tickets')
+            .select('messages')
+            .eq('id', ticketId)
+            .single();
+
+        if (fetchError || !ticket) {
+            console.error('❌ Ticket not found:', fetchError);
+            return { success: false };
+        }
+
+        // 2. Append new message
+        const newMessages = [
+            ...(ticket.messages as any[] || []),
+            {
                 id: `msg-${Date.now()}`,
                 sender,
                 content,
                 timestamp: Date.now()
-            });
-            ticket.updatedAt = new Date().toISOString();
+            }
+        ];
 
-            await db.saveTicket(ticket);
-            revalidatePath('/admin/cs');
-            return { success: true };
+        // 3. Update ticket
+        const { error: updateError } = await supabase
+            .from('tickets')
+            .update({
+                messages: newMessages,
+                updated_at: new Date().toISOString()
+            })
+            .eq('id', ticketId);
+
+        if (updateError) {
+            console.error('❌ Failed to update ticket:', updateError);
+            return { success: false };
         }
+
+        revalidatePath('/admin/cs');
+        return { success: true };
+    } catch (e) {
+        console.error('Exception replying to ticket:', e);
         return { success: false };
-    } catch (e) { return { success: false }; }
+    }
 }
 
 export async function claimTicketAction(ticketId: string, adminId: string) {

@@ -217,6 +217,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             setRole(null);
             setUser(null);
             router.push('/');
+            router.refresh(); // ← Enforce server state refresh
         }
     };
 

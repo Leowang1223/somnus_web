@@ -51,11 +51,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             return;
         }
 
+        let isMounted = true; // ← Prevent state updates after unmount
+
         // Check active session on mount
         const checkSession = async () => {
+            if (!isMounted) return; // ← Skip if unmounted
+
             console.log('🔄 Checking session...');
             try {
                 const { data: { session } } = await supabase.auth.getSession();
+
+                if (!isMounted) return; // ← Check again after async operation
+
                 console.log('📊 Session data:', session ? {
                     user_email: session.user?.email,
                     expires_at: session.expires_at
@@ -74,6 +81,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                             .eq('email', session.user.email!)
                             .single();
 
+                        if (!isMounted) return; // ← Check after role fetch
+
                         console.log('📦 Query result - Data:', userData, 'Error:', roleError);
 
                         if (roleError) {
@@ -90,6 +99,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                             setRole('consumer');
                         }
                     } catch (error) {
+                        if (!isMounted) return; // ← Ignore errors if unmounted
                         console.error('💥 Exception while fetching role:', error);
                         console.warn('⚠️ Setting default role: consumer (due to exception)');
                         setRole('consumer');
@@ -100,10 +110,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                     setRole(null);
                 }
             } catch (error) {
+                if (!isMounted) {
+                    console.log('⏭️ Ignoring session check error - component unmounted');
+                    return;
+                }
                 console.error('❌ Error checking session:', error);
             } finally {
-                setLoading(false);
-                console.log('✓ Session check complete');
+                if (isMounted) {
+                    setLoading(false);
+                    console.log('✓ Session check complete');
+                }
             }
         };
 
@@ -112,6 +128,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         // Listen for auth changes
         console.log('👂 Setting up auth state change listener...');
         const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+            if (!isMounted) return; // ← Check mounted state in listener
+
             console.log('🔔 Auth state changed:', event, session ? {
                 user_email: session.user?.email
             } : 'NO SESSION');
@@ -130,6 +148,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                         .eq('email', session.user.email!)
                         .single();
 
+                    if (!isMounted) return; // ← Check after async
+
                     console.log('📦 Query result - Data:', userData, 'Error:', roleError);
 
                     if (roleError) {
@@ -145,6 +165,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                         setRole('consumer');
                     }
                 } catch (error) {
+                    if (!isMounted) return;
                     console.error('💥 Exception while fetching role:', error);
                     console.warn('⚠️ Setting default role: consumer (due to exception)');
                     setRole('consumer');
@@ -157,6 +178,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         });
 
         return () => {
+            isMounted = false; // ← Set flag BEFORE cleanup
             subscription.unsubscribe();
         };
     }, [supabase]);

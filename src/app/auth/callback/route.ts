@@ -49,6 +49,6 @@ export async function GET(request: Request) {
         }
     }
 
-    // Redirect to home page
-    return NextResponse.redirect(`${origin}/`)
+    // Redirect to auth success page for client-side session initialization
+    return NextResponse.redirect(`${origin}/auth/success`)
 }

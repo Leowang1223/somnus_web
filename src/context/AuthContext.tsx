@@ -197,12 +197,27 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     };
 
     const logout = async () => {
-        if (supabase) {
-            await supabase.auth.signOut();
+        try {
+            if (supabase) {
+                console.log('🚪 Logging out...');
+                const { error } = await supabase.auth.signOut();
+                if (error) {
+                    console.error('❌ Logout error:', error);
+                } else {
+                    console.log('✅ Logged out successfully');
+                }
+            } else {
+                console.warn('⚠️ No Supabase client available for logout');
+            }
+        } catch (error) {
+            console.error('💥 Exception during logout:', error);
+        } finally {
+            // Always clear local state regardless of Supabase signOut result
+            console.log('🧹 Clearing local auth state');
+            setRole(null);
+            setUser(null);
+            router.push('/');
         }
-        setRole(null);
-        setUser(null);
-        router.push('/');
     };
 
     return (

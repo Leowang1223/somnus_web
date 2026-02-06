@@ -55,7 +55,7 @@ CREATE POLICY "service_role_all"
   WITH CHECK (true);
 
 -- Step 3: Ensure your user account exists and has the correct role
--- Replace 'your-email@example.com' with your actual email
+-- Replace 'wls0905774796@gmail.com' with your actual email if different
 -- This will create or update your user record to have 'owner' role
 
 INSERT INTO public.users (id, email, role, name)
@@ -65,7 +65,7 @@ SELECT
   'owner' as role,
   COALESCE(raw_user_meta_data->>'full_name', email) as name
 FROM auth.users
-WHERE email = 'wls0905774796@gmail.com'  -- ← REPLACE WITH YOUR EMAIL
+WHERE email = 'wls0905774796@gmail.com'
 ON CONFLICT (email) 
 DO UPDATE SET 
   role = 'owner',
@@ -75,14 +75,14 @@ DO UPDATE SET
 -- This should return your user record with role = 'owner'
 SELECT id, email, role, created_at 
 FROM public.users 
-WHERE email = 'wls0905774796@gmail.com';  -- ← REPLACE WITH YOUR EMAIL
+WHERE email = 'wls0905774796@gmail.com';
 
 -- ==========================================
 -- EXPECTED RESULT
 -- ==========================================
 -- You should see one row with:
 -- - id: your UUID
--- - email: wls0905774796@gmail.com (or your email)
+-- - email: wls0905774796@gmail.com
 -- - role: owner
 -- - created_at: timestamp
 -- ==========================================

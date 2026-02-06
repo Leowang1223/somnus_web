@@ -1,13 +1,17 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 
 export default function AuthSuccess() {
     const router = useRouter();
+    const hasRedirected = useRef(false);
 
     useEffect(() => {
+        // Prevent multiple executions
+        if (hasRedirected.current) return;
+
         const initSession = async () => {
             console.log('🔄 Initializing session on client...');
             const supabase = createClient();
@@ -18,28 +22,30 @@ export default function AuthSuccess() {
 
                 if (error) {
                     console.error('❌ Session error:', error);
+                    hasRedirected.current = true;
                     router.push('/login?error=session_failed');
                     return;
                 }
 
                 if (session) {
                     console.log('✅ Session initialized on client for:', session.user.email);
-                    // Give AuthContext time to initialize
-                    setTimeout(() => {
-                        router.push('/');
-                    }, 500);
+                    hasRedirected.current = true;
+                    // Redirect immediately
+                    router.push('/');
                 } else {
                     console.error('❌ No session found after OAuth');
+                    hasRedirected.current = true;
                     router.push('/login?error=no_session');
                 }
             } catch (error) {
                 console.error('💥 Exception initializing session:', error);
+                hasRedirected.current = true;
                 router.push('/login?error=init_failed');
             }
         };
 
         initSession();
-    }, [router]);
+    }, []); // Empty dependency array - only run once
 
     return (
         <div className="min-h-screen flex items-center justify-center bg-[#050505] text-white">

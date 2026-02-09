@@ -55,7 +55,10 @@ export async function updateHomeLayoutAction(sections: any[]) {
         await db.saveHomeLayout({ sections });
         revalidatePath('/');
         return { success: true };
-    } catch (e) { return { success: false, error: "Not supported in static build" }; }
+    } catch (e: any) {
+        console.error("❌ updateHomeLayoutAction failed:", e);
+        return { success: false, error: e.message || "儲存佈局時出錯" };
+    }
 }
 
 export async function updateProductSectionsAction(id: string, sections: any[]) {

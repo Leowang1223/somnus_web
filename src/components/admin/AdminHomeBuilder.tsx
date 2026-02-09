@@ -11,8 +11,12 @@ export default function AdminHomeBuilder({ initialSections }: { initialSections:
     const handleSave = async (sections: Section[]) => {
         setIsSaving(true);
         try {
-            await updateHomeLayoutAction(sections);
-            alert("首頁已成功發佈。");
+            const result = await updateHomeLayoutAction(sections);
+            if (result.success) {
+                alert("首頁已成功發佈。");
+            } else {
+                alert(`儲存失敗: ${result.error || '未知錯誤'}`);
+            }
         } catch (e) {
             alert("儲存佈局時出錯。");
         } finally {

@@ -230,13 +230,15 @@ export async function getHomeLayout() {
 }
 
 export async function saveHomeLayout(layout: any) {
-    try {
-        const supabase = await createClient();
-        // Assuming ID 1 for single layout
-        await supabase
-            .from('homepage_layout')
-            .upsert({ id: 1, sections: layout.sections });
-    } catch (e) { console.error(e); }
+    const supabase = await createClient();
+    const { error } = await supabase
+        .from('homepage_layout')
+        .upsert({ id: 1, sections: layout.sections });
+
+    if (error) {
+        console.error("❌ saveHomeLayout failed:", error);
+        throw new Error(error.message);
+    }
 }
 
 // ==========================================

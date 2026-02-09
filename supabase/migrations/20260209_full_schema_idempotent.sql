@@ -142,8 +142,9 @@ CREATE POLICY "authenticated_update_own" ON public.users FOR UPDATE TO authentic
 DROP POLICY IF EXISTS "service_role_all" ON public.users;
 CREATE POLICY "service_role_all" ON public.users FOR ALL TO service_role USING (true) WITH CHECK (true);
 
+-- ⚠️ 不加入 owners_manage_users policy — 會造成 RLS 循環依賴
+-- Owner 管理其他使用者的功能改由 server-side (service_role) 處理
 DROP POLICY IF EXISTS "owners_manage_users" ON public.users;
-CREATE POLICY "owners_manage_users" ON public.users FOR ALL TO authenticated USING (EXISTS (SELECT 1 FROM public.users WHERE id = auth.uid() AND role = 'owner'));
 
 -- Products Policies
 DROP POLICY IF EXISTS "public_view_published_products" ON public.products;

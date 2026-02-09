@@ -210,37 +210,73 @@ export async function replyToTicketAction(ticketId: string, content: string, sen
 
 export async function claimTicketAction(ticketId: string, adminId: string) {
     try {
-        const tickets = await db.getTickets();
-        const ticket = tickets.find((t: any) => t.id === ticketId);
+        const supabase = await createClient();
+        const { error } = await supabase
+            .from('tickets')
+            .update({
+                assigned_to: adminId,
+                status: 'open',
+                updated_at: new Date().toISOString()
+            })
+            .eq('id', ticketId);
 
-        if (ticket) {
-            ticket.assignedTo = adminId;
-            ticket.status = 'open'; // Switch to open once claimed
-            await db.saveTicket(ticket);
-            revalidatePath('/admin/cs');
+        if (error) {
+            console.error('Claim ticket failed:', error);
+            return { success: false };
         }
+
+        revalidatePath('/admin/cs');
         return { success: true };
     } catch (e) { return { success: false }; }
 }
 
 export async function getTicketUpdatesAction(ticketId: string) {
     try {
-        const tickets = await db.getTickets();
-        const ticket = tickets.find((t: any) => t.id === ticketId);
-        return { success: true, ticket };
+        const supabase = await createClient();
+        const { data: ticket, error } = await supabase
+            .from('tickets')
+            .select('*')
+            .eq('id', ticketId)
+            .single();
+
+        if (error || !ticket) {
+            return { success: false };
+        }
+
+        return {
+            success: true,
+            ticket: {
+                id: ticket.id,
+                type: ticket.type,
+                department: ticket.department || 'General',
+                status: ticket.status,
+                orderId: ticket.order_id,
+                messages: ticket.messages || [],
+                userEmail: ticket.user_email,
+                assignedTo: ticket.assigned_to,
+                createdAt: ticket.created_at
+            }
+        };
     } catch (e) { return { success: false }; }
 }
 
 export async function updateTicketStatusAction(id: string, status: string) {
     try {
-        const tickets = await db.getTickets();
-        const ticket = tickets.find((t: any) => t.id === id);
+        const supabase = await createClient();
+        const { error } = await supabase
+            .from('tickets')
+            .update({
+                status,
+                updated_at: new Date().toISOString()
+            })
+            .eq('id', id);
 
-        if (ticket) {
-            ticket.status = status;
-            await db.saveTicket(ticket);
-            revalidatePath('/admin/cs');
+        if (error) {
+            console.error('Update ticket status failed:', error);
+            return { success: false };
         }
+
+        revalidatePath('/admin/cs');
         return { success: true };
     } catch (e) { return { success: false }; }
 }

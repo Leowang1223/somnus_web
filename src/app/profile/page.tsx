@@ -11,12 +11,12 @@ export default function ProfilePage() {
     const router = useRouter();
 
     useEffect(() => {
-        if (!isAuthenticated || role !== 'consumer') {
+        if (!isAuthenticated) {
             router.push('/login');
         }
-    }, [role, isAuthenticated, router]);
+    }, [isAuthenticated, router]);
 
-    if (!isAuthenticated || role !== 'consumer') {
+    if (!isAuthenticated) {
         return <div className="min-h-screen bg-[#050505] flex items-center justify-center text-white">Authenticating...</div>
     }
 

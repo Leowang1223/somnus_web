@@ -326,18 +326,17 @@ export async function getTickets() {
 
         if (error) return [];
 
-        // Map snake_case to camelCase if frontend needs it
         return data.map((t: any) => ({
             id: t.id,
-            customerName: t.customer_name,
-            customerEmail: t.customer_email,
-            subject: t.subject,
-            message: t.message, // Initial message, might be in messages array too
-            messages: t.messages || [],
+            type: t.type,
+            department: t.department || 'General',
             status: t.status,
+            orderId: t.order_id,
+            messages: t.messages || [],
+            userEmail: t.user_email,
+            assignedTo: t.assigned_to,
             createdAt: t.created_at,
-            type: t.subject, // Map subject to type if needed
-            department: 'General' // Default
+            updatedAt: t.updated_at
         }));
     } catch (e) { return []; }
 }
@@ -345,18 +344,22 @@ export async function getTickets() {
 export async function saveTicket(ticket: any) {
     try {
         const supabase = await createClient();
-        const dbRecord = {
+        const dbRecord: any = {
             id: ticket.id,
-            customer_name: ticket.customerName || 'Guest',
-            customer_email: ticket.customerEmail || ticket.user_email,
-            subject: ticket.type || ticket.subject || 'Support Request',
-            message: ticket.messages?.[0]?.content || 'Start',
+            type: ticket.type,
+            department: ticket.department,
             status: ticket.status,
-            messages: ticket.messages
+            order_id: ticket.orderId || ticket.order_id,
+            messages: ticket.messages,
+            user_email: ticket.userEmail || ticket.user_email,
+            assigned_to: ticket.assignedTo || ticket.assigned_to
         };
 
+        // Remove undefined keys
+        Object.keys(dbRecord).forEach(key => dbRecord[key] === undefined && delete dbRecord[key]);
+
         const { error } = await supabase.from('tickets').upsert(dbRecord);
-        if (error) console.error('❌ Save Ticket Failed:', error);
+        if (error) console.error('Save Ticket Failed:', error);
     } catch (e) { console.error(e); }
 }
 

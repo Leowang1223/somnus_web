@@ -11,12 +11,12 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     const router = useRouter();
 
     useEffect(() => {
-        if (!isAuthenticated || (role !== 'admin' && role !== 'owner' && role !== 'support')) {
+        if (!isAuthenticated || (role !== 'owner' && role !== 'support')) {
             router.push('/login');
         }
     }, [role, isAuthenticated, router]);
 
-    if (!isAuthenticated || (role !== 'admin' && role !== 'owner' && role !== 'support')) {
+    if (!isAuthenticated || (role !== 'owner' && role !== 'support')) {
         return <div className="min-h-screen bg-[#050505] flex items-center justify-center text-white">驗證中...</div>
     }
 

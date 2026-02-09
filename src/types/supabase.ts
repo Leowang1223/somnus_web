@@ -177,34 +177,37 @@ export interface Database {
             tickets: {
                 Row: {
                     id: string
-                    customer_name: string
-                    customer_email: string
-                    subject: string
-                    message: string
+                    type: string | null
+                    department: string | null
                     status: string
+                    order_id: string | null
                     messages: Json
+                    user_email: string | null
+                    assigned_to: string | null
                     created_at: string
                     updated_at: string
                 }
                 Insert: {
                     id: string
-                    customer_name: string
-                    customer_email: string
-                    subject: string
-                    message: string
+                    type?: string | null
+                    department?: string | null
                     status?: string
+                    order_id?: string | null
                     messages?: Json
+                    user_email?: string | null
+                    assigned_to?: string | null
                     created_at?: string
                     updated_at?: string
                 }
                 Update: {
                     id?: string
-                    customer_name?: string
-                    customer_email?: string
-                    subject?: string
-                    message?: string
+                    type?: string | null
+                    department?: string | null
                     status?: string
+                    order_id?: string | null
                     messages?: Json
+                    user_email?: string | null
+                    assigned_to?: string | null
                     updated_at?: string
                 }
             }

@@ -213,11 +213,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             console.error('💥 Exception during logout:', error);
         } finally {
             // Always clear local state regardless of Supabase signOut result
+            // Always clear local state regardless of Supabase signOut result
             console.log('🧹 Clearing local auth state');
             setRole(null);
             setUser(null);
-            router.push('/');
-            router.refresh(); // ← Enforce server state refresh
+            // Force hard reload to clear all server/client state
+            window.location.href = '/';
         }
     };
 

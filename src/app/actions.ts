@@ -1,21 +1,12 @@
 'use server';
 
-// 'use server' - Restored for Client Component compatibility
-// All server-side logic is now dynamically imported to prevent build errors
-
 import { revalidatePath } from "next/cache";
+import * as db from "@/lib/db";
+import { createClient } from "@/lib/supabase/server";
 
-// Helper to safely import server modules only when running in a Node.js environment (Local Dev)
-async function getServerModules() {
-    if (typeof window !== 'undefined') {
-        throw new Error("This action cannot be run in the browser. It is for local development only.");
-    }
-    const fs = await import('fs');
-    const path = await import('path');
-    const db = await import("@/lib/db");
-    return { fs: fs.promises, path: path.default, db };
-}
-
+// ==========================================
+// 📂 File Upload Action
+// ==========================================
 export async function uploadFileAction(formData: FormData) {
     try {
         const file = formData.get('file') as File;
@@ -32,7 +23,6 @@ export async function uploadFileAction(formData: FormData) {
         const filename = `${cleanPrefix}-${Date.now()}-${cleanFilename}`;
 
         // Upload to Supabase Storage
-        const { createClient } = await import('@/lib/supabase/server');
         const supabase = await createClient();
 
         const { data, error } = await supabase.storage
@@ -62,7 +52,6 @@ export async function uploadFileAction(formData: FormData) {
 
 export async function updateHomeLayoutAction(sections: any[]) {
     try {
-        const { db } = await getServerModules();
         await db.saveHomeLayout({ sections });
         revalidatePath('/');
         return { success: true };
@@ -71,7 +60,6 @@ export async function updateHomeLayoutAction(sections: any[]) {
 
 export async function updateProductSectionsAction(id: string, sections: any[]) {
     try {
-        const { db } = await getServerModules();
         const products = await db.getProducts();
         const product = products.find((p: any) => p.id === id);
         if (product) {
@@ -85,7 +73,6 @@ export async function updateProductSectionsAction(id: string, sections: any[]) {
 
 export async function updateArticleSectionsAction(id: string, sections: any[]) {
     try {
-        const { db } = await getServerModules();
         const articles = await db.getArticles();
         const article = articles.find((a: any) => a.id === id);
         if (article) {
@@ -128,7 +115,6 @@ export async function autoTranslateAction(text: string, sourceLang: string, targ
 
 export async function submitTicketAction(formData: FormData) {
     try {
-        const { createClient } = await import('@/lib/supabase/server');
         const supabase = await createClient(); // Use server client
 
         const type = formData.get('type') as string;
@@ -175,7 +161,6 @@ export async function submitTicketAction(formData: FormData) {
 
 export async function replyToTicketAction(ticketId: string, content: string, sender: 'user' | 'admin') {
     try {
-        const { createClient } = await import('@/lib/supabase/server');
         const supabase = await createClient();
 
         // 1. Fetch current ticket messages
@@ -225,7 +210,6 @@ export async function replyToTicketAction(ticketId: string, content: string, sen
 
 export async function claimTicketAction(ticketId: string, adminId: string) {
     try {
-        const { db } = await getServerModules();
         const tickets = await db.getTickets();
         const ticket = tickets.find((t: any) => t.id === ticketId);
 
@@ -241,7 +225,6 @@ export async function claimTicketAction(ticketId: string, adminId: string) {
 
 export async function getTicketUpdatesAction(ticketId: string) {
     try {
-        const { db } = await getServerModules();
         const tickets = await db.getTickets();
         const ticket = tickets.find((t: any) => t.id === ticketId);
         return { success: true, ticket };
@@ -250,7 +233,6 @@ export async function getTicketUpdatesAction(ticketId: string) {
 
 export async function updateTicketStatusAction(id: string, status: string) {
     try {
-        const { db } = await getServerModules();
         const tickets = await db.getTickets();
         const ticket = tickets.find((t: any) => t.id === id);
 
@@ -265,7 +247,6 @@ export async function updateTicketStatusAction(id: string, status: string) {
 
 export async function getAdminTicketsAction() {
     try {
-        const { db } = await getServerModules();
         const tickets = await db.getTickets();
         return { tickets, success: true };
     } catch (e) { return { tickets: [], success: false }; }
@@ -273,7 +254,6 @@ export async function getAdminTicketsAction() {
 
 export async function updateProductAction(formData: FormData) {
     try {
-        const { db } = await getServerModules();
         const products = await db.getProducts();
         const id = formData.get('id') as string;
         const name = formData.get('name') as string;
@@ -356,12 +336,11 @@ export async function updateProductAction(formData: FormData) {
         if (product.slug) revalidatePath(`/product/${product.slug}`);
 
         return { success: true };
-    } catch (e) { return { success: false }; }
+    } catch (e) { console.error(e); return { success: false }; }
 }
 
 export async function getDashboardStatsAction() {
     try {
-        const { db } = await getServerModules();
         const orders = await db.getOrders();
         const users = await db.getUsers();
         const analytics = await db.getAnalytics();
@@ -380,7 +359,6 @@ export async function getDashboardStatsAction() {
 
 export async function updateArticleAction(formData: FormData) {
     try {
-        const { db } = await getServerModules();
         const articles = await db.getArticles();
         const id = formData.get('id') as string;
         const title = formData.get('title') as string;
@@ -421,13 +399,9 @@ export async function updateArticleAction(formData: FormData) {
 export async function deleteArticlesAction(articleIds: string[]) {
     'use server';
     try {
-        const { fs, path } = await getServerModules();
-        const articlesPath = path.join(process.cwd(), 'data', 'articles.json');
-        const fileContent = await fs.readFile(articlesPath, 'utf-8');
-        const articles = JSON.parse(fileContent);
-        const remainingArticles = articles.filter((a: any) => !articleIds.includes(a.id));
-
-        await fs.writeFile(articlesPath, JSON.stringify(remainingArticles, null, 2), 'utf-8');
+        for (const id of articleIds) {
+            await db.deleteArticle(id);
+        }
 
         revalidatePath('/admin/journal');
         revalidatePath('/journal');
@@ -464,7 +438,6 @@ export async function translateAction(text: string, targetLang: string) {
 
 export async function updateProductMetadataAction(id: string, metadata: any) {
     try {
-        const { db } = await getServerModules();
         const products = await db.getProducts();
         const product = products.find((p: any) => p.id === id);
         if (product) {
@@ -486,7 +459,6 @@ export async function updateProductMetadataAction(id: string, metadata: any) {
 
 export async function updateArticleMetadataAction(id: string, metadata: any) {
     try {
-        const { db } = await getServerModules();
         const articles = await db.getArticles();
         const article = articles.find((a: any) => a.id === id);
         if (article) {
@@ -514,8 +486,6 @@ export async function updateArticleMetadataAction(id: string, metadata: any) {
 export async function createOrderAction(orderData: any) {
     'use server';
     try {
-        const { db } = await getServerModules();
-
         // Generate Order ID (e.g., SOM-240201-1234)
         const dateStr = new Date().toISOString().slice(2, 10).replace(/-/g, '');
         const randomSuffix = Math.floor(1000 + Math.random() * 9000);
@@ -557,7 +527,6 @@ export async function createOrderAction(orderData: any) {
 export async function updateOrderStatusAction(orderId: string, status: string, trackingInfo?: any) {
     'use server';
     try {
-        const { db } = await getServerModules();
         const orders = await db.getOrders();
         const order = orders.find((o: any) => o.id === orderId);
 
@@ -586,7 +555,6 @@ export async function updateOrderStatusAction(orderId: string, status: string, t
 export async function getOrderAction(orderId: string) {
     'use server';
     try {
-        const { db } = await getServerModules();
         const orders = await db.getOrders();
         // Case-insensitive search for convenience
         const order = orders.find((o: any) => o.id.toLowerCase() === orderId.toLowerCase());
@@ -601,7 +569,6 @@ export async function getOrderAction(orderId: string) {
 export async function getAllOrdersAction() {
     'use server';
     try {
-        const { db } = await getServerModules();
         const orders = await db.getOrders();
         // Sort by date desc
         return { success: true, orders: orders.sort((a: any, b: any) => new Date(b.date).getTime() - new Date(a.date).getTime()) };
@@ -616,7 +583,6 @@ export async function loginAction(formData: FormData) {
     const password = formData.get('password') as string;
 
     try {
-        const { createClient } = await import('@/lib/supabase/server');
         const supabase = await createClient();
 
         // Use Supabase Auth for real authentication
@@ -661,34 +627,31 @@ export async function loginAction(formData: FormData) {
 export async function getUsersAction() {
     'use server';
     try {
-        const { db } = await getServerModules();
         const users = await db.getUsers();
-        // Return without passwords
-        return { success: true, users: users.map(({ password, ...u }: any) => u) };
+        // Return without passwords (there are no passwords in public.users anyway)
+        return { success: true, users: users };
     } catch (e) { return { success: false, users: [] }; }
 }
 
 export async function addUserAction(userData: any) {
     'use server';
     try {
-        const { db, fs, path } = await getServerModules();
-        let users = await db.getUsers();
+        const users = await db.getUsers();
 
         if (users.find((u: any) => u.email === userData.email)) {
             return { success: false, error: 'User already exists' };
         }
 
+        // Note: usage of db.saveUser here only updates public.users. 
+        // Real user creation likely involves Supabase Auth SignUp which needs to happen on client or via admin API.
+        // For now we just save the profile if it's what this action intends.
         const newUser = {
             id: `user-${Date.now()}`,
             ...userData,
             date: new Date().toISOString()
         };
 
-        const newUsers = [...users, newUser];
-
-        // Direct file write for simplicity ensuring array integrity
-        const usersPath = path.join(process.cwd(), 'data', 'users.json');
-        await fs.writeFile(usersPath, JSON.stringify(newUsers, null, 2));
+        await db.saveUser(newUser);
 
         return { success: true, user: newUser };
     } catch (e) {
@@ -700,13 +663,7 @@ export async function addUserAction(userData: any) {
 export async function deleteUserAction(userId: string) {
     'use server';
     try {
-        const { db, fs, path } = await getServerModules();
-        const users = await db.getUsers();
-        const newUsers = users.filter((u: any) => u.id !== userId);
-
-        const usersPath = path.join(process.cwd(), 'data', 'users.json');
-        await fs.writeFile(usersPath, JSON.stringify(newUsers, null, 2));
-
+        await db.deleteUser(userId);
         return { success: true };
     } catch (e) { return { success: false }; }
 }

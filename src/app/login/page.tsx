@@ -45,7 +45,7 @@ function LoginContent() {
     const fillCredentials = (type: 'admin' | 'user') => {
         if (type === 'admin') {
             setEmail("admin@somnus.com");
-            setPassword("admin123");
+            setPassword("12345678");
         } else {
             setEmail("user@somnus.com");
             setPassword("user123");

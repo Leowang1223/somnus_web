@@ -144,6 +144,39 @@ BEGIN
 END $$;
 
 -- ==========================================
+-- PART 5: 修復 Storage Policies（圖片上傳權限）
+-- ==========================================
+
+-- 允許認證用戶上傳到 somnus bucket
+DROP POLICY IF EXISTS "authenticated_upload" ON storage.objects;
+CREATE POLICY "authenticated_upload"
+  ON storage.objects FOR INSERT TO authenticated
+  WITH CHECK (bucket_id = 'somnus');
+
+-- 允許認證用戶更新自己上傳的檔案
+DROP POLICY IF EXISTS "authenticated_update" ON storage.objects;
+CREATE POLICY "authenticated_update"
+  ON storage.objects FOR UPDATE TO authenticated
+  USING (bucket_id = 'somnus');
+
+-- 允許所有人讀取 somnus bucket（public bucket）
+DROP POLICY IF EXISTS "public_read_somnus" ON storage.objects;
+CREATE POLICY "public_read_somnus"
+  ON storage.objects FOR SELECT TO public
+  USING (bucket_id = 'somnus');
+
+-- 允許認證用戶刪除檔案
+DROP POLICY IF EXISTS "authenticated_delete" ON storage.objects;
+CREATE POLICY "authenticated_delete"
+  ON storage.objects FOR DELETE TO authenticated
+  USING (bucket_id = 'somnus');
+
+-- 移除 somnus bucket 的 MIME type 限制（允許所有類型）
+UPDATE storage.buckets
+SET allowed_mime_types = NULL
+WHERE id = 'somnus';
+
+-- ==========================================
 -- 驗證
 -- ==========================================
 SELECT id, email, role FROM public.users WHERE email = 'admin@somnus.com';

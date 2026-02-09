@@ -26,7 +26,7 @@ export async function uploadFileAction(formData: FormData) {
         const supabase = await createClient();
 
         const { data, error } = await supabase.storage
-            .from('images') // Make sure this bucket exists in Supabase
+            .from('somnus')
             .upload(filename, buffer, {
                 contentType: file.type,
                 upsert: false,
@@ -39,7 +39,7 @@ export async function uploadFileAction(formData: FormData) {
 
         // Get public URL
         const { data: { publicUrl } } = supabase.storage
-            .from('images')
+            .from('somnus')
             .getPublicUrl(filename);
 
         console.log("✅ File uploaded successfully to Supabase:", publicUrl);

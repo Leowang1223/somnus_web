@@ -146,7 +146,7 @@ export async function submitTicketAction(formData: FormData) {
         // Insert into Supabase
         const { error } = await supabase
             .from('tickets')
-            .insert(ticket)
+            .insert(ticket as any)
             .select()
             .single();
 
@@ -171,7 +171,7 @@ export async function replyToTicketAction(ticketId: string, content: string, sen
             .from('tickets')
             .select('messages')
             .eq('id', ticketId)
-            .single();
+            .single() as { data: any; error: any };
 
         if (fetchError || !ticket) {
             console.error('❌ Ticket not found:', fetchError);
@@ -190,8 +190,8 @@ export async function replyToTicketAction(ticketId: string, content: string, sen
         ];
 
         // 3. Update ticket
-        const { error: updateError } = await supabase
-            .from('tickets')
+        const { error: updateError } = await (supabase
+            .from('tickets') as any)
             .update({
                 messages: newMessages,
                 updated_at: new Date().toISOString()
@@ -214,8 +214,8 @@ export async function replyToTicketAction(ticketId: string, content: string, sen
 export async function claimTicketAction(ticketId: string, adminId: string) {
     try {
         const supabase = await createClient();
-        const { error } = await supabase
-            .from('tickets')
+        const { error } = await (supabase
+            .from('tickets') as any)
             .update({
                 assigned_to: adminId,
                 status: 'open',
@@ -240,7 +240,7 @@ export async function getTicketUpdatesAction(ticketId: string) {
             .from('tickets')
             .select('*')
             .eq('id', ticketId)
-            .single();
+            .single() as { data: any; error: any };
 
         if (error || !ticket) {
             return { success: false };
@@ -266,8 +266,8 @@ export async function getTicketUpdatesAction(ticketId: string) {
 export async function updateTicketStatusAction(id: string, status: string) {
     try {
         const supabase = await createClient();
-        const { error } = await supabase
-            .from('tickets')
+        const { error } = await (supabase
+            .from('tickets') as any)
             .update({
                 status,
                 updated_at: new Date().toISOString()
@@ -415,7 +415,10 @@ export async function updateArticleAction(formData: FormData) {
             snippet: formData.get('snippet') as string,
             image: formData.get('image') as string || existingArticle?.image,
             status: (formData.get('status') as any) || existingArticle?.status || 'draft',
-            slug: title.toLowerCase().trim().replace(/[^a-z0-9]/g, '-'),
+            slug: (() => {
+                let s = title.toLowerCase().trim().replace(/[^a-z0-9]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '');
+                return s || `article-${Date.now()}`;
+            })(),
             tags: tags,
             metaTitle: formData.get('metaTitle') as string,
             metaDescription: formData.get('metaDescription') as string,
@@ -482,9 +485,12 @@ export async function updateProductMetadataAction(id: string, metadata: any) {
         if (product) {
             if (metadata.name) {
                 product.name = metadata.name;
-                product.slug = metadata.name.toLowerCase().trim().replace(/[^a-z0-9]/g, '-');
+                let slug = metadata.name.toLowerCase().trim().replace(/[^a-z0-9]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '');
+                if (!slug) slug = `product-${Date.now()}`;
+                product.slug = slug;
             }
             if (metadata.price !== undefined) product.price = Number(metadata.price);
+            if (metadata.cost !== undefined) product.cost = Number(metadata.cost);
             if (metadata.category) product.category = metadata.category;
 
             await db.saveProduct(product);
@@ -503,7 +509,9 @@ export async function updateArticleMetadataAction(id: string, metadata: any) {
         if (article) {
             if (metadata.title) {
                 article.title = metadata.title;
-                article.slug = metadata.title.toLowerCase().trim().replace(/[^a-z0-9]/g, '-');
+                let slug = metadata.title.toLowerCase().trim().replace(/[^a-z0-9]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '');
+                if (!slug) slug = `article-${Date.now()}`;
+                article.slug = slug;
             }
             if (metadata.snippet !== undefined) article.snippet = metadata.snippet;
             if (metadata.metaTitle !== undefined) article.metaTitle = metadata.metaTitle;
@@ -644,7 +652,7 @@ export async function loginAction(formData: FormData) {
             .from('users')
             .select('role, name')
             .eq('email', email)
-            .single();
+            .single() as { data: any; error: any };
 
         const role = userData?.role || 'consumer';
         const name = userData?.name || data.user.email?.split('@')[0] || 'User';

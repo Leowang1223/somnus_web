@@ -1,11 +1,18 @@
-import { getAdminTicketsAction, updateTicketStatusAction } from "@/app/actions";
+import { getAdminTicketsAction } from "@/app/actions";
 import TicketListClient from "./TicketListClient";
+import { createClient } from "@/lib/supabase/server";
 
 // Force dynamic rendering to ensure fresh data
 export const revalidate = 0;
 
 export default async function AdminCSPage() {
     const { tickets } = await getAdminTicketsAction();
+
+    // Get current admin info
+    const supabase = await createClient();
+    const { data: { session } } = await supabase.auth.getSession();
+    const adminEmail = session?.user?.email || 'unknown';
+    const adminId = session?.user?.id || 'unknown';
 
     return (
         <div className="min-h-screen bg-[#050505] text-white p-8">
@@ -16,7 +23,11 @@ export default async function AdminCSPage() {
                 </div>
             </header>
 
-            <TicketListClient tickets={tickets || []} />
+            <TicketListClient
+                tickets={tickets || []}
+                adminEmail={adminEmail}
+                adminId={adminId}
+            />
         </div>
     );
 }

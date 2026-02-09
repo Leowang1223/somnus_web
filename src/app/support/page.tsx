@@ -25,15 +25,19 @@ export default function SupportPage() {
         const interval = setInterval(async () => {
             const res = await getTicketUpdatesAction(ticketId);
             if (res.success && res.ticket) {
-                // If there are more messages than we have, update
-                if ((res.ticket.messages || []).length > messages.length) {
-                    setMessages(res.ticket.messages || []);
-                }
+                const serverMessages = res.ticket.messages || [];
+                setMessages(prev => {
+                    // Only update if server has more messages (admin replied)
+                    if (serverMessages.length > prev.length) {
+                        return serverMessages;
+                    }
+                    return prev;
+                });
             }
-        }, 3000); // Poll every 3 seconds
+        }, 3000);
 
         return () => clearInterval(interval);
-    }, [ticketId, messages.length]);
+    }, [ticketId]);
 
     const startChat = async (msg: string) => {
         const formData = new FormData();

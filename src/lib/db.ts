@@ -150,22 +150,18 @@ export async function getProductBySlug(slug: string) {
 }
 
 export async function saveProduct(product: any) {
-    try {
-        const supabase = await createClient();
-        // Dynamic column handling: If schema misses columns, this might fail unless we verify schema.
-        // For now, mapping known fields.
-        const dbRecord = toProductDB(product);
+    const supabase = await createClient();
+    const dbRecord = toProductDB(product);
 
-        // Remove undefined keys to let defaults handle it or avoid errors
-        Object.keys(dbRecord).forEach(key => (dbRecord as any)[key] === undefined && delete (dbRecord as any)[key]);
+    Object.keys(dbRecord).forEach(key => (dbRecord as any)[key] === undefined && delete (dbRecord as any)[key]);
 
-        const { error } = await supabase
-            .from('products')
-            .upsert(dbRecord);
+    const { error } = await supabase
+        .from('products')
+        .upsert(dbRecord);
 
-        if (error) console.error('❌ Save Product Failed:', error);
-    } catch (e) {
-        console.error('❌ DB Exception:', e);
+    if (error) {
+        console.error('❌ Save Product Failed:', error);
+        throw new Error(error.message);
     }
 }
 
@@ -193,16 +189,17 @@ export async function getArticles() {
 }
 
 export async function saveArticle(article: any) {
-    try {
-        const supabase = await createClient();
-        const dbRecord = toArticleDB(article);
+    const supabase = await createClient();
+    const dbRecord = toArticleDB(article);
 
-        const { error } = await supabase
-            .from('articles')
-            .upsert(dbRecord);
+    const { error } = await supabase
+        .from('articles')
+        .upsert(dbRecord);
 
-        if (error) console.error('❌ Save Article Failed:', error);
-    } catch (e) { console.error(e); }
+    if (error) {
+        console.error('❌ Save Article Failed:', error);
+        throw new Error(error.message);
+    }
 }
 
 export async function deleteArticle(id: string) {
@@ -258,12 +255,13 @@ export async function getOrders() {
 }
 
 export async function saveOrder(order: any) {
-    try {
-        const supabase = await createClient();
-        const dbRecord = toOrderDB(order);
-        const { error } = await supabase.from('orders').upsert(dbRecord);
-        if (error) console.error('❌ Save Order Failed:', error);
-    } catch (e) { console.error(e); }
+    const supabase = await createClient();
+    const dbRecord = toOrderDB(order);
+    const { error } = await supabase.from('orders').upsert(dbRecord);
+    if (error) {
+        console.error('❌ Save Order Failed:', error);
+        throw new Error(error.message);
+    }
 }
 
 // ==========================================
@@ -285,23 +283,20 @@ export async function getUsers() {
 }
 
 export async function saveUser(user: any) {
-    // This function is tricky because `users` table is linked to `auth.users`
-    // We usually only update profile data here.
-    // If 'user' object has 'email', we might rely on triggers or just update what we can.
-    try {
-        const supabase = await createClient();
+    const supabase = await createClient();
 
-        // Only update fields allowed in public.users
-        const updateData: any = {
-            id: user.id,
-            email: user.email,
-            name: user.name,
-            role: user.role
-        };
+    const updateData: any = {
+        id: user.id,
+        email: user.email,
+        name: user.name,
+        role: user.role
+    };
 
-        const { error } = await supabase.from('users').upsert(updateData);
-        if (error) console.error('❌ Save User Failed:', error);
-    } catch (e) { console.error(e); }
+    const { error } = await supabase.from('users').upsert(updateData);
+    if (error) {
+        console.error('❌ Save User Failed:', error);
+        throw new Error(error.message);
+    }
 }
 
 export async function deleteUser(id: string) {

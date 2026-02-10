@@ -17,7 +17,7 @@ export default function AdminOrdersClient({ initialOrders }: { initialOrders: an
     const filteredOrders = orders.filter((order: any) => {
         const matchesFilter = filter === 'all' || order.status === filter;
         const matchesSearch = order.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            order.shippingInfo.fullName.toLowerCase().includes(searchTerm.toLowerCase());
+            (order.shippingInfo?.fullName || '').toLowerCase().includes(searchTerm.toLowerCase());
         return matchesFilter && matchesSearch;
     });
 
@@ -104,8 +104,8 @@ export default function AdminOrdersClient({ initialOrders }: { initialOrders: an
                                 <td className="p-6 font-mono text-[#d8aa5b]">{order.id}</td>
                                 <td className="p-6 text-sm text-gray-400">{new Date(order.date).toLocaleDateString()}</td>
                                 <td className="p-6">
-                                    <div className="font-bold">{order.shippingInfo.fullName}</div>
-                                    <div className="text-xs text-gray-500">{order.shippingInfo.email}</div>
+                                    <div className="font-bold">{order.shippingInfo?.fullName || '—'}</div>
+                                    <div className="text-xs text-gray-500">{order.shippingInfo?.email || '—'}</div>
                                 </td>
                                 <td className="p-6 font-mono">${order.total}</td>
                                 <td className="p-6">

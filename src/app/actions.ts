@@ -606,11 +606,11 @@ export async function createOrderAction(orderData: any) {
         const newOrder = {
             id: orderId,
             date: new Date().toISOString(),
-            status: 'paid', // Simulating instant payment
+            status: 'pending',
             ...orderData,
             items: enrichedItems,
             timeline: [
-                { status: 'paid', date: new Date().toISOString(), note: 'Payment confirmed via Secure Ritual Checkout.' }
+                { status: 'pending', date: new Date().toISOString(), note: 'Order placed. Awaiting payment confirmation.' }
             ]
         };
 
@@ -780,7 +780,18 @@ export async function addUserAction(userData: any) {
 export async function deleteUserAction(userId: string) {
     'use server';
     try {
+        // 1. Delete from public.users
         await db.deleteUser(userId);
+
+        // 2. Delete from auth.users via Admin API
+        try {
+            const { createAdminClient } = await import('@/lib/supabase/admin');
+            const adminClient = createAdminClient();
+            await adminClient.auth.admin.deleteUser(userId);
+        } catch (authErr) {
+            console.error('Failed to delete auth user (may not exist):', authErr);
+        }
+
         return { success: true };
     } catch (e) { return { success: false }; }
 }

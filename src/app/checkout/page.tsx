@@ -110,10 +110,10 @@ export default function CheckoutPage() {
                                     disabled={isLoading}
                                     className="w-full bg-[#d8aa5b] text-black h-14 font-bold uppercase tracking-widest hover:bg-white transition-colors flex items-center justify-center gap-3 rounded-sm disabled:opacity-50 disabled:cursor-not-allowed"
                                 >
-                                    {isLoading ? <Loader2 className="animate-spin" /> : <span className="flex items-center gap-2"><ShieldCheck size={18} /> Pay ${cartTotal}</span>}
+                                    {isLoading ? <Loader2 className="animate-spin" /> : <span className="flex items-center gap-2"><ShieldCheck size={18} /> Place Order &mdash; ${cartTotal}</span>}
                                 </button>
                                 <p className="text-center text-gray-600 text-[10px] mt-4 uppercase tracking-widest">
-                                    Secure Encrypted Transaction via Stripe
+                                    Secure Checkout
                                 </p>
                             </div>
                         </form>

@@ -38,7 +38,27 @@ export async function middleware(request: NextRequest) {
         }
     )
 
-    await supabase.auth.getSession()
+    const { data: { session } } = await supabase.auth.getSession()
+
+    // Protect /admin routes: require authenticated user with admin role
+    if (request.nextUrl.pathname.startsWith('/admin')) {
+        if (!session) {
+            const loginUrl = new URL('/login', request.url)
+            loginUrl.searchParams.set('redirect', request.nextUrl.pathname)
+            return NextResponse.redirect(loginUrl)
+        }
+
+        // Check role from public.users table
+        const { data: userData } = await supabase
+            .from('users')
+            .select('role')
+            .eq('id', session.user.id)
+            .single()
+
+        if (!userData || !['owner', 'support'].includes(userData.role)) {
+            return NextResponse.redirect(new URL('/', request.url))
+        }
+    }
 
     return response
 }

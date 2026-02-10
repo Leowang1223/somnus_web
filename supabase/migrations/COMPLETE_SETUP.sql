@@ -31,6 +31,7 @@ CREATE TABLE IF NOT EXISTS public.products (
   category TEXT,
   description TEXT,
   image TEXT,
+  hover_video TEXT,
   status TEXT DEFAULT 'draft',
   aspect_ratio TEXT,
   tags JSONB DEFAULT '[]'::jsonb,
@@ -48,9 +49,12 @@ CREATE TABLE IF NOT EXISTS public.products (
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- 確保 products 有多語言欄位（舊 schema 可能缺少）
+-- 確保 products 有所有欄位（舊 schema 可能缺少）
 DO $$
 BEGIN
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'products' AND column_name = 'hover_video') THEN
+        ALTER TABLE public.products ADD COLUMN hover_video TEXT;
+    END IF;
     IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'products' AND column_name = 'name_zh') THEN
         ALTER TABLE public.products ADD COLUMN name_zh TEXT;
     END IF;
@@ -71,6 +75,20 @@ BEGIN
     END IF;
 END $$;
 
+-- 確保 articles 有所有欄位（舊 schema 可能缺少）
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'articles' AND column_name = 'category') THEN
+        ALTER TABLE public.articles ADD COLUMN category TEXT;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'articles' AND column_name = 'read_time') THEN
+        ALTER TABLE public.articles ADD COLUMN read_time TEXT;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'articles' AND column_name = 'tags') THEN
+        ALTER TABLE public.articles ADD COLUMN tags JSONB DEFAULT '[]'::jsonb;
+    END IF;
+END $$;
+
 -- Orders 訂單表
 CREATE TABLE IF NOT EXISTS public.orders (
   id TEXT PRIMARY KEY,
@@ -80,7 +98,7 @@ CREATE TABLE IF NOT EXISTS public.orders (
   shipping_address JSONB NOT NULL,
   items JSONB NOT NULL,
   total NUMERIC(10, 2) NOT NULL,
-  status TEXT DEFAULT 'paid',
+  status TEXT DEFAULT 'pending',
   tracking_carrier TEXT,
   tracking_number TEXT,
   tracking_url TEXT,
@@ -96,9 +114,12 @@ CREATE TABLE IF NOT EXISTS public.articles (
   title TEXT NOT NULL,
   snippet TEXT,
   cover_image TEXT,
+  category TEXT,
   author TEXT,
   date TIMESTAMPTZ,
   status TEXT DEFAULT 'draft',
+  read_time TEXT,
+  tags JSONB DEFAULT '[]'::jsonb,
   sections JSONB DEFAULT '[]'::jsonb,
   meta_title TEXT,
   meta_description TEXT,

@@ -55,7 +55,7 @@ function toOrderModel(record: any) {
         customerName: record.customer_name,
         customerEmail: record.customer_email,
         customerPhone: record.customer_phone,
-        shippingAddress: record.shipping_address,
+        shippingInfo: record.shipping_address || {},
         items: record.items || [],
         total: record.total,
         status: record.status,
@@ -72,10 +72,10 @@ function toOrderModel(record: any) {
 function toOrderDB(model: any) {
     return {
         id: model.id,
-        customer_name: model.customerName || model.billingDetails?.name || 'Guest',
-        customer_email: model.customerEmail || model.email,
-        customer_phone: model.customerPhone || model.billingDetails?.phone,
-        shipping_address: model.shippingAddress || {},
+        customer_name: model.customerName || model.shippingInfo?.fullName || 'Guest',
+        customer_email: model.customerEmail || model.shippingInfo?.email || model.email,
+        customer_phone: model.customerPhone || model.shippingInfo?.phone,
+        shipping_address: model.shippingInfo || model.shippingAddress || {},
         items: model.items,
         total: model.total,
         status: model.status,
@@ -92,13 +92,12 @@ function toArticleModel(record: any) {
     if (!record) return null;
     return {
         ...record,
-        readTime: record.read_time, // If column exists
+        readTime: record.read_time || record.readTime,
         metaTitle: record.meta_title,
         metaDescription: record.meta_description,
         coverImage: record.cover_image,
-        // Using 'image' in frontend mostly? The schema says cover_image.
-        // Let's assume frontend might look for 'image' or 'coverImage'
-        image: record.cover_image || record.image
+        image: record.cover_image || record.image,
+        tags: record.tags || [],
     };
 }
 
@@ -109,13 +108,15 @@ function toArticleDB(model: any) {
         title: model.title,
         snippet: model.snippet,
         cover_image: model.image || model.coverImage,
+        category: model.category,
         author: model.author,
         date: model.date,
         status: model.status,
         sections: model.sections,
+        tags: model.tags || [],
+        read_time: model.readTime,
         meta_title: model.metaTitle,
         meta_description: model.metaDescription,
-        // read_time: model.readTime // Add col if needed
     };
 }
 
@@ -201,7 +202,7 @@ export async function saveArticle(article: any) {
 
     const { error } = await supabase
         .from('articles')
-        .upsert(dbRecord);
+        .upsert(dbRecord as any);
 
     if (error) {
         console.error('❌ Save Article Failed:', error);

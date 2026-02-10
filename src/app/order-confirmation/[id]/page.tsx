@@ -2,37 +2,96 @@
 
 import { useParams } from "next/navigation";
 import Link from "next/link";
-import { CheckCircle, Truck, ArrowRight } from "lucide-react";
+import { CheckCircle, Truck, Clock, Package } from "lucide-react";
 import { motion } from "framer-motion";
+import { useEffect, useState } from "react";
+import { getOrderAction } from "@/app/actions";
 
 export default function OrderConfirmationPage() {
     const params = useParams();
     const orderId = params.id as string;
+    const [order, setOrder] = useState<any>(null);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        async function fetchOrder() {
+            const result = await getOrderAction(orderId);
+            if (result.success && result.order) {
+                setOrder(result.order);
+            }
+            setLoading(false);
+        }
+        fetchOrder();
+    }, [orderId]);
 
     return (
         <div className="min-h-screen bg-[#050505] flex items-center justify-center p-6 text-center">
             <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="max-w-md w-full"
+                className="max-w-lg w-full"
             >
                 <div className="flex justify-center mb-8">
                     <motion.div
                         initial={{ scale: 0 }}
                         animate={{ scale: 1 }}
                         transition={{ delay: 0.2, type: "spring" }}
-                        className="w-24 h-24 bg-[#d8aa5b]/20 rounded-full flex items-center justify-center text-[#d8aa5b]"
+                        className={`w-24 h-24 rounded-full flex items-center justify-center ${order?.status === 'paid' ? 'bg-green-500/20 text-green-500' : 'bg-[#d8aa5b]/20 text-[#d8aa5b]'}`}
                     >
-                        <CheckCircle size={48} strokeWidth={1.5} />
+                        {order?.status === 'paid' ? (
+                            <CheckCircle size={48} strokeWidth={1.5} />
+                        ) : (
+                            <Clock size={48} strokeWidth={1.5} />
+                        )}
                     </motion.div>
                 </div>
 
-                <h1 className="font-display text-4xl text-white mb-4">You have begun the Ritual.</h1>
+                <h1 className="font-display text-4xl text-white mb-4">
+                    {order?.status === 'paid' ? 'Ritual Confirmed' : 'Order Placed'}
+                </h1>
                 <p className="text-gray-400 mb-8 font-light leading-relaxed">
-                    Your order <span className="text-white font-mono">{orderId}</span> has been confirmed.
+                    Your order <span className="text-white font-mono">{orderId}</span> has been {order?.status === 'paid' ? 'confirmed' : 'placed'}.
                     <br />
-                    We are now preparing your artifacts for their journey.
+                    {order?.status === 'paid'
+                        ? 'We are now preparing your artifacts for their journey.'
+                        : 'Please complete your payment to proceed.'}
                 </p>
+
+                {/* Order Details */}
+                {!loading && order && (
+                    <div className="bg-[#111] border border-white/5 rounded-sm p-6 mb-8 text-left">
+                        <h3 className="text-xs uppercase tracking-widest text-[#d8aa5b] font-bold mb-4">Order Summary</h3>
+                        <div className="space-y-3 mb-4">
+                            {order.items?.map((item: any, i: number) => (
+                                <div key={i} className="flex justify-between text-sm">
+                                    <span className="text-gray-400">{item.quantity || 1}x {item.name}</span>
+                                    <span className="text-white">${item.price}</span>
+                                </div>
+                            ))}
+                        </div>
+                        <div className="border-t border-white/10 pt-3 flex justify-between">
+                            <span className="text-gray-500 text-sm">Total</span>
+                            <span className="text-[#d8aa5b] font-display text-lg">${order.total}</span>
+                        </div>
+                        {order.shippingInfo && (
+                            <div className="mt-4 pt-4 border-t border-white/10">
+                                <span className="text-xs uppercase tracking-widest text-gray-500 block mb-2">Shipping To</span>
+                                <p className="text-white text-sm">{order.shippingInfo.fullName}</p>
+                                <p className="text-gray-500 text-xs">{order.shippingInfo.addressLine1}, {order.shippingInfo.city}</p>
+                            </div>
+                        )}
+                        <div className="mt-4 pt-4 border-t border-white/10 flex items-center gap-2">
+                            <Package size={14} className="text-gray-500" />
+                            <span className={`text-xs uppercase tracking-widest font-bold ${order.status === 'paid' ? 'text-green-500' : order.status === 'pending' ? 'text-yellow-500' : 'text-gray-500'}`}>
+                                {order.status}
+                            </span>
+                        </div>
+                    </div>
+                )}
+
+                {loading && (
+                    <div className="text-gray-500 text-sm mb-8 animate-pulse">Loading order details...</div>
+                )}
 
                 <div className="space-y-4">
                     <Link

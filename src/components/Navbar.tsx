@@ -5,7 +5,7 @@ import { useAuth } from "@/context/AuthContext";
 import { useCart } from "@/context/CartContext";
 import Link from "next/link";
 import { ShoppingBag, User } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { motion, useScroll } from "framer-motion";
 
 export default function Navbar() {
@@ -14,6 +14,7 @@ export default function Navbar() {
     const { toggleCart, items } = useCart();
     const itemCount = items.reduce((acc, item) => acc + item.quantity, 0);
     const [showUserMenu, setShowUserMenu] = useState(false);
+    const menuRef = useRef<HTMLDivElement>(null);
 
     const { scrollY } = useScroll();
     const [isScrolled, setIsScrolled] = useState(false);
@@ -23,6 +24,18 @@ export default function Navbar() {
             setIsScrolled(latest > 50);
         });
     }, [scrollY]);
+
+    // Click outside to close user menu
+    useEffect(() => {
+        if (!showUserMenu) return;
+        function handleClick(e: MouseEvent) {
+            if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+                setShowUserMenu(false);
+            }
+        }
+        document.addEventListener('mousedown', handleClick);
+        return () => document.removeEventListener('mousedown', handleClick);
+    }, [showUserMenu]);
 
     return (
         <motion.nav
@@ -68,7 +81,7 @@ export default function Navbar() {
                 {loading ? (
                     <div className="w-[18px] h-[18px]" />
                 ) : isAuthenticated ? (
-                    <div className="relative">
+                    <div className="relative" ref={menuRef}>
                         <button
                             onClick={() => setShowUserMenu(!showUserMenu)}
                             className="flex items-center gap-2 hover:text-[#d8aa5b] transition-colors"

@@ -193,48 +193,57 @@ export default function DashboardClient({ data }: { data: any }) {
                             <Users className="text-gray-600" size={24} />
                         </div>
                         <div className="w-full bg-white/5 h-1 rounded-full overflow-hidden">
-                            <div className="bg-blue-500 h-full w-[70%]"></div>
+                            <div className="bg-blue-500 h-full" style={{ width: `${Math.min(100, users.length * 10)}%` }}></div>
                         </div>
-                        <p className="mt-4 text-[10px] text-gray-500">
-                            較上月新增 <span className="text-white">+2</span> 位
-                        </p>
                     </div>
 
-                    <div className="bg-[#111] border border-white/5 p-8 rounded-sm">
-                        <div className="flex items-start justify-between mb-4">
-                            <div>
-                                <span className="text-gray-500 text-xs uppercase tracking-widest block mb-1">訂單完成率</span>
-                                <div className="text-3xl text-white font-display flex items-baseline gap-2">
-                                    92<span className="text-sm text-gray-600 font-sans tracking-normal">%</span>
+                    {(() => {
+                        const deliveredCount = orders.filter((o: any) => o.status === 'delivered').length;
+                        const completionRate = orders.length > 0 ? Math.round((deliveredCount / orders.length) * 100) : 0;
+                        return (
+                            <div className="bg-[#111] border border-white/5 p-8 rounded-sm">
+                                <div className="flex items-start justify-between mb-4">
+                                    <div>
+                                        <span className="text-gray-500 text-xs uppercase tracking-widest block mb-1">訂單完成率</span>
+                                        <div className="text-3xl text-white font-display flex items-baseline gap-2">
+                                            {completionRate}<span className="text-sm text-gray-600 font-sans tracking-normal">%</span>
+                                        </div>
+                                    </div>
+                                    <CheckCircle className="text-gray-600" size={24} />
                                 </div>
+                                <div className="w-full bg-white/5 h-1 rounded-full overflow-hidden">
+                                    <div className="bg-green-500 h-full" style={{ width: `${completionRate}%` }}></div>
+                                </div>
+                                <p className="mt-4 text-[10px] text-gray-500">
+                                    {deliveredCount} / {orders.length} 筆訂單已完成
+                                </p>
                             </div>
-                            <CheckCircle className="text-gray-600" size={24} />
-                        </div>
-                        <div className="w-full bg-white/5 h-1 rounded-full overflow-hidden">
-                            <div className="bg-green-500 h-full w-[92%]"></div>
-                        </div>
-                        <p className="mt-4 text-[10px] text-gray-500">
-                            系統運作正常
-                        </p>
-                    </div>
+                        );
+                    })()}
 
-                    <div className="bg-[#111] border border-white/5 p-8 rounded-sm">
-                        <div className="flex items-start justify-between mb-4">
-                            <div>
-                                <span className="text-gray-500 text-xs uppercase tracking-widest block mb-1">退貨率</span>
-                                <div className="text-3xl text-white font-display flex items-baseline gap-2">
-                                    0.0<span className="text-sm text-gray-600 font-sans tracking-normal">%</span>
+                    {(() => {
+                        const cancelledCount = orders.filter((o: any) => o.status === 'cancelled').length;
+                        const returnRate = orders.length > 0 ? ((cancelledCount / orders.length) * 100).toFixed(1) : '0.0';
+                        return (
+                            <div className="bg-[#111] border border-white/5 p-8 rounded-sm">
+                                <div className="flex items-start justify-between mb-4">
+                                    <div>
+                                        <span className="text-gray-500 text-xs uppercase tracking-widest block mb-1">退貨率</span>
+                                        <div className="text-3xl text-white font-display flex items-baseline gap-2">
+                                            {returnRate}<span className="text-sm text-gray-600 font-sans tracking-normal">%</span>
+                                        </div>
+                                    </div>
+                                    <Activity className="text-red-500" size={24} />
                                 </div>
+                                <div className="w-full bg-white/5 h-1 rounded-full overflow-hidden">
+                                    <div className="bg-red-500 h-full" style={{ width: `${returnRate}%` }}></div>
+                                </div>
+                                <p className="mt-4 text-[10px] text-gray-500">
+                                    {cancelledCount} / {orders.length} 筆訂單取消
+                                </p>
                             </div>
-                            <Activity className="text-red-500" size={24} />
-                        </div>
-                        <div className="w-full bg-white/5 h-1 rounded-full overflow-hidden">
-                            <div className="bg-red-500 h-full w-[0%]"></div>
-                        </div>
-                        <p className="mt-4 text-[10px] text-gray-500">
-                            基於總訂單計算
-                        </p>
-                    </div>
+                        );
+                    })()}
                 </div>
             </div>
         </div>

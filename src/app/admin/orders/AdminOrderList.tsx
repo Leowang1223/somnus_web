@@ -43,7 +43,7 @@ export default function AdminOrdersClient({ initialOrders }: { initialOrders: an
         await updateOrderStatusAction(selectedOrder.id, trackingForm.status, trackingInfo);
 
         // Optimistic update
-        setOrders(orders.map(o => o.id === selectedOrder.id ? { ...o, status: trackingForm.status, trackingInfo: { ...o.trackingInfo, ...trackingInfo } } : o));
+        setOrders(orders.map(o => o.id === selectedOrder.id ? { ...o, status: trackingForm.status, ...(trackingInfo ? { trackingInfo } : {}) } : o));
         setIsManageModalOpen(false);
     };
 

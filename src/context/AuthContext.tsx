@@ -86,7 +86,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                     setUser(session.user);
                     const userRole = await fetchRole(session.user.id);
                     if (!isMountedRef.current) return;
-                    console.log('Auth session restored - role:', userRole);
                     setRole(userRole);
                 } else {
                     setUser(null);
@@ -105,16 +104,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         checkSession();
 
         // Listen for auth changes
-        const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+        const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
             if (!isMountedRef.current) return;
-
-            console.log('Auth state changed:', event);
 
             if (session?.user) {
                 setUser(session.user);
                 const userRole = await fetchRole(session.user.id);
                 if (!isMountedRef.current) return;
-                console.log('Role after auth change:', userRole);
                 setRole(userRole);
             } else {
                 setUser(null);

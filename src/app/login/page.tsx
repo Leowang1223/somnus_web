@@ -42,16 +42,6 @@ function LoginContent() {
         }
     };
 
-    const fillCredentials = (type: 'admin' | 'user') => {
-        if (type === 'admin') {
-            setEmail("admin@somnus.com");
-            setPassword("12345678");
-        } else {
-            setEmail("user@somnus.com");
-            setPassword("user123");
-        }
-    };
-
     return (
         <div className="relative z-10 w-full max-w-md bg-[#0a0a09] border border-white/5 p-8 rounded-sm">
             <div className="text-center mb-8">
@@ -119,16 +109,6 @@ function LoginContent() {
                 </button>
             </form>
 
-            <div className="mt-8 pt-8 border-t border-white/5 grid grid-cols-2 gap-4">
-                <button onClick={() => fillCredentials('user')} className="text-left group">
-                    <span className="block text-xs text-gray-500 uppercase tracking-wider mb-1 group-hover:text-white">Test User</span>
-                    <span className="block text-xs text-gray-700 font-mono">user@somnus.com</span>
-                </button>
-                <button onClick={() => fillCredentials('admin')} className="text-right group">
-                    <span className="block text-xs text-gray-500 uppercase tracking-wider mb-1 group-hover:text-white">Test Admin</span>
-                    <span className="block text-xs text-gray-700 font-mono">admin@somnus.com</span>
-                </button>
-            </div>
         </div>
     );
 }

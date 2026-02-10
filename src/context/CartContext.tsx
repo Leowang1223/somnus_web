@@ -14,6 +14,7 @@ type CartContextType = {
     addToCart: (product: any, variant?: { id: string, name: string }) => void;
     removeFromCart: (productId: string, variantId?: string) => void;
     updateQuantity: (productId: string, delta: number, variantId?: string) => void;
+    clearCart: () => void;
     toggleCart: () => void;
     cartTotal: number;
 };
@@ -35,11 +36,6 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     }, [items]);
 
     const addToCart = (product: any, variant?: { id: string, name: string }) => {
-        console.log("═══════════════════════════════════════");
-        console.log("🛒 CART: addToCart called");
-        console.log("📦 Product:", product.name);
-        console.log("🎨 Variant:", variant);
-
         if (!product.id) return;
 
         setItems(prev => {
@@ -81,6 +77,11 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
         });
     };
 
+    const clearCart = () => {
+        setItems([]);
+        localStorage.removeItem('somnus-cart');
+    };
+
     const toggleCart = () => setIsOpen(!isOpen);
 
     const cartTotal = items.reduce((total, item) => {
@@ -89,7 +90,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     }, 0);
 
     return (
-        <CartContext.Provider value={{ items, isOpen, addToCart, removeFromCart, updateQuantity, toggleCart, cartTotal }}>
+        <CartContext.Provider value={{ items, isOpen, addToCart, removeFromCart, updateQuantity, clearCart, toggleCart, cartTotal }}>
             {children}
         </CartContext.Provider>
     );

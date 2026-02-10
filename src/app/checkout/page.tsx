@@ -8,7 +8,7 @@ import { Loader2, ArrowLeft, ShieldCheck } from "lucide-react";
 import Link from "next/link";
 
 export default function CheckoutPage() {
-    const { items, cartTotal, isOpen, toggleCart } = useCart();
+    const { items, cartTotal, clearCart } = useCart();
     const router = useRouter();
     const [isLoading, setIsLoading] = useState(false);
 
@@ -47,7 +47,7 @@ export default function CheckoutPage() {
         const result = await createOrderAction(orderData);
 
         if (result.success) {
-            // Clean up cart (in a real app) and redirect
+            clearCart();
             router.push(`/order-confirmation/${result.orderId}`);
         } else {
             alert('Order creation failed. Please try again.');

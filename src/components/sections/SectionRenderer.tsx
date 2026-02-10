@@ -92,11 +92,8 @@ const UniversalCarousel = ({
                             pointerEvents: 'none'
                         }}
                         draggable={false}
-                        onLoad={() => console.log(`✅ Carousel image ${i} loaded:`, img)}
                         onError={(e) => {
-                            console.error(`❌ Carousel image ${i} failed:`, img);
                             e.currentTarget.style.display = 'none';
-                            // Ensure parent container has background
                             if (e.currentTarget.parentElement) {
                                 e.currentTarget.parentElement.style.backgroundColor = '#111';
                             }
@@ -375,17 +372,6 @@ const PurchaseSection = ({ content, productContext, isInView }: { content: any, 
             setSelectedVariant(variants[0]);
         }
     }, [variants]);
-
-    // CRITICAL DEBUG: Track component lifecycle
-    useEffect(() => {
-        console.log("═══ PurchaseSection Mounted ═══");
-        console.log("Product:", product.name);
-        console.log("Variants found:", variants);
-
-        (window as any).emergencyAddToCart = () => {
-            addToCart(product, selectedVariant);
-        };
-    }, [product, addToCart, selectedVariant]);
 
     const handleBuyNow = (e?: React.MouseEvent) => {
         e?.preventDefault(); e?.stopPropagation();

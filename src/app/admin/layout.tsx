@@ -7,16 +7,16 @@ import Link from "next/link";
 import { LayoutDashboard, ShoppingBag, BookOpen, Home, LogOut, Headphones, Package, Users } from "lucide-react";
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
-    const { role, logout, isAuthenticated, isOwner } = useAuth();
+    const { role, logout, isAuthenticated, isOwner, loading } = useAuth();
     const router = useRouter();
 
     useEffect(() => {
-        if (!isAuthenticated || (role !== 'owner' && role !== 'support')) {
+        if (!loading && (!isAuthenticated || (role !== 'owner' && role !== 'support'))) {
             router.push('/login');
         }
-    }, [role, isAuthenticated, router]);
+    }, [loading, role, isAuthenticated, router]);
 
-    if (!isAuthenticated || (role !== 'owner' && role !== 'support')) {
+    if (loading || !isAuthenticated || (role !== 'owner' && role !== 'support')) {
         return <div className="min-h-screen bg-[#050505] flex items-center justify-center text-white">驗證中...</div>
     }
 

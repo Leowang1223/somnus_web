@@ -50,6 +50,19 @@ export async function uploadFileAction(formData: FormData) {
     }
 }
 
+// ==========================================
+// 🔐 Auth Actions
+// ==========================================
+export async function logoutAction() {
+    try {
+        const supabase = await createClient();
+        await supabase.auth.signOut();
+        return { success: true };
+    } catch (e) {
+        return { success: false };
+    }
+}
+
 export async function updateHomeLayoutAction(sections: any[]) {
     try {
         await db.saveHomeLayout({ sections });
@@ -492,11 +505,52 @@ export async function updateProductMetadataAction(id: string, metadata: any) {
             if (metadata.price !== undefined) product.price = Number(metadata.price);
             if (metadata.cost !== undefined) product.cost = Number(metadata.cost);
             if (metadata.category) product.category = metadata.category;
+            if (metadata.status) product.status = metadata.status;
 
             await db.saveProduct(product);
             revalidatePath('/admin/products');
             revalidatePath('/collection');
             revalidatePath(`/product/${product.slug}`);
+        }
+        return { success: true };
+    } catch (e) { return { success: false }; }
+}
+
+export async function deleteProductAction(id: string) {
+    'use server';
+    try {
+        await db.deleteProduct(id);
+        revalidatePath('/admin/products');
+        revalidatePath('/collection');
+        return { success: true };
+    } catch (e) { return { success: false }; }
+}
+
+export async function bulkUpdateStatusAction(ids: string[], status: string, type: 'product' | 'article') {
+    'use server';
+    try {
+        if (type === 'product') {
+            const products = await db.getProducts();
+            for (const id of ids) {
+                const product = products.find((p: any) => p.id === id);
+                if (product) {
+                    product.status = status;
+                    await db.saveProduct(product);
+                }
+            }
+            revalidatePath('/admin/products');
+            revalidatePath('/collection');
+        } else {
+            const articles = await db.getArticles();
+            for (const id of ids) {
+                const article = articles.find((a: any) => a.id === id);
+                if (article) {
+                    article.status = status;
+                    await db.saveArticle(article);
+                }
+            }
+            revalidatePath('/admin/journal');
+            revalidatePath('/journal');
         }
         return { success: true };
     } catch (e) { return { success: false }; }
@@ -683,27 +737,43 @@ export async function getUsersAction() {
 export async function addUserAction(userData: any) {
     'use server';
     try {
-        const users = await db.getUsers();
+        const { createAdminClient } = await import('@/lib/supabase/admin');
+        const adminClient = createAdminClient();
 
-        if (users.find((u: any) => u.email === userData.email)) {
-            return { success: false, error: 'User already exists' };
+        // 1. Create real auth user via Supabase Admin API
+        const { data: authData, error: authError } = await adminClient.auth.admin.createUser({
+            email: userData.email,
+            password: userData.password,
+            email_confirm: true,
+        });
+
+        if (authError) {
+            console.error('Auth createUser failed:', authError);
+            return { success: false, error: authError.message };
         }
 
-        // Note: usage of db.saveUser here only updates public.users. 
-        // Real user creation likely involves Supabase Auth SignUp which needs to happen on client or via admin API.
-        // For now we just save the profile if it's what this action intends.
-        const newUser = {
-            id: `user-${Date.now()}`,
-            ...userData,
-            date: new Date().toISOString()
+        // 2. Insert profile in public.users (admin client bypasses RLS)
+        const { error: profileError } = await adminClient
+            .from('users')
+            .upsert({
+                id: authData.user.id,
+                email: userData.email,
+                name: userData.name,
+                role: userData.role || 'support'
+            });
+
+        if (profileError) {
+            console.error('Profile insert failed:', profileError);
+            return { success: false, error: profileError.message };
+        }
+
+        return {
+            success: true,
+            user: { id: authData.user.id, email: userData.email, name: userData.name, role: userData.role }
         };
-
-        await db.saveUser(newUser);
-
-        return { success: true, user: newUser };
-    } catch (e) {
-        console.error(e);
-        return { success: false, error: 'Failed to create user' };
+    } catch (e: any) {
+        console.error('addUserAction error:', e);
+        return { success: false, error: e.message || 'Failed to create user' };
     }
 }
 

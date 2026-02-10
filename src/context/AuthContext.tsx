@@ -3,6 +3,7 @@
 import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
+import { logoutAction } from '@/app/actions';
 import type { User } from '@supabase/supabase-js';
 
 type UserRole = 'owner' | 'support' | 'consumer' | null;
@@ -10,7 +11,7 @@ type UserRole = 'owner' | 'support' | 'consumer' | null;
 type AuthContextType = {
     role: UserRole;
     user: User | null;
-    login: (role: UserRole, redirectTo?: string) => void;
+    login: (role: UserRole, redirectTo?: string) => Promise<void>;
     logout: () => Promise<void>;
     isAuthenticated: boolean;
     isOwner: boolean;
@@ -127,8 +128,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         };
     }, [supabase]);
 
-    const login = (newRole: UserRole, redirectTo?: string) => {
+    const login = async (newRole: UserRole, redirectTo?: string) => {
         setRole(newRole);
+
+        // Fetch the real session from browser client (cookies set by server action)
+        if (supabase) {
+            try {
+                const { data: { session } } = await supabase.auth.getSession();
+                if (session?.user) {
+                    setUser(session.user);
+                }
+            } catch (e) {
+                // Session will be picked up by onAuthStateChange
+            }
+        }
 
         if (redirectTo) {
             router.push(redirectTo);
@@ -141,15 +154,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     const logout = async () => {
         try {
+            // 1. Sign out from browser client (clears browser cookies)
             if (supabase) {
                 await supabase.auth.signOut();
             }
+
+            // 2. Sign out from server (clears server-side cookies)
+            await logoutAction();
         } catch (error) {
             console.error('Logout error:', error);
         } finally {
+            // 3. Clear client state
             setRole(null);
             setUser(null);
-            window.location.href = '/';
+            // 4. Client-side navigation + force refresh
+            router.push('/');
+            router.refresh();
         }
     };
 

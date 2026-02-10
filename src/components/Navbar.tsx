@@ -10,18 +10,13 @@ import { motion, useScroll } from "framer-motion";
 
 export default function Navbar() {
     const { t } = useLanguage();
-    const { role, logout, isAuthenticated, user } = useAuth();
+    const { role, logout, isAuthenticated, loading } = useAuth();
     const { toggleCart, items } = useCart();
     const itemCount = items.reduce((acc, item) => acc + item.quantity, 0);
     const [showUserMenu, setShowUserMenu] = useState(false);
 
     const { scrollY } = useScroll();
     const [isScrolled, setIsScrolled] = useState(false);
-
-    // DEBUG: Log auth state every render
-    useEffect(() => {
-        console.log('🎯 Navbar render - role:', role, '| isAuthenticated:', isAuthenticated, '| user:', user?.email);
-    }, [role, isAuthenticated, user]);
 
     useEffect(() => {
         return scrollY.onChange((latest) => {
@@ -70,7 +65,9 @@ export default function Navbar() {
                     <span className="hidden md:inline">{t('nav.cart')} ({itemCount})</span>
                 </button>
 
-                {isAuthenticated ? (
+                {loading ? (
+                    <div className="w-[18px] h-[18px]" />
+                ) : isAuthenticated ? (
                     <div className="relative">
                         <button
                             onClick={() => setShowUserMenu(!showUserMenu)}

@@ -97,7 +97,7 @@ export default function CartDrawer() {
                         </div>
 
                         {items.length > 0 && (
-                            <div className="p-8 border-t border-white/10 bg-[#0ec09]">
+                            <div className="p-8 border-t border-white/10 bg-[#0a0a09]">
                                 <div className="flex justify-between items-end mb-6">
                                     <span className="text-white/50 text-xs uppercase tracking-widest">Total Investment</span>
                                     <span className="text-[#d8aa5b] font-display text-3xl">${cartTotal}</span>

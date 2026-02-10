@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { updateProductAction, uploadFileAction } from "@/app/actions";
+import { updateProductAction, uploadFileAction, deleteProductAction, bulkUpdateStatusAction } from "@/app/actions";
 import { Edit, Plus, Save, X, Layout, Trash2, Upload, Loader2, Image as ImageIcon, ChevronDown, Check, Zap, DollarSign } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
@@ -151,8 +151,25 @@ export default function AdminProductsClient({ initialProducts }: { initialProduc
                         >
                             <span className="text-[#d8aa5b] text-[10px] uppercase font-bold tracking-widest">{selectedIds.length} 個已選擇</span>
                             <div className="h-4 w-[1px] bg-[#d8aa5b]/20" />
-                            <button className="text-white hover:text-[#d8aa5b] text-[10px] uppercase tracking-widest font-bold transition-colors">發佈</button>
-                            <button className="text-white hover:text-red-400 text-[10px] uppercase tracking-widest font-bold transition-colors">刪除</button>
+                            <button
+                                onClick={async () => {
+                                    await bulkUpdateStatusAction(selectedIds, 'published', 'product');
+                                    setSelectedIds([]);
+                                    router.refresh();
+                                }}
+                                className="text-white hover:text-[#d8aa5b] text-[10px] uppercase tracking-widest font-bold transition-colors"
+                            >發佈</button>
+                            <button
+                                onClick={async () => {
+                                    if (!confirm(`確定要刪除 ${selectedIds.length} 個產品嗎？`)) return;
+                                    for (const id of selectedIds) {
+                                        await deleteProductAction(id);
+                                    }
+                                    setSelectedIds([]);
+                                    router.refresh();
+                                }}
+                                className="text-white hover:text-red-400 text-[10px] uppercase tracking-widest font-bold transition-colors"
+                            >刪除</button>
                         </motion.div>
                     )}
                 </div>

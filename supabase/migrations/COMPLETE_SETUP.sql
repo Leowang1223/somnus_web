@@ -38,9 +38,38 @@ CREATE TABLE IF NOT EXISTS public.products (
   sections JSONB DEFAULT '[]'::jsonb,
   variants JSONB DEFAULT '[]'::jsonb,
   supplier JSONB DEFAULT '{}'::jsonb,
+  name_zh TEXT,
+  name_jp TEXT,
+  name_ko TEXT,
+  description_zh TEXT,
+  description_jp TEXT,
+  description_ko TEXT,
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
+
+-- 確保 products 有多語言欄位（舊 schema 可能缺少）
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'products' AND column_name = 'name_zh') THEN
+        ALTER TABLE public.products ADD COLUMN name_zh TEXT;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'products' AND column_name = 'name_jp') THEN
+        ALTER TABLE public.products ADD COLUMN name_jp TEXT;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'products' AND column_name = 'name_ko') THEN
+        ALTER TABLE public.products ADD COLUMN name_ko TEXT;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'products' AND column_name = 'description_zh') THEN
+        ALTER TABLE public.products ADD COLUMN description_zh TEXT;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'products' AND column_name = 'description_jp') THEN
+        ALTER TABLE public.products ADD COLUMN description_jp TEXT;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'products' AND column_name = 'description_ko') THEN
+        ALTER TABLE public.products ADD COLUMN description_ko TEXT;
+    END IF;
+END $$;
 
 -- Orders 訂單表
 CREATE TABLE IF NOT EXISTS public.orders (

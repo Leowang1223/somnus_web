@@ -29,14 +29,21 @@ function toProductDB(model: any) {
         category: model.category,
         description: model.description,
         image: model.image,
-        hover_video: model.hoverVideo, // Map back if you add this column, waiting for schema check
+        hover_video: model.hoverVideo,
         status: model.status,
         aspect_ratio: model.aspectRatio,
         tags: model.tags,
         focus_point: model.focusPoint,
         sections: model.sections,
-        variants: model.variants, // Add column if needed
-        supplier: model.supplier // Add column if needed
+        variants: model.variants,
+        supplier: model.supplier,
+        // Multi-language fields
+        name_zh: model.name_zh,
+        name_jp: model.name_jp,
+        name_ko: model.name_ko,
+        description_zh: model.description_zh,
+        description_jp: model.description_jp,
+        description_ko: model.description_ko,
     };
 }
 
@@ -157,7 +164,7 @@ export async function saveProduct(product: any) {
 
     const { error } = await supabase
         .from('products')
-        .upsert(dbRecord);
+        .upsert(dbRecord as any);
 
     if (error) {
         console.error('❌ Save Product Failed:', error);

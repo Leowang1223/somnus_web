@@ -7,16 +7,16 @@ import Link from "next/link";
 import { Package, Heart, LogOut } from "lucide-react";
 
 export default function ProfilePage() {
-    const { role, logout, isAuthenticated } = useAuth();
+    const { role, logout, isAuthenticated, loading } = useAuth();
     const router = useRouter();
 
     useEffect(() => {
-        if (!isAuthenticated) {
+        if (!loading && !isAuthenticated) {
             router.push('/login');
         }
-    }, [isAuthenticated, router]);
+    }, [loading, isAuthenticated, router]);
 
-    if (!isAuthenticated) {
+    if (loading || !isAuthenticated) {
         return <div className="min-h-screen bg-[#050505] flex items-center justify-center text-white">Authenticating...</div>
     }
 

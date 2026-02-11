@@ -1,0 +1,19 @@
+{
+    "nav.home": "홈",
+    "nav.shop": "쇼핑",
+    "nav.journal": "저널",
+    "nav.support": "고객 지원",
+    "nav.cart": "장바구니",
+    "nav.login": "로그인",
+    "nav.admin": "관리자 패널",
+    "nav.profile": "프로필",
+    "nav.logout": "로그아웃",
+    "hero.title": "고요의 향기",
+    "hero.subtitle": "향기를 통해 공허를 경험하세요.",
+    "hero.cta": "컬렉션 탐색",
+    "cart.title": "장바구니",
+    "cart.empty": "장바구니가 비어 있습니다.",
+    "cart.checkout": "결제하기",
+    "common.loading": "로딩 중...",
+    "common.currency": "₩"
+}

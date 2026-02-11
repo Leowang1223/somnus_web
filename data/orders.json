@@ -1,0 +1,32 @@
+[
+  {
+    "id": "SOM-260202-5267",
+    "date": "2026-02-02T13:16:56.328Z",
+    "status": "paid",
+    "total": 50,
+    "items": [
+      {
+        "productId": "prod-1769863252347",
+        "name": "蠟燭",
+        "price": 50,
+        "quantity": 1
+      }
+    ],
+    "shippingInfo": {
+      "email": "wls774796@gmail.com",
+      "fullName": "wang 立翔",
+      "phone": "0983361486",
+      "addressLine1": "No11 Aly23Ln361 Wuxing St.Xinyi Dist",
+      "city": "信義區",
+      "postalCode": "10044",
+      "country": "Taiwan"
+    },
+    "timeline": [
+      {
+        "status": "paid",
+        "date": "2026-02-02T13:16:56.328Z",
+        "note": "Payment confirmed via Secure Ritual Checkout."
+      }
+    ]
+  }
+]

@@ -1,0 +1,19 @@
+{
+    "nav.home": "Home",
+    "nav.shop": "Shop",
+    "nav.journal": "Journal",
+    "nav.support": "Support",
+    "nav.cart": "Cart",
+    "nav.login": "Enter",
+    "nav.admin": "Admin Panel",
+    "nav.profile": "Profile",
+    "nav.logout": "Logout",
+    "hero.title": "Scent of Silence",
+    "hero.subtitle": "Experience the void through fragrance.",
+    "hero.cta": "Explore Collection",
+    "cart.title": "Your Selection",
+    "cart.empty": "Your cart is empty.",
+    "cart.checkout": "Checkout",
+    "common.loading": "Loading...",
+    "common.currency": "$"
+}

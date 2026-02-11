@@ -1,0 +1,80 @@
+{
+  "sections": [
+    {
+      "id": "hero-main",
+      "type": "hero",
+      "content": {
+        "title": "SØMNS :\nThe Golden 5 Minutes",
+        "subtitle": "Master the art of the evening wind-down through curated ritual and sensory depth.",
+        "ctaText": "Explore The Collection",
+        "ctaLink": "/collection",
+        "enableGlow": true,
+        "titleColor": "#d8aa5b",
+        "enableTitleBgGlow": true,
+        "enableTitleGlow": true
+      },
+      "isEnabled": true,
+      "backgroundConfig": {
+        "opacity": 1,
+        "blur": 0,
+        "grain": 0
+      }
+    },
+    {
+      "id": "philosophy-section",
+      "type": "text-image",
+      "content": {
+        "heading": "We don’t fail to sleep.\n We fail to let the day end.\n",
+        "text": "Tonight’s problem isn’t energy.\nIt’s attention that never shuts off.\n\nWe’re not awake.\nWe’re still switched on.",
+        "imagePosition": "left",
+        "caption": "",
+        "images": [
+          "https://images.unsplash.com/photo-1519060825752-c0884f342e24?auto=format&fit=crop&q=80&w=2000"
+        ],
+        "image": "https://images.unsplash.com/photo-1519060825752-c0884f342e24?auto=format&fit=crop&q=80&w=2000"
+      },
+      "isEnabled": true,
+      "backgroundConfig": {
+        "opacity": 0.9
+      }
+    },
+    {
+      "id": "text-image-1769697573846",
+      "type": "text-image",
+      "content": {
+        "heading": "Not a sleep product.\n It’s a permission to slow down.\n",
+        "text": "You don’t buy this\n to sleep better.\nYou buy it\n to stop scrolling,\n stop pushing,\n and start ending the day gently.",
+        "imagePosition": "right",
+        "images": [
+          "https://images.unsplash.com/photo-1541185933-710f500335bd?auto=format&fit=crop&q=80&w=2000"
+        ],
+        "image": "https://images.unsplash.com/photo-1541185933-710f500335bd?auto=format&fit=crop&q=80&w=2000"
+      },
+      "isEnabled": true,
+      "backgroundConfig": {
+        "opacity": 1,
+        "blur": 0,
+        "grain": 0
+      }
+    },
+    {
+      "id": "text-image-1769967265245",
+      "type": "text-image",
+      "content": {
+        "heading": "For people who are tired,\n and still trying.\n",
+        "text": "For those who give their mind, their heart, and their energy all day long.\n\nTired — but still planning what comes next.\n\nWe don’t help you sleep.\nWe help you close the day gently.",
+        "imagePosition": "left",
+        "images": [
+          "https://images.unsplash.com/photo-1515865404301-4439c2f6d226?auto=format&fit=crop&q=80&w=2000"
+        ],
+        "image": "https://images.unsplash.com/photo-1515865404301-4439c2f6d226?auto=format&fit=crop&q=80&w=2000"
+      },
+      "isEnabled": true,
+      "backgroundConfig": {
+        "opacity": 1,
+        "blur": 0,
+        "grain": 0
+      }
+    }
+  ]
+}

@@ -1,0 +1,254 @@
+@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;800&family=Inter:wght@300;400;500&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --color-bg: #050505;
+  --color-text: #e0e0e0;
+  --color-text-muted: #888888;
+  --color-amber: #d8aa5b;
+  --color-amber-glow: rgba(216, 170, 91, 0.4);
+  --color-surface: rgba(255, 255, 255, 0.03);
+
+  --font-display: 'Cinzel', serif;
+  --font-body: 'Inter', sans-serif;
+
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+
+  --animate-shimmer: shimmer 2s linear infinite;
+
+  @keyframes shimmer {
+    0% {
+      transform: translateX(-100%);
+    }
+
+    100% {
+      transform: translateX(100%);
+    }
+  }
+}
+
+/* Utilities / Legacy Variable Fallbacks if needed by JS */
+:root {
+  --color-bg: #050505;
+  --color-text: #e0e0e0;
+  --color-amber: #d8aa5b;
+  --font-display: 'Cinzel', serif;
+  --font-body: 'Inter', sans-serif;
+}
+
+body {
+  background-color: var(--color-bg);
+  color: var(--color-text);
+  font-family: var(--font-body);
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Cinematic Grain Overlay */
+body::after {
+  content: "";
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.05'/%3E%3C/svg%3E");
+  pointer-events: none;
+  z-index: 9999;
+  mix-blend-mode: overlay;
+}
+
+.grain-overlay {
+  background-image: url("https://grainy-gradients.vercel.app/noise.svg");
+  background-repeat: repeat;
+  width: 200%;
+  height: 200%;
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  animation: grain 1.5s steps(6) infinite;
+}
+
+@keyframes grain {
+
+  0%,
+  100% {
+    transform: translate(0, 0);
+  }
+
+  10% {
+    transform: translate(-1%, -1%);
+  }
+
+  20% {
+    transform: translate(-2%, 1%);
+  }
+
+  30% {
+    transform: translate(1%, -2%);
+  }
+
+  40% {
+    transform: translate(-1%, 2%);
+  }
+
+  50% {
+    transform: translate(-2%, 1%);
+  }
+}
+
+.breathing-glow {
+  animation: breathe 4s ease-in-out infinite;
+  --glow-color: var(--color-amber-glow);
+}
+
+@keyframes breathe {
+  0% {
+    box-shadow: 0 0 10px var(--glow-color);
+  }
+
+  50% {
+    box-shadow: 0 0 25px var(--glow-color), 0 0 40px rgba(0, 0, 0, 0.2);
+  }
+
+  100% {
+    box-shadow: 0 0 10px var(--glow-color);
+  }
+}
+
+.text-breathing-glow {
+  animation: textBreathe 4s ease-in-out infinite;
+  --glow-color: var(--color-amber-glow);
+}
+
+@keyframes textBreathe {
+  0% {
+    text-shadow: 0 0 8px var(--glow-color);
+  }
+
+  50% {
+    text-shadow: 0 0 25px var(--glow-color), 0 0 40px var(--glow-color);
+  }
+
+  100% {
+    text-shadow: 0 0 8px var(--glow-color);
+  }
+}
+
+.bg-breathing-glow {
+  animation: bgBreathe 4s ease-in-out infinite;
+  --glow-color: var(--color-amber-glow);
+}
+
+@keyframes bgBreathe {
+  0% {
+    opacity: 0.3;
+    transform: scale(1);
+  }
+
+  50% {
+    opacity: 0.7;
+    transform: scale(1.1);
+  }
+
+  100% {
+    opacity: 0.3;
+    transform: scale(1);
+  }
+}
+
+/* --- LUXURY SNAP SCROLL & ANIMATIONS --- */
+
+.snap-container {
+  height: 100vh;
+  overflow-y: auto;
+  scroll-snap-type: y mandatory;
+  scroll-behavior: smooth;
+  -ms-overflow-style: none;
+  /* IE and Edge */
+  scrollbar-width: none;
+  /* Firefox */
+}
+
+.snap-container::-webkit-scrollbar {
+  display: none;
+  /* Chrome, Safari and Opera */
+}
+
+.snap-section {
+  height: 100vh;
+  width: 100%;
+  scroll-snap-align: start;
+  scroll-snap-stop: always;
+  overflow: hidden;
+  position: relative;
+}
+
+/* Entrance Animations */
+.reveal-text {
+  opacity: 0;
+  transform: translateY(20px);
+  filter: blur(8px);
+  transition: all 1.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.reveal-text.active {
+  opacity: 1;
+  transform: translateY(0);
+  filter: blur(0);
+}
+
+/* Specific delay for stagger effect if needed */
+.delay-1 {
+  transition-delay: 0.2s;
+}
+
+.delay-2 {
+  transition-delay: 0.4s;
+}
+
+.delay-3 {
+  transition-delay: 0.6s;
+}
+
+/* Scale & Opacity Refinement for Snap Transition */
+.snap-section-inner {
+  transition: transform 1.5s cubic-bezier(0.16, 1, 0.3, 1), opacity 1.5s ease;
+}
+
+/* --- GLOBAL ADMIN FIXES --- */
+
+/* Fix Dropdown Visibility */
+select {
+  cursor: pointer;
+}
+
+select option {
+  background-color: #ffffff !important;
+  color: #000000 !important;
+  padding: 12px !important;
+}
+
+/* Ensure consistent input visibility in dark backgrounds */
+input::placeholder,
+textarea::placeholder {
+  color: rgba(255, 255, 255, 0.2) !important;
+}
+
+/* Admin UI scrollbar */
+::-webkit-scrollbar {
+  width: 4px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(216, 170, 91, 0.2);
+  border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(216, 170, 91, 0.5);
+}

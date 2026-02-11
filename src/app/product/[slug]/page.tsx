@@ -4,6 +4,9 @@ import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { Suspense } from "react";
 
+// Force dynamic rendering since we use Supabase cookies
+export const dynamic = 'force-dynamic';
+
 // Export needed for static site generation
 export async function generateStaticParams() {
     const products = await getProducts();

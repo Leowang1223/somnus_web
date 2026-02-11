@@ -8,7 +8,8 @@
     "start": "next start",
     "lint": "eslint",
     "migrate-data": "tsx scripts/migrate-data.ts",
-    "type-check": "tsc --noEmit"
+    "type-check": "tsc --noEmit",
+    "pages:build": "npx @cloudflare/next-on-pages"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",

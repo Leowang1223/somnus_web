@@ -4,7 +4,7 @@ import { useAuth } from "@/context/AuthContext";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 import Link from "next/link";
-import { LayoutDashboard, ShoppingBag, BookOpen, Home, LogOut, Headphones, Package, Users } from "lucide-react";
+import { LayoutDashboard, ShoppingBag, BookOpen, Home, LogOut, Headphones, Package, Users, Clock, CreditCard } from "lucide-react";
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
     const { role, logout, isAuthenticated, isOwner, loading } = useAuth();
@@ -38,6 +38,14 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                     <Link href="/admin/orders" className="flex items-center gap-3 text-white/60 hover:text-white hover:bg-white/5 p-3 rounded-sm transition-colors">
                         <Package size={18} />
                         <span className="text-sm uppercase tracking-wider">訂單管理</span>
+                    </Link>
+                    <Link href="/admin/preorders" className="flex items-center gap-3 text-white/60 hover:text-white hover:bg-white/5 p-3 rounded-sm transition-colors">
+                        <Clock size={18} />
+                        <span className="text-sm uppercase tracking-wider">預購管理</span>
+                    </Link>
+                    <Link href="/admin/payments" className="flex items-center gap-3 text-white/60 hover:text-white hover:bg-white/5 p-3 rounded-sm transition-colors">
+                        <CreditCard size={18} />
+                        <span className="text-sm uppercase tracking-wider">金流對帳</span>
                     </Link>
                     <Link href="/admin/journal" className="flex items-center gap-3 text-white/60 hover:text-white hover:bg-white/5 p-3 rounded-sm transition-colors">
                         <BookOpen size={18} />

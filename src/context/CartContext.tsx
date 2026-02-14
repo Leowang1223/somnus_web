@@ -6,6 +6,11 @@ type CartItem = {
     product: any;
     quantity: number;
     variant?: { id: string, name: string };
+    // 預購資訊
+    is_preorder?: boolean;
+    expected_ship_date?: string;
+    deposit_amount?: number;
+    full_amount?: number;
 };
 
 type CartContextType = {
@@ -45,6 +50,27 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
                 item.variant?.id === variant?.id
             );
 
+            // 計算預購資訊
+            const isPreorder = product.is_preorder || false;
+            let depositAmount = product.price;
+            let fullAmount = product.price;
+
+            if (isPreorder && product.preorder_deposit_percentage) {
+                const percentage = product.preorder_deposit_percentage;
+                depositAmount = Math.round((product.price * percentage) / 100 * 100) / 100;
+                fullAmount = product.price;
+            }
+
+            const cartItem: CartItem = {
+                product,
+                quantity: 1,
+                variant,
+                is_preorder: isPreorder,
+                expected_ship_date: product.expected_ship_date,
+                deposit_amount: depositAmount,
+                full_amount: fullAmount
+            };
+
             if (existing) {
                 return prev.map(item =>
                     (String(item.product.id) === String(product.id) && item.variant?.id === variant?.id)
@@ -53,7 +79,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
                 );
             }
 
-            return [...prev, { product, quantity: 1, variant }];
+            return [...prev, cartItem];
         });
 
         setIsOpen(true);
@@ -84,8 +110,15 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
 
     const toggleCart = () => setIsOpen(!isOpen);
 
+    // 計算購物車總額（預購商品使用訂金）
     const cartTotal = items.reduce((total, item) => {
-        const price = typeof item.product.price === 'string' ? parseFloat(item.product.price) : item.product.price;
+        let price = typeof item.product.price === 'string' ? parseFloat(item.product.price) : item.product.price;
+
+        // 如果是預購商品，使用訂金金額
+        if (item.is_preorder && item.deposit_amount) {
+            price = item.deposit_amount;
+        }
+
         return total + (price * item.quantity);
     }, 0);
 

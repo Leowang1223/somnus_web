@@ -65,12 +65,50 @@ function toOrderModel(record: any) {
             carrier: record.tracking_carrier,
             trackingNumber: record.tracking_number,
             url: record.tracking_url
-        }
+        },
+        // 預購欄位
+        has_preorder: record.has_preorder || false,
+        preorder_info: record.preorder_info || {},
+        deposit_amount: record.deposit_amount || 0,
+        remaining_amount: record.remaining_amount || 0,
+        // 會計欄位
+        order_type: record.order_type || 'stock',
+        currency: record.currency || 'TWD',
+        exchange_rate: record.exchange_rate || 1.0,
+        subtotal: record.subtotal,
+        tax_amount: record.tax_amount || 0,
+        shipping_fee: record.shipping_fee || 0,
+        total_amount: record.total_amount,
+        customer_country: record.customer_country || 'TW',
+        customer_type: record.customer_type || 'B2C',
+        tax_id: record.tax_id,
+        company_name: record.company_name,
+        invoice_required: record.invoice_required || false,
+        invoice_type: record.invoice_type,
+        invoice_number: record.invoice_number,
+        invoice_issued_at: record.invoice_issued_at,
+        tax_rate: record.tax_rate || 5.0,
+        tax_type: record.tax_type || 'taxable',
+        is_fulfilled: record.is_fulfilled || false,
+        fulfilled_at: record.fulfilled_at,
+        deferred_revenue: record.deferred_revenue || 0,
+        recognized_revenue: record.recognized_revenue || 0,
+        preorder_batch_id: record.preorder_batch_id,
+        // 追蹤欄位
+        estimated_delivery_date: record.estimated_delivery_date,
+        last_status_update: record.last_status_update,
+        notification_sent: record.notification_sent || [],
+        can_cancel_until: record.can_cancel_until,
+        customer_notes: record.customer_notes,
+        is_flagged: record.is_flagged || false,
+        flag_reason: record.flag_reason,
+        flag_priority: record.flag_priority,
+        assigned_to: record.assigned_to,
     };
 }
 
 function toOrderDB(model: any) {
-    return {
+    const record: any = {
         id: model.id,
         customer_name: model.customerName || model.shippingInfo?.fullName || 'Guest',
         customer_email: model.customerEmail || model.shippingInfo?.email || model.email,
@@ -83,8 +121,49 @@ function toOrderDB(model: any) {
         timeline: model.timeline,
         tracking_carrier: model.trackingInfo?.carrier,
         tracking_number: model.trackingInfo?.trackingNumber,
-        tracking_url: model.trackingInfo?.url
+        tracking_url: model.trackingInfo?.url,
+        // 預購欄位
+        has_preorder: model.has_preorder,
+        preorder_info: model.preorder_info,
+        deposit_amount: model.deposit_amount,
+        remaining_amount: model.remaining_amount,
+        // 會計欄位
+        order_type: model.order_type,
+        currency: model.currency,
+        exchange_rate: model.exchange_rate,
+        subtotal: model.subtotal,
+        tax_amount: model.tax_amount,
+        shipping_fee: model.shipping_fee,
+        total_amount: model.total_amount,
+        customer_country: model.customer_country,
+        customer_type: model.customer_type,
+        tax_id: model.tax_id,
+        company_name: model.company_name,
+        invoice_required: model.invoice_required,
+        invoice_type: model.invoice_type,
+        invoice_number: model.invoice_number,
+        invoice_issued_at: model.invoice_issued_at,
+        tax_rate: model.tax_rate,
+        tax_type: model.tax_type,
+        is_fulfilled: model.is_fulfilled,
+        fulfilled_at: model.fulfilled_at,
+        deferred_revenue: model.deferred_revenue,
+        recognized_revenue: model.recognized_revenue,
+        preorder_batch_id: model.preorder_batch_id,
+        // 追蹤欄位
+        estimated_delivery_date: model.estimated_delivery_date,
+        last_status_update: model.last_status_update,
+        notification_sent: model.notification_sent,
+        can_cancel_until: model.can_cancel_until,
+        customer_notes: model.customer_notes,
+        is_flagged: model.is_flagged,
+        flag_reason: model.flag_reason,
+        flag_priority: model.flag_priority,
+        assigned_to: model.assigned_to,
     };
+    // Remove undefined keys to avoid overwriting existing data
+    Object.keys(record).forEach(key => record[key] === undefined && delete record[key]);
+    return record;
 }
 
 // Article Mapping
@@ -401,5 +480,155 @@ export async function updateAnalytics(data: any) {
                 total_visitors: data.totalVisitors || current.totalVisitors,
                 daily_visits: data.dailyVisits || current.dailyVisits
             });
+    } catch (e) { console.error(e); }
+}
+
+// ==========================================
+// 💳 Payments (金流)
+// ==========================================
+export async function getPayments() {
+    try {
+        const supabase = await createClient();
+        const { data, error } = await supabase
+            .from('payments')
+            .select('*')
+            .order('created_at', { ascending: false });
+        if (error) return [];
+        return data;
+    } catch (e) { return []; }
+}
+
+export async function getPaymentsByOrder(orderId: string) {
+    try {
+        const supabase = await createClient();
+        const { data, error } = await supabase
+            .from('payments')
+            .select('*')
+            .eq('order_id', orderId)
+            .order('created_at', { ascending: false });
+        if (error) return [];
+        return data;
+    } catch (e) { return []; }
+}
+
+export async function savePayment(payment: any) {
+    const supabase = await createClient();
+    const record = { ...payment };
+    Object.keys(record).forEach(key => record[key] === undefined && delete record[key]);
+    const { error } = await supabase.from('payments').upsert(record);
+    if (error) { console.error('Save Payment Failed:', error); throw new Error(error.message); }
+}
+
+// ==========================================
+// 🚚 Shipments (物流)
+// ==========================================
+export async function getShipments() {
+    try {
+        const supabase = await createClient();
+        const { data, error } = await supabase
+            .from('shipments')
+            .select('*')
+            .order('created_at', { ascending: false });
+        if (error) return [];
+        return data;
+    } catch (e) { return []; }
+}
+
+export async function getShipmentsByOrder(orderId: string) {
+    try {
+        const supabase = await createClient();
+        const { data, error } = await supabase
+            .from('shipments')
+            .select('*')
+            .eq('order_id', orderId)
+            .order('created_at', { ascending: false });
+        if (error) return [];
+        return data;
+    } catch (e) { return []; }
+}
+
+export async function getShipmentByTracking(trackingNumber: string) {
+    try {
+        const supabase = await createClient();
+        const { data, error } = await supabase
+            .from('shipments')
+            .select('*, orders(*)')
+            .eq('tracking_number', trackingNumber)
+            .single();
+        if (error) return null;
+        return data;
+    } catch (e) { return null; }
+}
+
+export async function saveShipment(shipment: any) {
+    const supabase = await createClient();
+    const record = { ...shipment };
+    Object.keys(record).forEach(key => record[key] === undefined && delete record[key]);
+    const { error } = await supabase.from('shipments').upsert(record);
+    if (error) { console.error('Save Shipment Failed:', error); throw new Error(error.message); }
+}
+
+// ==========================================
+// 💸 Refunds (退款)
+// ==========================================
+export async function getRefunds() {
+    try {
+        const supabase = await createClient();
+        const { data, error } = await supabase
+            .from('refunds')
+            .select('*')
+            .order('created_at', { ascending: false });
+        if (error) return [];
+        return data;
+    } catch (e) { return []; }
+}
+
+export async function getRefundsByOrder(orderId: string) {
+    try {
+        const supabase = await createClient();
+        const { data, error } = await supabase
+            .from('refunds')
+            .select('*')
+            .eq('order_id', orderId)
+            .order('created_at', { ascending: false });
+        if (error) return [];
+        return data;
+    } catch (e) { return []; }
+}
+
+export async function saveRefund(refund: any) {
+    const supabase = await createClient();
+    const record = { ...refund };
+    Object.keys(record).forEach(key => record[key] === undefined && delete record[key]);
+    const { error } = await supabase.from('refunds').upsert(record);
+    if (error) { console.error('Save Refund Failed:', error); throw new Error(error.message); }
+}
+
+// ==========================================
+// 🏷️ Order Tags (訂單標籤)
+// ==========================================
+export async function getOrderTags(orderId: string) {
+    try {
+        const supabase = await createClient();
+        const { data, error } = await supabase
+            .from('order_tags')
+            .select('*')
+            .eq('order_id', orderId)
+            .order('created_at', { ascending: false });
+        if (error) return [];
+        return data;
+    } catch (e) { return []; }
+}
+
+export async function addOrderTag(tag: any) {
+    const supabase = await createClient();
+    const { error } = await supabase.from('order_tags').insert(tag);
+    if (error) { console.error('Add Order Tag Failed:', error); throw new Error(error.message); }
+}
+
+export async function removeOrderTag(tagId: number) {
+    try {
+        const supabase = await createClient();
+        await supabase.from('order_tags').delete().eq('id', tagId);
     } catch (e) { console.error(e); }
 }

@@ -1,5 +1,8 @@
 
-export type OrderStatus = 'pending' | 'paid' | 'processing' | 'shipped' | 'delivered' | 'cancelled' | 'refunded';
+import type { AccountingOrderFields } from './accounting';
+import type { TrackingOrderFields } from './tracking';
+
+export type OrderStatus = 'pending' | 'paid' | 'processing' | 'shipped' | 'delivered' | 'cancelled' | 'refunded' | 'preorder_confirmed' | 'preorder_ready';
 
 export type OrderItem = {
     productId: string;
@@ -8,6 +11,11 @@ export type OrderItem = {
     price: number;
     quantity: number;
     image?: string;
+    // 預購欄位
+    is_preorder?: boolean;
+    expected_ship_date?: string;
+    deposit_amount?: number;
+    full_amount?: number;
 };
 
 export type ShippingInfo = {
@@ -31,6 +39,13 @@ export type TrackingInfo = {
     deliveredAt?: string;  // ISO Date
 };
 
+export type PreorderInfo = {
+    productIds: string[];
+    expectedShipDate: string;
+    depositTotal: number;
+    remainingTotal: number;
+};
+
 export type Order = {
     id: string;            // Unique Order ID (e.g., SOM-2024-0001)
     userId?: string;       // If logged in
@@ -45,4 +60,9 @@ export type Order = {
         date: string;
         note?: string;
     }[];
-};
+    // 預購欄位
+    has_preorder?: boolean;
+    preorder_info?: PreorderInfo;
+    deposit_amount?: number;
+    remaining_amount?: number;
+} & Partial<AccountingOrderFields> & Partial<TrackingOrderFields>;

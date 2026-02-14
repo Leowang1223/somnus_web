@@ -322,6 +322,14 @@ export async function updateProductAction(formData: FormData) {
         const supplierInput = formData.get('supplier') as string;
         const supplier = supplierInput ? JSON.parse(supplierInput) : {};
 
+        // 預購欄位解析
+        const is_preorder = formData.get('is_preorder') === 'true';
+        const preorder_start_date = formData.get('preorder_start_date') as string || null;
+        const preorder_end_date = formData.get('preorder_end_date') as string || null;
+        const expected_ship_date = formData.get('expected_ship_date') as string || null;
+        const preorder_limit = formData.get('preorder_limit') ? Number(formData.get('preorder_limit')) : null;
+        const preorder_deposit_percentage = formData.get('preorder_deposit_percentage') ? Number(formData.get('preorder_deposit_percentage')) : 100;
+
         const product = {
             ...existingProduct,
             id: id || `prod-${Date.now()}`,
@@ -338,6 +346,15 @@ export async function updateProductAction(formData: FormData) {
             focusPoint: focusPoint,
             variants: variants,
             supplier: supplier,
+            // 預購欄位
+            is_preorder,
+            preorder_start_date,
+            preorder_end_date,
+            expected_ship_date,
+            preorder_limit,
+            preorder_sold: existingProduct?.preorder_sold || 0, // 保留已售數量
+            preorder_deposit_percentage,
+            // preorder_status 會由資料庫 trigger 自動計算
             // Only update sections if it's a new product or explicitly needed... usually we keep existing sections
             sections: existingProduct?.sections || [
                 { id: `hero-${Date.now()}`, type: 'hero', isEnabled: true, content: { title: name, subtitle: formData.get('category') as string, ctaText: "Explore Ritual", ctaLink: "" } },
@@ -594,29 +611,138 @@ export async function createOrderAction(orderData: any) {
 
         const products = await db.getProducts();
 
-        // Enrich items with cost data at time of purchase
+        // 檢查是否有預購商品並計算預購資訊
+        let has_preorder = false;
+        let deposit_amount = 0;
+        let remaining_amount = 0;
+        const preorder_product_ids: string[] = [];
+        let expected_ship_date: string | null = null;
+
+        // Enrich items with cost data and preorder info at time of purchase
         const enrichedItems = orderData.items?.map((item: any) => {
-            const product = products.find((p: any) => p.id === item.id);
-            return {
+            const product = products.find((p: any) => p.id === item.productId);
+            const itemData = {
                 ...item,
                 cost: product?.cost || 0 // Snapshot cost
             };
+
+            // 檢查是否為預購商品
+            if (product?.is_preorder) {
+                has_preorder = true;
+                preorder_product_ids.push(product.id);
+
+                // 計算訂金
+                const percentage = product.preorder_deposit_percentage || 100;
+                const itemTotal = item.price * item.quantity;
+                const itemDeposit = Math.round((itemTotal * percentage) / 100 * 100) / 100;
+                const itemRemaining = itemTotal - itemDeposit;
+
+                deposit_amount += itemDeposit;
+                remaining_amount += itemRemaining;
+
+                // 記錄預購資訊到商品項目
+                itemData.is_preorder = true;
+                itemData.expected_ship_date = product.expected_ship_date;
+                itemData.deposit_amount = itemDeposit;
+                itemData.full_amount = itemTotal;
+
+                // 更新預期出貨日期（取最晚的）
+                if (product.expected_ship_date) {
+                    if (!expected_ship_date || new Date(product.expected_ship_date) > new Date(expected_ship_date)) {
+                        expected_ship_date = product.expected_ship_date;
+                    }
+                }
+
+                // 更新商品的預購已售數量
+                product.preorder_sold = (product.preorder_sold || 0) + item.quantity;
+                db.saveProduct(product).catch(err => console.error('Failed to update preorder_sold:', err));
+            }
+
+            return itemData;
         }) || [];
+
+        // 計算訂單狀態
+        const orderStatus = has_preorder ? 'preorder_confirmed' : 'paid';
+        const statusNote = has_preorder
+            ? `預購訂單已確認。訂金 $${deposit_amount.toFixed(2)}，預計 ${expected_ship_date ? new Date(expected_ship_date).toLocaleDateString('zh-TW') : '未定'} 出貨。`
+            : 'Order placed. Awaiting payment confirmation.';
+
+        // === 會計欄位計算 ===
+        const subtotal = enrichedItems.reduce((sum: number, item: any) => sum + (item.price * item.quantity), 0);
+        const currency = orderData.currency || 'TWD';
+        const exchangeRate = orderData.exchange_rate || 1.0;
+        const taxRate = orderData.tax_rate ?? 5.0;
+        const taxType = orderData.tax_type || 'taxable';
+        const taxAmount = taxType === 'taxable' ? Math.round(subtotal * taxRate / 100 * 100) / 100 : 0;
+        const shippingFee = orderData.shipping_fee || 0;
+        const totalAmount = subtotal + taxAmount + shippingFee;
+
+        // 訂單類型
+        const orderType = has_preorder ? 'preorder' : 'stock';
+
+        // 收入認列邏輯：預購 → 遞延收入，現貨 → 已認列收入
+        const deferredRevenue = has_preorder ? totalAmount : 0;
+        const recognizedRevenue = has_preorder ? 0 : totalAmount;
+
+        // 客戶資訊
+        const customerCountry = orderData.shippingInfo?.country || 'TW';
+        const customerType = orderData.customer_type || 'B2C';
+
+        // 取消期限（預設 24 小時內可取消，預購 48 小時）
+        const cancelHours = has_preorder ? 48 : 24;
+        const canCancelUntil = new Date(Date.now() + cancelHours * 60 * 60 * 1000).toISOString();
 
         const newOrder = {
             id: orderId,
             date: new Date().toISOString(),
-            status: 'pending',
+            status: orderStatus,
             ...orderData,
             items: enrichedItems,
+            // 預購資訊
+            has_preorder,
+            deposit_amount: has_preorder ? deposit_amount : 0,
+            remaining_amount: has_preorder ? remaining_amount : 0,
+            preorder_info: has_preorder ? {
+                productIds: preorder_product_ids,
+                expectedShipDate: expected_ship_date,
+                depositTotal: deposit_amount,
+                remainingTotal: remaining_amount
+            } : {},
+            // 會計欄位
+            order_type: orderType,
+            currency,
+            exchange_rate: exchangeRate,
+            subtotal,
+            tax_amount: taxAmount,
+            shipping_fee: shippingFee,
+            total_amount: totalAmount,
+            customer_country: customerCountry,
+            customer_type: customerType,
+            tax_id: orderData.tax_id || null,
+            company_name: orderData.company_name || null,
+            invoice_required: orderData.invoice_required || false,
+            invoice_type: orderData.invoice_type || null,
+            tax_rate: taxRate,
+            tax_type: taxType,
+            is_fulfilled: !has_preorder, // 現貨直接視為已履約
+            fulfilled_at: !has_preorder ? new Date().toISOString() : null,
+            deferred_revenue: deferredRevenue,
+            recognized_revenue: recognizedRevenue,
+            preorder_batch_id: orderData.preorder_batch_id || null,
+            // 追蹤欄位
+            estimated_delivery_date: has_preorder && expected_ship_date ? expected_ship_date : null,
+            last_status_update: new Date().toISOString(),
+            can_cancel_until: canCancelUntil,
+            customer_notes: orderData.customer_notes || null,
             timeline: [
-                { status: 'pending', date: new Date().toISOString(), note: 'Order placed. Awaiting payment confirmation.' }
+                { status: orderStatus, date: new Date().toISOString(), note: statusNote }
             ]
         };
 
         await db.saveOrder(newOrder);
         revalidatePath('/admin');
         revalidatePath('/admin/orders');
+        revalidatePath('/admin/preorders');
 
         return { success: true, orderId };
     } catch (e) {
@@ -794,4 +920,601 @@ export async function deleteUserAction(userId: string) {
 
         return { success: true };
     } catch (e) { return { success: false }; }
+}
+
+// ==========================================
+// 🎯 Preorder Actions
+// ==========================================
+
+/**
+ * 更新預購商品的已售數量
+ */
+export async function updatePreorderSoldAction(productId: string, quantity: number) {
+    'use server';
+    try {
+        const products = await db.getProducts();
+        const product = products.find((p: any) => p.id === productId);
+
+        if (!product || !product.is_preorder) {
+            return { success: false, error: 'Product not found or not a preorder' };
+        }
+
+        // 更新已售數量
+        product.preorder_sold = (product.preorder_sold || 0) + quantity;
+
+        // 檢查是否售罄
+        if (product.preorder_limit && product.preorder_sold >= product.preorder_limit) {
+            product.preorder_status = 'ended';
+        }
+
+        await db.saveProduct(product);
+        revalidatePath('/admin/products');
+        revalidatePath('/admin/preorders');
+        revalidatePath('/collection');
+        if (product.slug) revalidatePath(`/product/${product.slug}`);
+
+        return { success: true, newSoldCount: product.preorder_sold };
+    } catch (e) {
+        console.error('updatePreorderSoldAction error:', e);
+        return { success: false, error: 'Failed to update preorder sold count' };
+    }
+}
+
+/**
+ * 獲取所有預購商品
+ */
+export async function getPreorderProductsAction() {
+    'use server';
+    try {
+        const products = await db.getProducts();
+        const preorderProducts = products.filter((p: any) => p.is_preorder);
+
+        return { success: true, products: preorderProducts };
+    } catch (e) {
+        console.error('getPreorderProductsAction error:', e);
+        return { success: false, products: [], error: 'Failed to get preorder products' };
+    }
+}
+
+/**
+ * 獲取活躍的預購商品（進行中）
+ */
+export async function getActivePreordersAction() {
+    'use server';
+    try {
+        const products = await db.getProducts();
+        const now = new Date();
+
+        const activePreorders = products.filter((p: any) => {
+            if (!p.is_preorder || p.status !== 'published') return false;
+
+            const start = p.preorder_start_date ? new Date(p.preorder_start_date) : null;
+            const end = p.preorder_end_date ? new Date(p.preorder_end_date) : null;
+
+            if (!start || !end) return false;
+
+            // 時間範圍內
+            const inTimeRange = now >= start && now <= end;
+
+            // 未售罄
+            const notSoldOut = !p.preorder_limit || (p.preorder_sold || 0) < p.preorder_limit;
+
+            return inTimeRange && notSoldOut;
+        });
+
+        return { success: true, products: activePreorders };
+    } catch (e) {
+        console.error('getActivePreordersAction error:', e);
+        return { success: false, products: [], error: 'Failed to get active preorders' };
+    }
+}
+
+/**
+ * 批次更新預購狀態（手動標記為已出貨等）
+ */
+export async function batchUpdatePreorderStatusAction(productIds: string[], status: 'upcoming' | 'active' | 'ended' | 'shipped') {
+    'use server';
+    try {
+        const products = await db.getProducts();
+
+        for (const productId of productIds) {
+            const product = products.find((p: any) => p.id === productId);
+            if (product && product.is_preorder) {
+                product.preorder_status = status;
+                await db.saveProduct(product);
+            }
+        }
+
+        revalidatePath('/admin/products');
+        revalidatePath('/admin/preorders');
+        revalidatePath('/collection');
+
+        return { success: true };
+    } catch (e) {
+        console.error('batchUpdatePreorderStatusAction error:', e);
+        return { success: false, error: 'Failed to batch update preorder status' };
+    }
+}
+
+/**
+ * 獲取預購訂單（包含預購商品的訂單）
+ */
+export async function getPreorderOrdersAction() {
+    'use server';
+    try {
+        const orders = await db.getOrders();
+        const preorderOrders = orders.filter((o: any) => o.has_preorder === true);
+
+        return { success: true, orders: preorderOrders };
+    } catch (e) {
+        console.error('getPreorderOrdersAction error:', e);
+        return { success: false, orders: [], error: 'Failed to get preorder orders' };
+    }
+}
+
+// ==========================================
+// 💳 Payment & Accounting Actions
+// ==========================================
+
+/**
+ * 記錄一筆付款
+ */
+export async function createPaymentAction(paymentData: {
+    order_id: string;
+    payment_provider: string;
+    transaction_id?: string;
+    payment_method?: string;
+    amount: number;
+    currency?: string;
+    exchange_rate?: number;
+    gateway_fee?: number;
+    payment_type?: string;
+}) {
+    'use server';
+    try {
+        const dateStr = new Date().toISOString().slice(2, 10).replace(/-/g, '');
+        const rand = Math.floor(1000 + Math.random() * 9000);
+        const paymentId = `PAY-${dateStr}-${rand}`;
+
+        const netAmount = paymentData.amount - (paymentData.gateway_fee || 0);
+        const exchangeRate = paymentData.exchange_rate || 1.0;
+
+        const payment = {
+            id: paymentId,
+            order_id: paymentData.order_id,
+            payment_provider: paymentData.payment_provider,
+            transaction_id: paymentData.transaction_id,
+            payment_method: paymentData.payment_method,
+            amount: paymentData.amount,
+            currency: paymentData.currency || 'TWD',
+            exchange_rate: exchangeRate,
+            amount_twd: Math.round(paymentData.amount * exchangeRate * 100) / 100,
+            gateway_fee: paymentData.gateway_fee || 0,
+            net_amount: netAmount,
+            payment_status: 'completed',
+            paid_at: new Date().toISOString(),
+            payout_status: 'pending',
+            payment_type: paymentData.payment_type || 'full',
+        };
+
+        await db.savePayment(payment);
+
+        revalidatePath('/admin/orders');
+        revalidatePath('/admin/payments');
+
+        return { success: true, paymentId };
+    } catch (e) {
+        console.error('createPaymentAction error:', e);
+        return { success: false, error: 'Failed to create payment' };
+    }
+}
+
+/**
+ * 獲取所有付款記錄
+ */
+export async function getPaymentsAction() {
+    'use server';
+    try {
+        const payments = await db.getPayments();
+        return { success: true, payments };
+    } catch (e) {
+        return { success: false, payments: [] };
+    }
+}
+
+/**
+ * 獲取某訂單的付款記錄
+ */
+export async function getPaymentsByOrderAction(orderId: string) {
+    'use server';
+    try {
+        const payments = await db.getPaymentsByOrder(orderId);
+        return { success: true, payments };
+    } catch (e) {
+        return { success: false, payments: [] };
+    }
+}
+
+/**
+ * 更新入帳狀態
+ */
+export async function updatePayoutStatusAction(paymentId: string, status: 'pending' | 'paid_out') {
+    'use server';
+    try {
+        const supabase = await createClient();
+        const updates: any = { payout_status: status };
+        if (status === 'paid_out') updates.payout_at = new Date().toISOString();
+
+        await supabase.from('payments').update(updates).eq('id', paymentId);
+
+        revalidatePath('/admin/payments');
+        return { success: true };
+    } catch (e) {
+        return { success: false };
+    }
+}
+
+/**
+ * 履約訂單（預購出貨 → 認列收入）
+ */
+export async function fulfillOrderAction(orderId: string) {
+    'use server';
+    try {
+        const orders = await db.getOrders();
+        const order = orders.find((o: any) => o.id === orderId);
+
+        if (!order) return { success: false, error: 'Order not found' };
+
+        const now = new Date().toISOString();
+
+        order.is_fulfilled = true;
+        order.fulfilled_at = now;
+        order.recognized_revenue = order.total_amount || order.total || 0;
+        order.deferred_revenue = 0;
+        order.status = 'shipped';
+        order.last_status_update = now;
+
+        // 加入 timeline
+        const timeline = order.timeline || [];
+        timeline.push({ status: 'shipped', date: now, note: '預購商品已出貨，收入已認列' });
+        order.timeline = timeline;
+
+        await db.saveOrder(order);
+
+        revalidatePath('/admin/orders');
+        revalidatePath('/admin/preorders');
+        revalidatePath('/admin');
+
+        return { success: true };
+    } catch (e) {
+        console.error('fulfillOrderAction error:', e);
+        return { success: false, error: 'Failed to fulfill order' };
+    }
+}
+
+// ==========================================
+// 💸 Refund Actions
+// ==========================================
+
+/**
+ * 建立退款
+ */
+export async function createRefundAction(refundData: {
+    order_id: string;
+    payment_id?: string;
+    refund_amount: number;
+    refund_fee?: number;
+    refund_reason?: string;
+    refund_type?: string;
+    invoice_action?: string;
+}) {
+    'use server';
+    try {
+        const dateStr = new Date().toISOString().slice(2, 10).replace(/-/g, '');
+        const rand = Math.floor(1000 + Math.random() * 9000);
+        const refundId = `REF-${dateStr}-${rand}`;
+
+        const netRefund = refundData.refund_amount - (refundData.refund_fee || 0);
+
+        const refund = {
+            id: refundId,
+            order_id: refundData.order_id,
+            payment_id: refundData.payment_id,
+            refund_amount: refundData.refund_amount,
+            refund_fee: refundData.refund_fee || 0,
+            net_refund: netRefund,
+            refund_reason: refundData.refund_reason,
+            refund_type: refundData.refund_type || 'full',
+            invoice_action: refundData.invoice_action,
+            refund_status: 'pending',
+        };
+
+        await db.saveRefund(refund);
+
+        // 更新訂單狀態
+        const orders = await db.getOrders();
+        const order = orders.find((o: any) => o.id === refundData.order_id);
+        if (order) {
+            order.status = 'refunded';
+            order.last_status_update = new Date().toISOString();
+            const timeline = order.timeline || [];
+            timeline.push({
+                status: 'refunded',
+                date: new Date().toISOString(),
+                note: `退款 $${refundData.refund_amount}｜原因：${refundData.refund_reason || '未說明'}`
+            });
+            order.timeline = timeline;
+
+            // 收入沖回
+            if (order.recognized_revenue > 0) {
+                order.recognized_revenue = Math.max(0, order.recognized_revenue - refundData.refund_amount);
+            }
+
+            await db.saveOrder(order);
+        }
+
+        revalidatePath('/admin/orders');
+        revalidatePath('/admin/payments');
+        revalidatePath('/admin');
+
+        return { success: true, refundId };
+    } catch (e) {
+        console.error('createRefundAction error:', e);
+        return { success: false, error: 'Failed to create refund' };
+    }
+}
+
+/**
+ * 獲取退款記錄
+ */
+export async function getRefundsAction() {
+    'use server';
+    try {
+        const refunds = await db.getRefunds();
+        return { success: true, refunds };
+    } catch (e) {
+        return { success: false, refunds: [] };
+    }
+}
+
+// ==========================================
+// 🚚 Shipment Actions
+// ==========================================
+
+/**
+ * 建立物流記錄
+ */
+export async function createShipmentAction(shipmentData: {
+    order_id: string;
+    carrier: string;
+    tracking_number: string;
+    tracking_url?: string;
+    estimated_delivery?: string;
+}) {
+    'use server';
+    try {
+        const dateStr = new Date().toISOString().slice(2, 10).replace(/-/g, '');
+        const rand = Math.floor(1000 + Math.random() * 9000);
+        const shipmentId = `SHIP-${dateStr}-${rand}`;
+
+        const now = new Date().toISOString();
+
+        const shipment = {
+            id: shipmentId,
+            order_id: shipmentData.order_id,
+            carrier: shipmentData.carrier,
+            tracking_number: shipmentData.tracking_number,
+            tracking_url: shipmentData.tracking_url || `https://www.google.com/search?q=${shipmentData.carrier}+tracking+${shipmentData.tracking_number}`,
+            shipment_status: 'pending',
+            shipped_at: now,
+            estimated_delivery: shipmentData.estimated_delivery,
+            status_updates: [
+                { timestamp: now, status: 'pending', description: '物流單已建立' }
+            ]
+        };
+
+        await db.saveShipment(shipment);
+
+        // 更新訂單物流資訊
+        const orders = await db.getOrders();
+        const order = orders.find((o: any) => o.id === shipmentData.order_id);
+        if (order) {
+            order.trackingInfo = {
+                carrier: shipmentData.carrier,
+                trackingNumber: shipmentData.tracking_number,
+                url: shipment.tracking_url,
+            };
+            order.estimated_delivery_date = shipmentData.estimated_delivery;
+            order.last_status_update = now;
+            await db.saveOrder(order);
+        }
+
+        revalidatePath('/admin/orders');
+
+        return { success: true, shipmentId };
+    } catch (e) {
+        console.error('createShipmentAction error:', e);
+        return { success: false, error: 'Failed to create shipment' };
+    }
+}
+
+/**
+ * 更新物流狀態
+ */
+export async function updateShipmentStatusAction(
+    shipmentId: string,
+    status: string,
+    location?: string,
+    description?: string
+) {
+    'use server';
+    try {
+        const supabase = await createClient();
+        const { data: shipment } = await supabase.from('shipments').select('*').eq('id', shipmentId).single();
+
+        if (!shipment) return { success: false, error: 'Shipment not found' };
+
+        const now = new Date().toISOString();
+        const statusUpdates = shipment.status_updates || [];
+        statusUpdates.push({
+            timestamp: now,
+            status,
+            location: location || '',
+            description: description || `狀態更新為 ${status}`
+        });
+
+        const updates: any = {
+            shipment_status: status,
+            status_updates: statusUpdates,
+            current_location: location || shipment.current_location,
+        };
+
+        if (status === 'delivered') {
+            updates.delivered_at = now;
+        }
+        if (status === 'failed' || status === 'returned') {
+            updates.is_delayed = true;
+            updates.last_exception = description || status;
+            updates.exception_count = (shipment.exception_count || 0) + 1;
+        }
+
+        await supabase.from('shipments').update(updates).eq('id', shipmentId);
+
+        // 同步更新訂單狀態
+        if (status === 'delivered') {
+            const { data: order } = await supabase.from('orders').select('*').eq('id', shipment.order_id).single();
+            if (order) {
+                const timeline = order.timeline || [];
+                timeline.push({ status: 'delivered', date: now, note: '已簽收' });
+                await supabase.from('orders').update({
+                    status: 'delivered',
+                    timeline,
+                    last_status_update: now,
+                }).eq('id', shipment.order_id);
+            }
+        }
+
+        revalidatePath('/admin/orders');
+
+        return { success: true };
+    } catch (e) {
+        console.error('updateShipmentStatusAction error:', e);
+        return { success: false };
+    }
+}
+
+/**
+ * 透過追蹤碼查詢物流（前台用）
+ */
+export async function trackShipmentAction(trackingNumber: string) {
+    'use server';
+    try {
+        const shipment = await db.getShipmentByTracking(trackingNumber);
+        if (!shipment) return { success: false, error: 'Tracking number not found' };
+
+        return {
+            success: true,
+            shipment: {
+                carrier: shipment.carrier,
+                tracking_number: shipment.tracking_number,
+                tracking_url: shipment.tracking_url,
+                shipment_status: shipment.shipment_status,
+                current_location: shipment.current_location,
+                status_updates: shipment.status_updates || [],
+                shipped_at: shipment.shipped_at,
+                estimated_delivery: shipment.estimated_delivery,
+                delivered_at: shipment.delivered_at,
+            },
+            order: shipment.orders ? {
+                id: shipment.orders.id,
+                status: shipment.orders.status,
+                date: shipment.orders.date,
+            } : null
+        };
+    } catch (e) {
+        return { success: false, error: 'Failed to track shipment' };
+    }
+}
+
+/**
+ * 獲取所有物流記錄
+ */
+export async function getShipmentsAction() {
+    'use server';
+    try {
+        const shipments = await db.getShipments();
+        return { success: true, shipments };
+    } catch (e) {
+        return { success: false, shipments: [] };
+    }
+}
+
+// ==========================================
+// 🏷️ Order Tag Actions
+// ==========================================
+
+export async function addOrderTagAction(orderId: string, tagType: string, tagValue: string, notes?: string) {
+    'use server';
+    try {
+        await db.addOrderTag({
+            order_id: orderId,
+            tag_type: tagType,
+            tag_value: tagValue,
+            notes,
+        });
+        revalidatePath('/admin/orders');
+        return { success: true };
+    } catch (e) {
+        return { success: false };
+    }
+}
+
+export async function removeOrderTagAction(tagId: number) {
+    'use server';
+    try {
+        await db.removeOrderTag(tagId);
+        revalidatePath('/admin/orders');
+        return { success: true };
+    } catch (e) {
+        return { success: false };
+    }
+}
+
+// ==========================================
+// 🚩 Order Flag Actions
+// ==========================================
+
+export async function flagOrderAction(orderId: string, reason: string, priority: string) {
+    'use server';
+    try {
+        const supabase = await createClient();
+        await supabase.from('orders').update({
+            is_flagged: true,
+            flag_reason: reason,
+            flag_priority: priority,
+            last_status_update: new Date().toISOString(),
+        }).eq('id', orderId);
+
+        revalidatePath('/admin/orders');
+        return { success: true };
+    } catch (e) {
+        return { success: false };
+    }
+}
+
+export async function unflagOrderAction(orderId: string) {
+    'use server';
+    try {
+        const supabase = await createClient();
+        await supabase.from('orders').update({
+            is_flagged: false,
+            flag_reason: null,
+            flag_priority: null,
+        }).eq('id', orderId);
+
+        revalidatePath('/admin/orders');
+        return { success: true };
+    } catch (e) {
+        return { success: false };
+    }
 }

@@ -119,7 +119,16 @@ export default function AdminProductsClient({ initialProducts }: { initialProduc
             focusPoint: { x: 50, y: 50 },
             // Init multi-lang fields
             name_zh: '', name_jp: '', name_ko: '',
-            description_zh: '', description_jp: '', description_ko: ''
+            description_zh: '', description_jp: '', description_ko: '',
+            // Init preorder fields
+            is_preorder: false,
+            preorder_start_date: null,
+            preorder_end_date: null,
+            expected_ship_date: null,
+            preorder_limit: null,
+            preorder_sold: 0,
+            preorder_deposit_percentage: 100,
+            preorder_status: 'upcoming'
         });
         setIsEditing(true);
     };
@@ -215,9 +224,23 @@ export default function AdminProductsClient({ initialProducts }: { initialProduc
                                 </td>
                                 <td className="p-6 text-sm text-gray-500">{product.category}</td>
                                 <td className="p-6">
-                                    <span className={`text-[10px] uppercase tracking-widest px-2 py-1 rounded-sm border ${product.status === 'published' ? 'border-green-500/20 text-green-500 bg-green-500/5' : 'border-yellow-500/20 text-yellow-500 bg-yellow-500/5'}`}>
-                                        {product.status || 'draft'}
-                                    </span>
+                                    <div className="flex flex-col gap-2">
+                                        <span className={`text-[10px] uppercase tracking-widest px-2 py-1 rounded-sm border w-fit ${product.status === 'published' ? 'border-green-500/20 text-green-500 bg-green-500/5' : 'border-yellow-500/20 text-yellow-500 bg-yellow-500/5'}`}>
+                                            {product.status || 'draft'}
+                                        </span>
+                                        {product.is_preorder && (
+                                            <div className="flex gap-1">
+                                                <span className="text-[10px] uppercase tracking-widest px-2 py-1 rounded-sm border border-blue-500/20 text-blue-400 bg-blue-500/5 w-fit">
+                                                    預購中
+                                                </span>
+                                                {product.preorder_limit && (
+                                                    <span className="text-[10px] text-gray-600">
+                                                        {product.preorder_sold || 0}/{product.preorder_limit}
+                                                    </span>
+                                                )}
+                                            </div>
+                                        )}
+                                    </div>
                                 </td>
                                 <td className="p-6 text-[#d8aa5b] font-display">${product.price}</td>
                                 <td className="p-6 text-right flex justify-end gap-3">
@@ -401,6 +424,145 @@ export default function AdminProductsClient({ initialProducts }: { initialProduc
                                                 onFocusChange={(fp) => setCurrentProduct({ ...currentProduct, focusPoint: fp })}
                                                 prefix={currentProduct.name}
                                             />
+
+                                            {/* 預購設定區塊 */}
+                                            <div className="border border-white/10 bg-white/[0.02] p-6 rounded-sm space-y-4 mt-6">
+                                                <div className="flex items-center justify-between mb-4">
+                                                    <h3 className="text-sm uppercase tracking-widest text-[#d8aa5b] font-bold flex items-center gap-2">
+                                                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                                        </svg>
+                                                        預購設定
+                                                    </h3>
+                                                    <label className="flex items-center gap-2 cursor-pointer group">
+                                                        <input
+                                                            type="checkbox"
+                                                            checked={currentProduct.is_preorder || false}
+                                                            onChange={(e) => setCurrentProduct({
+                                                                ...currentProduct,
+                                                                is_preorder: e.target.checked
+                                                            })}
+                                                            className="w-4 h-4 accent-[#d8aa5b]"
+                                                        />
+                                                        <span className="text-xs text-white group-hover:text-[#d8aa5b] transition-colors">啟用預購</span>
+                                                    </label>
+                                                </div>
+
+                                                {currentProduct.is_preorder && (
+                                                    <motion.div
+                                                        initial={{ opacity: 0, height: 0 }}
+                                                        animate={{ opacity: 1, height: 'auto' }}
+                                                        className="space-y-4"
+                                                    >
+                                                        <div className="grid grid-cols-2 gap-4">
+                                                            <div>
+                                                                <label className="block text-xs text-gray-400 mb-2">預購開始時間</label>
+                                                                <input
+                                                                    type="datetime-local"
+                                                                    name="preorder_start_date"
+                                                                    value={currentProduct.preorder_start_date?.slice(0, 16) || ''}
+                                                                    onChange={(e) => setCurrentProduct({
+                                                                        ...currentProduct,
+                                                                        preorder_start_date: e.target.value ? new Date(e.target.value).toISOString() : null
+                                                                    })}
+                                                                    className="w-full bg-white/5 border border-white/10 p-3 text-white text-sm focus:outline-none focus:border-[#d8aa5b] rounded-sm"
+                                                                />
+                                                            </div>
+                                                            <div>
+                                                                <label className="block text-xs text-gray-400 mb-2">預購結束時間</label>
+                                                                <input
+                                                                    type="datetime-local"
+                                                                    name="preorder_end_date"
+                                                                    value={currentProduct.preorder_end_date?.slice(0, 16) || ''}
+                                                                    onChange={(e) => setCurrentProduct({
+                                                                        ...currentProduct,
+                                                                        preorder_end_date: e.target.value ? new Date(e.target.value).toISOString() : null
+                                                                    })}
+                                                                    className="w-full bg-white/5 border border-white/10 p-3 text-white text-sm focus:outline-none focus:border-[#d8aa5b] rounded-sm"
+                                                                />
+                                                            </div>
+                                                        </div>
+
+                                                        <div>
+                                                            <label className="block text-xs text-gray-400 mb-2">預計出貨日期</label>
+                                                            <input
+                                                                type="date"
+                                                                name="expected_ship_date"
+                                                                value={currentProduct.expected_ship_date?.slice(0, 10) || ''}
+                                                                onChange={(e) => setCurrentProduct({
+                                                                    ...currentProduct,
+                                                                    expected_ship_date: e.target.value ? new Date(e.target.value).toISOString() : null
+                                                                })}
+                                                                className="w-full bg-white/5 border border-white/10 p-3 text-white text-sm focus:outline-none focus:border-[#d8aa5b] rounded-sm"
+                                                            />
+                                                        </div>
+
+                                                        <div className="grid grid-cols-2 gap-4">
+                                                            <div>
+                                                                <label className="block text-xs text-gray-400 mb-2">預購數量限制</label>
+                                                                <input
+                                                                    type="number"
+                                                                    name="preorder_limit"
+                                                                    value={currentProduct.preorder_limit || ''}
+                                                                    onChange={(e) => setCurrentProduct({
+                                                                        ...currentProduct,
+                                                                        preorder_limit: e.target.value ? Number(e.target.value) : null
+                                                                    })}
+                                                                    placeholder="不限制留空"
+                                                                    className="w-full bg-white/5 border border-white/10 p-3 text-white text-sm focus:outline-none focus:border-[#d8aa5b] rounded-sm"
+                                                                />
+                                                            </div>
+                                                            <div>
+                                                                <label className="block text-xs text-gray-400 mb-2">訂金比例 (%)</label>
+                                                                <input
+                                                                    type="number"
+                                                                    name="preorder_deposit_percentage"
+                                                                    value={currentProduct.preorder_deposit_percentage || 100}
+                                                                    onChange={(e) => setCurrentProduct({
+                                                                        ...currentProduct,
+                                                                        preorder_deposit_percentage: Math.min(100, Math.max(0, Number(e.target.value)))
+                                                                    })}
+                                                                    min="0"
+                                                                    max="100"
+                                                                    className="w-full bg-white/5 border border-white/10 p-3 text-white text-sm focus:outline-none focus:border-[#d8aa5b] rounded-sm"
+                                                                />
+                                                            </div>
+                                                        </div>
+
+                                                        {/* 預購進度顯示（僅編輯現有產品時） */}
+                                                        {currentProduct.id && (
+                                                            <div className="bg-blue-500/10 border border-blue-500/20 p-4 rounded-sm">
+                                                                <div className="flex justify-between items-center mb-2">
+                                                                    <span className="text-xs text-blue-300 font-bold">預購進度</span>
+                                                                    <span className="text-xs text-blue-300">
+                                                                        已預購：<span className="font-bold text-white">{currentProduct.preorder_sold || 0}</span>
+                                                                        {currentProduct.preorder_limit && ` / ${currentProduct.preorder_limit}`}
+                                                                    </span>
+                                                                </div>
+                                                                {currentProduct.preorder_limit && (
+                                                                    <div className="w-full bg-white/10 rounded-full h-2">
+                                                                        <div
+                                                                            className="bg-blue-500 h-2 rounded-full transition-all"
+                                                                            style={{
+                                                                                width: `${Math.min(100, ((currentProduct.preorder_sold || 0) / currentProduct.preorder_limit) * 100)}%`
+                                                                            }}
+                                                                        />
+                                                                    </div>
+                                                                )}
+                                                            </div>
+                                                        )}
+
+                                                        <div className="bg-yellow-500/10 border-l-2 border-yellow-500 p-3">
+                                                            <p className="text-[10px] text-yellow-200 leading-relaxed">
+                                                                💡 訂金 100% = 全額付款 | 訂金 &lt; 100% = 需支付尾款
+                                                            </p>
+                                                        </div>
+                                                    </motion.div>
+                                                )}
+
+                                                {/* Hidden inputs for preorder fields */}
+                                                <input type="hidden" name="is_preorder" value={currentProduct.is_preorder ? 'true' : 'false'} />
+                                            </div>
                                         </div>
 
                                         <div className="flex gap-4 pt-6">

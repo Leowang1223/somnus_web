@@ -51,6 +51,15 @@ export interface Database {
                     sections: Json
                     created_at: string
                     updated_at: string
+                    // 預購欄位
+                    is_preorder: boolean
+                    preorder_start_date: string | null
+                    preorder_end_date: string | null
+                    expected_ship_date: string | null
+                    preorder_limit: number | null
+                    preorder_sold: number
+                    preorder_deposit_percentage: number
+                    preorder_status: string
                 }
                 Insert: {
                     id: string
@@ -68,6 +77,15 @@ export interface Database {
                     sections?: Json
                     created_at?: string
                     updated_at?: string
+                    // 預購欄位
+                    is_preorder?: boolean
+                    preorder_start_date?: string | null
+                    preorder_end_date?: string | null
+                    expected_ship_date?: string | null
+                    preorder_limit?: number | null
+                    preorder_sold?: number
+                    preorder_deposit_percentage?: number
+                    preorder_status?: string
                 }
                 Update: {
                     id?: string
@@ -84,6 +102,15 @@ export interface Database {
                     focus_point?: Json | null
                     sections?: Json
                     updated_at?: string
+                    // 預購欄位
+                    is_preorder?: boolean
+                    preorder_start_date?: string | null
+                    preorder_end_date?: string | null
+                    expected_ship_date?: string | null
+                    preorder_limit?: number | null
+                    preorder_sold?: number
+                    preorder_deposit_percentage?: number
+                    preorder_status?: string
                 }
             }
             orders: {
@@ -102,6 +129,11 @@ export interface Database {
                     timeline: Json
                     date: string
                     created_at: string
+                    // 預購欄位
+                    has_preorder: boolean
+                    preorder_info: Json
+                    deposit_amount: number
+                    remaining_amount: number
                 }
                 Insert: {
                     id: string
@@ -118,6 +150,11 @@ export interface Database {
                     timeline?: Json
                     date?: string
                     created_at?: string
+                    // 預購欄位
+                    has_preorder?: boolean
+                    preorder_info?: Json
+                    deposit_amount?: number
+                    remaining_amount?: number
                 }
                 Update: {
                     id?: string
@@ -132,6 +169,11 @@ export interface Database {
                     tracking_number?: string | null
                     tracking_url?: string | null
                     timeline?: Json
+                    // 預購欄位
+                    has_preorder?: boolean
+                    preorder_info?: Json
+                    deposit_amount?: number
+                    remaining_amount?: number
                 }
             }
             articles: {

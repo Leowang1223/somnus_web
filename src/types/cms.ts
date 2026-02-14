@@ -45,6 +45,15 @@ export interface CMSProduct {
     focusPoint?: { x: number; y: number };
     status?: 'published' | 'draft' | 'archived';
     sections?: Section[];
+    // 預購欄位
+    is_preorder?: boolean;
+    preorder_start_date?: string;
+    preorder_end_date?: string;
+    expected_ship_date?: string;
+    preorder_limit?: number | null;
+    preorder_sold?: number;
+    preorder_deposit_percentage?: number;
+    preorder_status?: 'upcoming' | 'active' | 'ended' | 'shipped';
 }
 
 export interface CMSArticle {

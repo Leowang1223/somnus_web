@@ -5,10 +5,12 @@ import { motion } from "framer-motion";
 import Link from "next/link";
 import { Search } from "lucide-react";
 import { CMSProduct } from "@/types/cms";
+import { useLanguage } from "@/context/LanguageContext";
 
 type SortOption = 'newest' | 'price-asc' | 'price-desc' | 'name';
 
 export default function ProductListClient({ initialProducts }: { initialProducts: CMSProduct[] }) {
+    const { t, currency } = useLanguage();
     const [search, setSearch] = useState('');
     const [category, setCategory] = useState('all');
     const [sort, setSort] = useState<SortOption>('newest');
@@ -26,7 +28,7 @@ export default function ProductListClient({ initialProducts }: { initialProducts
             result = result.filter(p =>
                 p.name.toLowerCase().includes(q) ||
                 (p.category || '').toLowerCase().includes(q) ||
-                (p.tags || []).some(t => t.toLowerCase().includes(q))
+                (p.tags || []).some(tag => tag.toLowerCase().includes(q))
             );
         }
 
@@ -38,7 +40,7 @@ export default function ProductListClient({ initialProducts }: { initialProducts
             case 'price-asc': result = [...result].sort((a, b) => a.price - b.price); break;
             case 'price-desc': result = [...result].sort((a, b) => b.price - a.price); break;
             case 'name': result = [...result].sort((a, b) => a.name.localeCompare(b.name)); break;
-            default: break; // newest = original order from DB
+            default: break;
         }
 
         return result;
@@ -46,12 +48,23 @@ export default function ProductListClient({ initialProducts }: { initialProducts
 
     return (
         <div>
+            {/* Collection Header */}
+            <header className="mb-12 md:mb-20 flex flex-col md:flex-row justify-between items-start md:items-end border-b border-white/10 pb-8 gap-4">
+                <div>
+                    <span className="text-[#d8aa5b] text-xs tracking-[0.3em] uppercase block mb-4">{t('collection.label')}</span>
+                    <h1 className="font-display text-3xl md:text-5xl text-white">{t('collection.title')}</h1>
+                </div>
+                <div className="text-white/60 text-xs tracking-widest uppercase">
+                    {initialProducts.length} {t('collection.count')}
+                </div>
+            </header>
+
             {/* Filters Bar */}
-            <div className="flex flex-col md:flex-row justify-between items-center mb-10 gap-4">
+            <div className="flex flex-col md:flex-row justify-between items-stretch md:items-center mb-10 gap-4">
                 <div className="flex items-center gap-3 bg-[#111] border border-white/10 px-4 py-2 rounded-sm w-full md:w-auto">
-                    <Search className="text-gray-500" size={16} />
+                    <Search className="text-gray-500 shrink-0" size={16} />
                     <input
-                        placeholder="Search products..."
+                        placeholder={t('collection.search')}
                         className="bg-transparent text-white focus:outline-none text-sm w-full md:w-56"
                         value={search}
                         onChange={(e) => setSearch(e.target.value)}
@@ -75,15 +88,15 @@ export default function ProductListClient({ initialProducts }: { initialProducts
                     onChange={(e) => setSort(e.target.value as SortOption)}
                     className="bg-[#111] border border-white/10 px-4 py-2 text-sm text-white rounded-sm focus:outline-none"
                 >
-                    <option value="newest">Newest</option>
-                    <option value="price-asc">Price: Low → High</option>
-                    <option value="price-desc">Price: High → Low</option>
-                    <option value="name">Name A-Z</option>
+                    <option value="newest">{t('collection.sortNewest')}</option>
+                    <option value="price-asc">{t('collection.sortPriceAsc')}</option>
+                    <option value="price-desc">{t('collection.sortPriceDesc')}</option>
+                    <option value="name">{t('collection.sortName')}</option>
                 </select>
             </div>
 
             {/* Product Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6 md:gap-8">
                 {filtered.map((product, index) => (
                     <Link href={`/product/${product.slug}`} key={product.id}>
                         <motion.div
@@ -93,7 +106,7 @@ export default function ProductListClient({ initialProducts }: { initialProducts
                             className="group relative"
                         >
                             <div
-                                className={`bg-[#0a0a09] overflow-hidden rounded-sm relative mb-6 border border-white/5 transition-all duration-700`}
+                                className="bg-[#0a0a09] overflow-hidden rounded-sm relative mb-6 border border-white/5 transition-all duration-700"
                                 style={{
                                     aspectRatio: product.aspectRatio === '1:1' ? '1 / 1' : product.aspectRatio === '16:9' ? '16 / 9' : '4 / 5'
                                 }}
@@ -139,7 +152,7 @@ export default function ProductListClient({ initialProducts }: { initialProducts
                                     <h3 className="text-white font-display text-xl mb-1 group-hover:text-[#d8aa5b] transition-colors duration-300">{product.name}</h3>
                                     <p className="text-gray-500 text-[10px] uppercase tracking-wider">{product.category}</p>
                                 </div>
-                                <span className="text-[#d8aa5b] font-display text-lg">${product.price}</span>
+                                <span className="text-[#d8aa5b] font-display text-lg">{currency}{product.price}</span>
                             </div>
                         </motion.div>
                     </Link>
@@ -147,7 +160,7 @@ export default function ProductListClient({ initialProducts }: { initialProducts
             </div>
 
             {filtered.length === 0 && (
-                <div className="py-20 text-center text-gray-500">No products found.</div>
+                <div className="py-20 text-center text-gray-500">{t('collection.empty')}</div>
             )}
         </div>
     );

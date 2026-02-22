@@ -101,13 +101,13 @@ export default function CheckoutPage() {
     }
 
     return (
-        <div className="min-h-screen bg-[#050505] text-white pt-24 pb-12">
-            <div className="container mx-auto px-6 max-w-6xl">
-                <Link href="/collection" className="inline-flex items-center gap-2 text-gray-500 hover:text-white transition-colors mb-12 text-xs uppercase tracking-widest">
+        <div className="min-h-screen bg-[#050505] text-white pt-20 md:pt-24 pb-12">
+            <div className="container mx-auto px-4 md:px-6 max-w-6xl">
+                <Link href="/collection" className="inline-flex items-center gap-2 text-gray-500 hover:text-white transition-colors mb-8 md:mb-12 text-xs uppercase tracking-widest">
                     <ArrowLeft size={16} /> Continue Shopping
                 </Link>
 
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-16">
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-16">
                     {/* Left: Form */}
                     <div>
                         <h1 className="text-3xl font-display mb-8">Secure Checkout</h1>
@@ -232,7 +232,7 @@ export default function CheckoutPage() {
                     </div>
 
                     {/* Right: Order Summary */}
-                    <div className="bg-[#111] p-8 rounded-sm h-fit sticky top-24 border border-white/5">
+                    <div className="bg-[#111] p-5 md:p-8 rounded-sm h-fit lg:sticky top-24 border border-white/5 order-first lg:order-last">
                         {/* 預購提示 */}
                         {hasPreorder && (
                             <div className="bg-blue-500/10 border border-blue-500/20 p-4 rounded-sm mb-6">

@@ -2,6 +2,7 @@
 
 import { useCart } from "@/context/CartContext";
 import { useAuth } from "@/context/AuthContext";
+import { useLanguage } from "@/context/LanguageContext";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, Minus, Plus, Trash2 } from "lucide-react";
@@ -9,6 +10,7 @@ import { X, Minus, Plus, Trash2 } from "lucide-react";
 export default function CartDrawer() {
     const { isOpen, toggleCart, items, removeFromCart, updateQuantity, cartTotal } = useCart();
     const { isAuthenticated } = useAuth();
+    const { t, currency } = useLanguage();
     const router = useRouter();
 
     const handleCheckout = () => {
@@ -38,7 +40,7 @@ export default function CartDrawer() {
                         className="fixed right-0 top-0 h-full w-full md:w-[450px] bg-[#0a0a09] border-l border-white/10 z-[70] shadow-2xl flex flex-col"
                     >
                         <div className="p-8 border-b border-white/10 flex justify-between items-center">
-                            <h2 className="font-display text-2xl text-white">Your Ritual</h2>
+                            <h2 className="font-display text-2xl text-white">{t('cart.title')}</h2>
                             <button onClick={toggleCart} className="text-white/50 hover:text-white transition-colors">
                                 <X size={24} />
                             </button>
@@ -48,7 +50,7 @@ export default function CartDrawer() {
                             {items.length === 0 ? (
                                 <div className="h-full flex flex-col items-center justify-center text-white/30 text-center">
                                     <span className="mb-4 text-4xl">☾</span>
-                                    <p className="font-display">Your sanctuary is empty.</p>
+                                    <p className="font-display">{t('cart.empty')}</p>
                                 </div>
                             ) : (
                                 items.map((item) => (
@@ -72,7 +74,7 @@ export default function CartDrawer() {
                                                     <Trash2 size={14} />
                                                 </button>
                                             </div>
-                                            <p className="text-[#d8aa5b] font-display mb-4">${item.product.price}</p>
+                                            <p className="text-[#d8aa5b] font-display mb-4">{currency}{item.product.price}</p>
                                             <div className="flex items-center gap-4">
                                                 <div className="flex items-center gap-3 border border-white/10 px-3 py-1 rounded-sm text-white/60 text-xs">
                                                     <button
@@ -99,14 +101,14 @@ export default function CartDrawer() {
                         {items.length > 0 && (
                             <div className="p-8 border-t border-white/10 bg-[#0a0a09]">
                                 <div className="flex justify-between items-end mb-6">
-                                    <span className="text-white/50 text-xs uppercase tracking-widest">Total Investment</span>
-                                    <span className="text-[#d8aa5b] font-display text-3xl">${cartTotal}</span>
+                                    <span className="text-white/50 text-xs uppercase tracking-widest">{t('orderConfirmation.total')}</span>
+                                    <span className="text-[#d8aa5b] font-display text-3xl">{currency}{cartTotal}</span>
                                 </div>
                                 <button
                                     onClick={handleCheckout}
                                     className="w-full bg-[#d8aa5b] text-black h-14 font-bold uppercase tracking-widest hover:bg-white transition-colors"
                                 >
-                                    Proceed to Checkout
+                                    {t('cart.checkout')}
                                 </button>
                             </div>
                         )}

@@ -3,15 +3,22 @@
 import { useState, useEffect, useRef } from 'react';
 import { submitTicketAction, getTicketUpdatesAction, replyToTicketAction } from "@/app/actions";
 import { Send, User as UserIcon, Headphones } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { useLanguage } from "@/context/LanguageContext";
 
 export default function SupportPage() {
+    const { t } = useLanguage();
     const [view, setView] = useState<'department' | 'chat'>('department');
     const [department, setDepartment] = useState('');
     const [ticketId, setTicketId] = useState<string | null>(null);
     const [messages, setMessages] = useState<any[]>([]);
     const [newMessage, setNewMessage] = useState('');
     const messagesEndRef = useRef<HTMLDivElement>(null);
+
+    const departments = [
+        t('support.dept1'),
+        t('support.dept2'),
+        t('support.dept3'),
+    ];
 
     // Auto-scroll to bottom
     useEffect(() => {
@@ -27,7 +34,6 @@ export default function SupportPage() {
             if (res.success && res.ticket) {
                 const serverMessages = res.ticket.messages || [];
                 setMessages(prev => {
-                    // Only update if server has more messages (admin replied)
                     if (serverMessages.length > prev.length) {
                         return serverMessages;
                     }
@@ -56,7 +62,6 @@ export default function SupportPage() {
     const sendMessage = async () => {
         if (!newMessage.trim() || !ticketId) return;
 
-        // Optimistic UI
         const tempMsg = { id: `temp-${Date.now()}`, sender: 'user', content: newMessage, timestamp: Date.now() };
         setMessages(prev => [...prev, tempMsg]);
         const msgToSend = newMessage;
@@ -67,22 +72,21 @@ export default function SupportPage() {
 
     if (view === 'department') {
         return (
-            <div className="min-h-screen pt-32 px-8 bg-[#050505] text-white flex flex-col items-center">
-                <h1 className="font-display text-4xl mb-6">Concierge Support</h1>
-                <p className="text-gray-400 mb-12 text-center max-w-md">
-                    Select a topic to connect with the right specialist.
+            <div className="min-h-screen pt-28 md:pt-32 px-4 md:px-8 bg-[#050505] text-white flex flex-col items-center">
+                <h1 className="font-display text-3xl md:text-4xl mb-6 text-center">{t('support.title')}</h1>
+                <p className="text-gray-400 mb-10 md:mb-12 text-center max-w-md text-sm">
+                    {t('support.subtitle')}
                 </p>
 
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 w-full max-w-4xl px-4">
-                    {['Order Inquiry', 'Product Rituals', 'Warranty & Repair'].map((dept) => (
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 md:gap-6 w-full max-w-4xl">
+                    {departments.map((dept) => (
                         <button
                             key={dept}
                             onClick={() => { setDepartment(dept); setView('chat'); }}
-                            className="bg-[#111] border border-white/10 p-8 rounded-sm hover:border-[#d8aa5b] transition-all group text-left"
+                            className="bg-[#111] border border-white/10 p-6 md:p-8 rounded-sm hover:border-[#d8aa5b] transition-all group text-left"
                         >
                             <Headphones className="text-gray-600 group-hover:text-[#d8aa5b] mb-4 transition-colors" />
-                            <h3 className="text-lg font-bold mb-2 group-hover:text-[#d8aa5b] transition-colors">{dept}</h3>
-                            <p className="text-xs text-gray-500">Connect with our {dept.split(' ')[0]} team.</p>
+                            <h3 className="text-base md:text-lg font-bold mb-2 group-hover:text-[#d8aa5b] transition-colors">{dept}</h3>
                         </button>
                     ))}
                 </div>
@@ -92,12 +96,12 @@ export default function SupportPage() {
 
     // Chat View
     return (
-        <div className="min-h-screen pt-24 px-4 bg-[#050505] text-white flex justify-center">
-            <div className="w-full max-w-md bg-[#111] border border-white/10 rounded-sm shadow-2xl flex flex-col h-[600px]">
+        <div className="min-h-screen pt-20 md:pt-24 px-4 bg-[#050505] text-white flex justify-center items-start">
+            <div className="w-full max-w-md bg-[#111] border border-white/10 rounded-sm shadow-2xl flex flex-col h-[calc(100vh-6rem)] md:h-[600px]">
                 {/* Header */}
                 <div className="p-4 border-b border-white/10 flex justify-between items-center bg-[#151515]">
                     <div>
-                        <h3 className="font-bold text-sm">Live Support</h3>
+                        <h3 className="font-bold text-sm">{t('support.livechat')}</h3>
                         <p className="text-[10px] text-[#d8aa5b] uppercase tracking-widest">{department}</p>
                     </div>
                     <div className="flex gap-2">
@@ -113,7 +117,7 @@ export default function SupportPage() {
                                 <Headphones size={14} />
                             </div>
                             <div className="bg-[#222] p-3 rounded-tr-lg rounded-br-lg rounded-bl-lg max-w-[85%]">
-                                <p className="text-sm text-gray-300">Welcome. Please type your first message to start the secure session.</p>
+                                <p className="text-sm text-gray-300">{t('support.welcome')}</p>
                             </div>
                         </div>
                     ) : (
@@ -141,7 +145,7 @@ export default function SupportPage() {
                                 if (e.key === 'Enter') ticketId ? sendMessage() : startChat(newMessage);
                             }}
                             className="w-full bg-[#0a0a09] border border-white/10 p-3 pr-10 rounded-sm text-sm focus:border-[#d8aa5b] outline-none"
-                            placeholder={ticketId ? "Type a reply..." : "Type to start chat..."}
+                            placeholder={ticketId ? t('support.inputReply') : t('support.inputStart')}
                         />
                         <button
                             onClick={() => ticketId ? sendMessage() : startChat(newMessage)}

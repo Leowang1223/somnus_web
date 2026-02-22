@@ -1,8 +1,7 @@
 'use client';
 
 import { useAuth } from "@/context/AuthContext";
-import { motion } from "framer-motion";
-import { Lock, User } from "lucide-react";
+import { useLanguage } from "@/context/LanguageContext";
 import { useState, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 
@@ -10,6 +9,7 @@ import { loginAction } from "@/app/actions";
 
 function LoginContent() {
     const { login } = useAuth();
+    const { t } = useLanguage();
     const searchParams = useSearchParams();
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
@@ -34,24 +34,23 @@ function LoginContent() {
         const result = await loginAction(formData);
 
         if (result.success && result.user) {
-            // Login successful - set role in AuthContext immediately, then navigate
             const userRole = result.user.role as 'owner' | 'support' | 'consumer';
             login(userRole, target);
         } else {
-            setError(result.error || "Invalid credentials.");
+            setError(result.error || t('login.error'));
         }
     };
 
     return (
-        <div className="relative z-10 w-full max-w-md bg-[#0a0a09] border border-white/5 p-8 rounded-sm">
+        <div className="relative z-10 w-full max-w-md bg-[#0a0a09] border border-white/5 p-6 md:p-8 rounded-sm mx-4">
             <div className="text-center mb-8">
-                <h1 className="font-display text-3xl text-white mb-2">Member Access</h1>
-                <p className="text-gray-500 text-sm">Enter your sanctuary credentials.</p>
+                <h1 className="font-display text-3xl text-white mb-2">{t('login.title')}</h1>
+                <p className="text-gray-500 text-sm">{t('login.subtitle')}</p>
             </div>
 
             <form onSubmit={handleLogin} className="space-y-6">
                 <div>
-                    <label className="block text-xs uppercase tracking-widest text-[#d8aa5b] mb-2">Email</label>
+                    <label className="block text-xs uppercase tracking-widest text-[#d8aa5b] mb-2">{t('login.email')}</label>
                     <input
                         type="email"
                         value={email}
@@ -61,7 +60,7 @@ function LoginContent() {
                 </div>
 
                 <div>
-                    <label className="block text-xs uppercase tracking-widest text-[#d8aa5b] mb-2">Password</label>
+                    <label className="block text-xs uppercase tracking-widest text-[#d8aa5b] mb-2">{t('login.password')}</label>
                     <input
                         type="password"
                         value={password}
@@ -75,12 +74,12 @@ function LoginContent() {
                 )}
 
                 <button type="submit" className="w-full bg-[#d8aa5b] text-black h-12 font-bold uppercase tracking-widest hover:bg-white transition-colors">
-                    Enter Ritual
+                    {t('login.submit')}
                 </button>
 
                 <div className="relative flex py-6 items-center">
                     <div className="flex-grow border-t border-white/10"></div>
-                    <span className="flex-shrink-0 mx-4 text-gray-500 text-[10px] uppercase tracking-widest">Or Continue With</span>
+                    <span className="flex-shrink-0 mx-4 text-gray-500 text-[10px] uppercase tracking-widest">{t('login.or')}</span>
                     <div className="flex-grow border-t border-white/10"></div>
                 </div>
 
@@ -108,19 +107,19 @@ function LoginContent() {
                     Google
                 </button>
             </form>
-
         </div>
     );
 }
 
 export default function LoginPage() {
+    const { t } = useLanguage();
+
     return (
         <main className="min-h-screen bg-[#050505] flex items-center justify-center relative overflow-hidden">
-            {/* Background Atmosphere */}
             <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_#111_0%,_#000_100%)]"></div>
             <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[60vw] h-[60vw] bg-[#d8aa5b] opacity-[0.03] blur-[150px] rounded-full"></div>
 
-            <Suspense fallback={<div className="text-white font-display uppercase tracking-widest animate-pulse">Entering...</div>}>
+            <Suspense fallback={<div className="text-white font-display uppercase tracking-widest animate-pulse">{t('login.entering')}</div>}>
                 <LoginContent />
             </Suspense>
         </main>

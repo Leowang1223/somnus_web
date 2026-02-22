@@ -6,10 +6,12 @@ import { CheckCircle, Truck, Clock, Package } from "lucide-react";
 import { motion } from "framer-motion";
 import { useEffect, useState } from "react";
 import { getOrderAction } from "@/app/actions";
+import { useLanguage } from "@/context/LanguageContext";
 
 export default function OrderConfirmationPage() {
     const params = useParams();
     const orderId = params.id as string;
+    const { t, currency } = useLanguage();
     const [order, setOrder] = useState<any>(null);
     const [loading, setLoading] = useState(true);
 
@@ -25,7 +27,7 @@ export default function OrderConfirmationPage() {
     }, [orderId]);
 
     return (
-        <div className="min-h-screen bg-[#050505] flex items-center justify-center p-6 text-center">
+        <div className="min-h-screen bg-[#050505] flex items-center justify-center p-4 md:p-6 text-center">
             <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -46,36 +48,36 @@ export default function OrderConfirmationPage() {
                     </motion.div>
                 </div>
 
-                <h1 className="font-display text-4xl text-white mb-4">
-                    {order?.status === 'paid' ? 'Ritual Confirmed' : 'Order Placed'}
+                <h1 className="font-display text-3xl md:text-4xl text-white mb-4">
+                    {order?.status === 'paid' ? t('orderConfirmation.paid') : t('orderConfirmation.placed')}
                 </h1>
-                <p className="text-gray-400 mb-8 font-light leading-relaxed">
-                    Your order <span className="text-white font-mono">{orderId}</span> has been {order?.status === 'paid' ? 'confirmed' : 'placed'}.
+                <p className="text-gray-400 mb-8 font-light leading-relaxed text-sm md:text-base">
+                    Your order <span className="text-white font-mono text-xs md:text-sm">{orderId}</span> has been {order?.status === 'paid' ? 'confirmed' : 'placed'}.
                     <br />
                     {order?.status === 'paid'
-                        ? 'We are now preparing your artifacts for their journey.'
-                        : 'Please complete your payment to proceed.'}
+                        ? t('orderConfirmation.confirmedMsg')
+                        : t('orderConfirmation.pendingMsg')}
                 </p>
 
                 {/* Order Details */}
                 {!loading && order && (
-                    <div className="bg-[#111] border border-white/5 rounded-sm p-6 mb-8 text-left">
-                        <h3 className="text-xs uppercase tracking-widest text-[#d8aa5b] font-bold mb-4">Order Summary</h3>
+                    <div className="bg-[#111] border border-white/5 rounded-sm p-5 md:p-6 mb-8 text-left">
+                        <h3 className="text-xs uppercase tracking-widest text-[#d8aa5b] font-bold mb-4">{t('orderConfirmation.summary')}</h3>
                         <div className="space-y-3 mb-4">
                             {order.items?.map((item: any, i: number) => (
                                 <div key={i} className="flex justify-between text-sm">
-                                    <span className="text-gray-400">{item.quantity || 1}x {item.name}</span>
-                                    <span className="text-white">${item.price}</span>
+                                    <span className="text-gray-400 truncate mr-4">{item.quantity || 1}x {item.name}</span>
+                                    <span className="text-white shrink-0">{currency}{item.price}</span>
                                 </div>
                             ))}
                         </div>
                         <div className="border-t border-white/10 pt-3 flex justify-between">
-                            <span className="text-gray-500 text-sm">Total</span>
-                            <span className="text-[#d8aa5b] font-display text-lg">${order.total}</span>
+                            <span className="text-gray-500 text-sm">{t('orderConfirmation.total')}</span>
+                            <span className="text-[#d8aa5b] font-display text-lg">{currency}{order.total}</span>
                         </div>
                         {order.shippingInfo && (
                             <div className="mt-4 pt-4 border-t border-white/10">
-                                <span className="text-xs uppercase tracking-widest text-gray-500 block mb-2">Shipping To</span>
+                                <span className="text-xs uppercase tracking-widest text-gray-500 block mb-2">{t('orderConfirmation.shippingTo')}</span>
                                 <p className="text-white text-sm">{order.shippingInfo.fullName}</p>
                                 <p className="text-gray-500 text-xs">{order.shippingInfo.addressLine1}, {order.shippingInfo.city}</p>
                             </div>
@@ -90,7 +92,7 @@ export default function OrderConfirmationPage() {
                 )}
 
                 {loading && (
-                    <div className="text-gray-500 text-sm mb-8 animate-pulse">Loading order details...</div>
+                    <div className="text-gray-500 text-sm mb-8 animate-pulse">{t('common.loading')}</div>
                 )}
 
                 <div className="space-y-4">
@@ -99,14 +101,14 @@ export default function OrderConfirmationPage() {
                         className="w-full bg-[#111] border border-white/10 hover:border-[#d8aa5b] text-white h-14 font-bold uppercase tracking-widest transition-all flex items-center justify-center gap-3 rounded-sm group"
                     >
                         <Truck size={18} className="text-gray-500 group-hover:text-[#d8aa5b] transition-colors" />
-                        Track Your Order
+                        {t('orderConfirmation.track')}
                     </Link>
 
                     <Link
                         href="/"
                         className="block text-gray-600 hover:text-white text-xs uppercase tracking-widest transition-colors py-4"
                     >
-                        Return Home
+                        {t('orderConfirmation.returnHome')}
                     </Link>
                 </div>
             </motion.div>

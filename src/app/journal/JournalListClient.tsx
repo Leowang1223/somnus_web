@@ -4,8 +4,10 @@ import { useState, useMemo } from "react";
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
 import { CMSArticle } from "@/types/cms";
+import { useLanguage } from "@/context/LanguageContext";
 
 export default function JournalListClient({ initialArticles }: { initialArticles: CMSArticle[] }) {
+    const { t } = useLanguage();
     const [activeCategory, setActiveCategory] = useState('all');
 
     const published = useMemo(
@@ -25,6 +27,17 @@ export default function JournalListClient({ initialArticles }: { initialArticles
 
     return (
         <div>
+            {/* Journal Header */}
+            <header className="mb-16 md:mb-20">
+                <div className="flex items-center gap-4 mb-4">
+                    <div className="w-8 md:w-12 h-[1px] bg-[#d8aa5b]"></div>
+                    <span className="text-[#d8aa5b] text-xs tracking-widest uppercase">{t('journal.label')}</span>
+                </div>
+                <h1 className="font-display text-4xl md:text-5xl lg:text-7xl text-white max-w-3xl leading-none">
+                    {t('journal.title')} <br /> <span className="opacity-50 italic">{t('journal.subtitle')}</span>
+                </h1>
+            </header>
+
             {/* Category Filter */}
             {categories.length > 2 && (
                 <div className="flex gap-2 flex-wrap mb-10 justify-center">
@@ -66,7 +79,7 @@ export default function JournalListClient({ initialArticles }: { initialArticles
                                     {article.snippet}
                                 </p>
                                 <div className="flex items-center gap-2 text-white/40 text-[10px] uppercase tracking-widest group-hover:text-white transition-colors">
-                                    Read Article <ArrowRight size={10} />
+                                    {t('journal.readArticle')} <ArrowRight size={10} />
                                 </div>
                             </div>
                         </article>
@@ -75,7 +88,7 @@ export default function JournalListClient({ initialArticles }: { initialArticles
             </div>
 
             {filtered.length === 0 && (
-                <div className="py-20 text-center text-gray-500">No articles found.</div>
+                <div className="py-20 text-center text-gray-500">{t('journal.empty')}</div>
             )}
         </div>
     );

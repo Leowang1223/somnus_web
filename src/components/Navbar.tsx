@@ -19,30 +19,17 @@ const LANGUAGE_LABELS: Record<Language, string> = {
 
 export default function Navbar() {
     const { t, language, setLanguage } = useLanguage();
-    const { role, logout, isAuthenticated, loading } = useAuth();
+    const { role, logout, isAuthenticated } = useAuth();
     const { toggleCart, items } = useCart();
     const itemCount = items.reduce((acc, item) => acc + item.quantity, 0);
     const [showUserMenu, setShowUserMenu] = useState(false);
     const [showLangMenu, setShowLangMenu] = useState(false);
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-    const [forceShowButtons, setForceShowButtons] = useState(false);
     const menuRef = useRef<HTMLDivElement>(null);
     const langRef = useRef<HTMLDivElement>(null);
 
     const { scrollY } = useScroll();
     const [isScrolled, setIsScrolled] = useState(false);
-
-    // Fallback: if loading takes more than 3 seconds, force show buttons
-    useEffect(() => {
-        if (loading) {
-            const timeout = setTimeout(() => {
-                setForceShowButtons(true);
-            }, 3000);
-            return () => clearTimeout(timeout);
-        } else {
-            setForceShowButtons(false);
-        }
-    }, [loading]);
 
     useEffect(() => {
         return scrollY.onChange((latest) => {
@@ -162,10 +149,8 @@ export default function Navbar() {
                         )}
                     </button>
 
-                    {/* User */}
-                    {(loading && !forceShowButtons) ? (
-                        <div className="w-[18px] h-[18px]" />
-                    ) : isAuthenticated ? (
+                    {/* User – always visible; show profile only when auth confirmed */}
+                    {isAuthenticated ? (
                         <div className="relative" ref={menuRef}>
                             <button
                                 onClick={() => setShowUserMenu(!showUserMenu)}

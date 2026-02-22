@@ -4,14 +4,7 @@ import ProductBuilderClient from "./ProductBuilderClient";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 
-// Export needed for static site generation
-export async function generateStaticParams() {
-    const products = await getProducts();
-    // Return empty array if no products, so it doesn't fail build immediately if DB is empty
-    return products.map((product: any) => ({
-        id: product.id,
-    }));
-}
+export const dynamic = 'force-dynamic';
 
 export default async function AdminProductBuilderPage({ params }: { params: Promise<{ id: string }> }) {
     const { id } = await params;

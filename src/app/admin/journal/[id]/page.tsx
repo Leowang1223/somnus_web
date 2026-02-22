@@ -3,13 +3,7 @@ import ArticleBuilderClient from "./ArticleBuilderClient";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 
-// Export needed for static site generation
-export async function generateStaticParams() {
-    const articles = await getArticles();
-    return articles.map((article: any) => ({
-        id: article.id,
-    }));
-}
+export const dynamic = 'force-dynamic';
 
 export default async function AdminArticleBuilderPage({ params }: { params: Promise<{ id: string }> }) {
     const { id } = await params;

@@ -4,16 +4,7 @@ import SectionRenderer from "@/components/sections/SectionRenderer";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 
-// Force dynamic rendering since we use Supabase cookies
 export const dynamic = 'force-dynamic';
-
-// Export needed for static site generation
-export async function generateStaticParams() {
-    const articles = await getArticles();
-    return articles.map((article: any) => ({
-        slug: article.slug,
-    }));
-}
 
 export default async function ArticleDetailPage({ params }: { params: Promise<{ slug: string }> }) {
     const { slug } = await params;

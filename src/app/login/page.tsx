@@ -34,6 +34,19 @@ function LoginContent() {
         const result = await loginAction(formData);
 
         if (result.success && result.user) {
+            // Sync session to the browser Supabase client so AuthContext
+            // picks it up immediately. The server action sets server-side
+            // cookies, but createBrowserClient reads from its own storage.
+            if (result.accessToken && result.refreshToken) {
+                try {
+                    const { createClient } = await import('@/lib/supabase/client');
+                    const client = createClient();
+                    await client.auth.setSession({
+                        access_token: result.accessToken,
+                        refresh_token: result.refreshToken,
+                    });
+                } catch (_) { /* non-fatal — onAuthStateChange will retry */ }
+            }
             const userRole = result.user.role as 'owner' | 'support' | 'consumer';
             login(userRole, target);
         } else {

@@ -843,7 +843,10 @@ export async function loginAction(formData: FormData) {
                 email: data.user.email!,
                 role,
                 name
-            }
+            },
+            // Return tokens so the browser client can call setSession() directly
+            accessToken: data.session?.access_token,
+            refreshToken: data.session?.refresh_token,
         };
     } catch (e: any) {
         console.error('Login system error:', e);

@@ -94,9 +94,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
                 if (session?.user) {
                     setUser(session.user);
-                    const userRole = await fetchRole(session.user.id);
-                    if (!isMountedRef.current) return;
-                    setRole(userRole);
+                    try {
+                        const userRole = await fetchRole(session.user.id);
+                        if (!isMountedRef.current) return;
+                        setRole(userRole);
+                    } catch (roleError) {
+                        // fetchRole 失敗不影響已登入狀態，user 保持不變
+                        console.error('Error fetching role:', roleError);
+                        if (isMountedRef.current) setRole('consumer');
+                    }
                 } else {
                     setUser(null);
                     setRole(null);
@@ -104,7 +110,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             } catch (error) {
                 if (!isMountedRef.current) return;
                 console.error('Error checking session:', error);
-                // Even on error, ensure we set loading to false
+                // session 讀取失敗才清空，不因 fetchRole 失敗而歸零
                 setUser(null);
                 setRole(null);
             } finally {
@@ -122,9 +128,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
             if (session?.user) {
                 setUser(session.user);
-                const userRole = await fetchRole(session.user.id);
-                if (!isMountedRef.current) return;
-                setRole(userRole);
+                try {
+                    const userRole = await fetchRole(session.user.id);
+                    if (!isMountedRef.current) return;
+                    setRole(userRole);
+                } catch (roleError) {
+                    console.error('onAuthStateChange: error fetching role:', roleError);
+                    if (isMountedRef.current) setRole('consumer');
+                }
             } else {
                 setUser(null);
                 setRole(null);
@@ -138,15 +149,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }, [supabase]);
 
     // loginWithCredentials：直接在 AuthContext 的 supabase 實例上登入
-    // signInWithPassword 成功後，onAuthStateChange 自動觸發，setUser/setRole 自動更新
+    // 登入成功後立即 setUser，不等 onAuthStateChange 的異步觸發，確保 router.push 前 state 已更新
     const loginWithCredentials = async (email: string, password: string, redirectTo?: string): Promise<{ error: string | null }> => {
         if (!supabase) return { error: 'Auth not available' };
 
-        const { error } = await supabase.auth.signInWithPassword({ email, password });
+        const { data, error } = await supabase.auth.signInWithPassword({ email, password });
 
         if (error) return { error: error.message };
 
-        // onAuthStateChange 會自動呼叫 setUser / setRole，不需要手動同步
+        // 立即設置 user，不等 onAuthStateChange（它是異步微任務，可能在 router.push 之後才執行）
+        if (data.session?.user) {
+            setUser(data.session.user);
+            // fetchRole 非阻塞，讓 role 在背景更新
+            fetchRole(data.session.user.id).then(userRole => {
+                if (isMountedRef.current) setRole(userRole);
+            });
+        }
+
         router.push(redirectTo || '/');
         return { error: null };
     };

@@ -73,8 +73,8 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
 
     const currency = t('common.currency');
 
-    if (!isLoaded) return null; // Avoid hydration mismatch
-
+    // 不 return null —— Navbar 和子樹必須一直存在於 DOM
+    // isLoaded 前 language = null，t() 自動 fallback 到 'en'，不影響渲染
     return (
         <LanguageContext.Provider value={{ language, setLanguage, t, translate, currency }}>
             {children}

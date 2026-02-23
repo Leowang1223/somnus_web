@@ -84,45 +84,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
         isMountedRef.current = true;
 
-        // Check active session on mount
-        const checkSession = async () => {
-            try {
-                const { data: { session } } = await supabase.auth.getSession();
-
-                if (!isMountedRef.current) return;
-
-                if (session?.user) {
-                    setUser(session.user);
-                    try {
-                        const userRole = await fetchRole(session.user.id);
-                        if (!isMountedRef.current) return;
-                        setRole(userRole);
-                    } catch (roleError) {
-                        // fetchRole 失敗不影響已登入狀態，user 保持不變
-                        console.error('Error fetching role:', roleError);
-                        if (isMountedRef.current) setRole('consumer');
-                    }
-                } else {
-                    setUser(null);
-                    setRole(null);
-                }
-            } catch (error) {
-                if (!isMountedRef.current) return;
-                console.error('Error checking session:', error);
-                // session 讀取失敗才清空，不因 fetchRole 失敗而歸零
-                setUser(null);
-                setRole(null);
-            } finally {
-                if (isMountedRef.current) {
-                    setLoading(false);
-                }
-            }
-        };
-
-        checkSession();
-
-        // Listen for auth changes
-        const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
+        // 只用 onAuthStateChange（Supabase 官方推薦），避免與 getSession() 的競態條件
+        // INITIAL_SESSION 事件取代 getSession() 的初始 session 偵測功能
+        const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
             if (!isMountedRef.current) return;
 
             if (session?.user) {
@@ -139,6 +103,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 setUser(null);
                 setRole(null);
             }
+
+            // INITIAL_SESSION 觸發時（無論有無 session），結束 loading 狀態
+            if (event === 'INITIAL_SESSION') {
+                if (isMountedRef.current) setLoading(false);
+            }
         });
 
         return () => {
@@ -148,7 +117,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }, [supabase]);
 
     // loginWithCredentials：直接在 AuthContext 的 supabase 實例上登入
-    // 用 window.location.href 硬跳轉，確保新頁面 mount 時 checkSession() 重新讀取 session
+    // 用 window.location.href 硬跳轉，確保新頁面 mount 時 onAuthStateChange 重新偵測 session
     // router.push() 在 concurrent mode 下無法保證 setState 在渲染前完成，硬跳轉最可靠
     const loginWithCredentials = async (email: string, password: string, redirectTo?: string): Promise<{ error: string | null }> => {
         if (!supabase) return { error: 'Auth not available' };

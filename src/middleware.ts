@@ -25,26 +25,31 @@ export async function middleware(request: NextRequest) {
         }
     )
 
-    const { data: { user } } = await supabase.auth.getUser()
+    try {
+        const { data: { user } } = await supabase.auth.getUser()
 
-    // Protect /admin routes: require authenticated user with admin role
-    if (request.nextUrl.pathname.startsWith('/admin')) {
-        if (!user) {
-            const loginUrl = new URL('/login', request.url)
-            loginUrl.searchParams.set('redirect', request.nextUrl.pathname)
-            return NextResponse.redirect(loginUrl)
+        // Protect /admin routes: require authenticated user with admin role
+        if (request.nextUrl.pathname.startsWith('/admin')) {
+            if (!user) {
+                const loginUrl = new URL('/login', request.url)
+                loginUrl.searchParams.set('redirect', request.nextUrl.pathname)
+                return NextResponse.redirect(loginUrl)
+            }
+
+            // Check role from public.users table
+            const { data: userData } = await supabase
+                .from('users')
+                .select('role')
+                .eq('id', user.id)
+                .single()
+
+            if (!userData || !['owner', 'support'].includes(userData.role)) {
+                return NextResponse.redirect(new URL('/', request.url))
+            }
         }
-
-        // Check role from public.users table
-        const { data: userData } = await supabase
-            .from('users')
-            .select('role')
-            .eq('id', user.id)
-            .single()
-
-        if (!userData || !['owner', 'support'].includes(userData.role)) {
-            return NextResponse.redirect(new URL('/', request.url))
-        }
+    } catch (e) {
+        // getUser() 發生錯誤時（網路問題等），不觸發 _removeSession()，直接繼續
+        console.error('Middleware auth check failed:', e)
     }
 
     return supabaseResponse

@@ -3,7 +3,6 @@
 import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
-import { logoutAction } from '@/app/actions';
 import type { User } from '@supabase/supabase-js';
 
 type UserRole = 'owner' | 'support' | 'consumer' | null;
@@ -212,22 +211,29 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     const logout = async () => {
         try {
-            // 1. Sign out from browser client (clears browser cookies)
-            if (supabase) {
-                await supabase.auth.signOut();
-            }
-
-            // 2. Sign out from server (clears server-side cookies)
-            await logoutAction();
+            // 1. 呼叫 /api/logout route handler（非 Server Action，不經過 Middleware）
+            //    route handler 內部會呼叫 server-side signOut 並在 response 上清除所有 sb-* cookies
+            await fetch('/api/logout', { method: 'POST' });
         } catch (error) {
-            console.error('Logout error:', error);
-        } finally {
-            // 3. Clear client state
-            setRole(null);
-            setUser(null);
-            // 4. 硬跳轉：確保 session cookie 完全清除後重載，與登入策略一致
-            window.location.href = '/';
+            console.error('Logout API error:', error);
         }
+
+        // 2. 清除 browser 端所有 sb-* cookies（保險措施）
+        if (typeof document !== 'undefined') {
+            document.cookie.split(';').forEach((c) => {
+                const name = c.split('=')[0].trim();
+                if (name.startsWith('sb-')) {
+                    document.cookie = `${name}=; path=/; max-age=0; samesite=lax`;
+                }
+            });
+        }
+
+        // 3. 清除 React state
+        setRole(null);
+        setUser(null);
+
+        // 4. 硬跳轉：強制完整頁面重載，確保所有 session 狀態歸零
+        window.location.href = '/';
     };
 
     return (

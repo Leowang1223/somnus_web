@@ -5,10 +5,8 @@ import { useLanguage } from "@/context/LanguageContext";
 import { useState, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 
-import { loginAction } from "@/app/actions";
-
 function LoginContent() {
-    const { login, syncSession } = useAuth();
+    const { loginWithCredentials } = useAuth();
     const { t } = useLanguage();
     const searchParams = useSearchParams();
     const [email, setEmail] = useState("");
@@ -27,22 +25,8 @@ function LoginContent() {
             target += (target.includes('?') ? '&' : '?') + `action=${action}`;
         }
 
-        const formData = new FormData();
-        formData.append('email', email);
-        formData.append('password', password);
-
-        const result = await loginAction(formData);
-
-        if (result.success && result.user) {
-            if (result.accessToken && result.refreshToken) {
-                // 在 AuthContext 自己的 supabase 實例上呼叫 setSession，
-                // 確保 currentSession 快取被更新、onAuthStateChange 正確觸發
-                await syncSession(result.accessToken, result.refreshToken, target);
-            } else {
-                const userRole = result.user.role as 'owner' | 'support' | 'consumer';
-                login(userRole, target);
-            }
-        } else {
+        const result = await loginWithCredentials(email, password, target);
+        if (result.error) {
             setError(result.error || t('login.error'));
         }
     };

@@ -14,6 +14,7 @@ type AuthContextType = {
     login: (role: UserRole, redirectTo?: string) => Promise<void>;
     logout: () => Promise<void>;
     syncSession: (accessToken: string, refreshToken: string, redirectTo?: string) => Promise<void>;
+    loginWithCredentials: (email: string, password: string, redirectTo?: string) => Promise<{ error: string | null }>;
     isAuthenticated: boolean;
     isOwner: boolean;
     loading: boolean;
@@ -136,6 +137,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         };
     }, [supabase]);
 
+    // loginWithCredentials：直接在 AuthContext 的 supabase 實例上登入
+    // signInWithPassword 成功後，onAuthStateChange 自動觸發，setUser/setRole 自動更新
+    const loginWithCredentials = async (email: string, password: string, redirectTo?: string): Promise<{ error: string | null }> => {
+        if (!supabase) return { error: 'Auth not available' };
+
+        const { error } = await supabase.auth.signInWithPassword({ email, password });
+
+        if (error) return { error: error.message };
+
+        // onAuthStateChange 會自動呼叫 setUser / setRole，不需要手動同步
+        router.push(redirectTo || '/');
+        return { error: null };
+    };
+
     // syncSession：在 AuthContext 自己的 supabase 實例上呼叫 setSession，
     // 確保 onAuthStateChange 正確觸發，user/role state 立即更新
     const syncSession = async (accessToken: string, refreshToken: string, redirectTo?: string) => {
@@ -211,6 +226,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             login,
             logout,
             syncSession,
+            loginWithCredentials,
             isAuthenticated: !!user,
             isOwner: role === 'owner',
             loading

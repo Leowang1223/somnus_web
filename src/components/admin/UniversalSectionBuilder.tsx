@@ -196,6 +196,59 @@ function MultiImagePicker({ label, values = [], onChange, prefix }: {
     );
 }
 
+function LocalizedField({ label, value, onChange, rows = 2, placeholder = '' }: {
+    label: string;
+    value: any;
+    onChange: (val: any) => void;
+    rows?: number;
+    placeholder?: string;
+}) {
+    const langs = ['en', 'zh', 'jp', 'ko'];
+    const langLabels: Record<string, string> = { en: 'EN', zh: '中文', jp: '日本語', ko: '한국어' };
+    const [activeLang, setActiveLang] = useState<string>('en');
+
+    const asObj = (): Record<string, string> => {
+        if (!value) return { en: '', zh: '', jp: '', ko: '' };
+        if (typeof value === 'string') return { en: value, zh: '', jp: '', ko: '' };
+        return { en: '', zh: '', jp: '', ko: '', ...value };
+    };
+
+    const handleTextChange = (newText: string) => {
+        const obj = asObj();
+        obj[activeLang] = newText;
+        onChange(obj);
+    };
+
+    const obj = asObj();
+
+    return (
+        <div className="space-y-2">
+            <div className="flex items-center justify-between">
+                <label className="block text-xs uppercase text-gray-500 font-bold tracking-widest">{label}</label>
+                <div className="flex gap-1">
+                    {langs.map(lang => (
+                        <button
+                            key={lang}
+                            type="button"
+                            onClick={() => setActiveLang(lang)}
+                            className={`text-[9px] px-2 py-1 rounded-sm font-bold uppercase tracking-widest transition-all ${activeLang === lang ? 'bg-[#d8aa5b] text-black' : 'bg-white/5 text-white/40 hover:text-white'}`}
+                        >
+                            {langLabels[lang]}
+                        </button>
+                    ))}
+                </div>
+            </div>
+            <textarea
+                value={obj[activeLang] || ''}
+                onChange={e => handleTextChange(e.target.value)}
+                className="w-full bg-[#111] border border-white/10 p-3 text-white focus:outline-none focus:border-[#d8aa5b]"
+                rows={rows}
+                placeholder={placeholder || `${langLabels[activeLang]} text...`}
+            />
+        </div>
+    );
+}
+
 function AlignControl({ value, onChange, label = '文字對齊方式' }: { value: string, onChange: (v: string) => void, label?: string }) {
     return (
         <div>
@@ -243,13 +296,14 @@ function EditModal({ section, onClose, onSave }: { section: Section; onClose: ()
                 <div className="space-y-6">
                     {section.type === 'hero' && (
                         <>
-                            <div>
-                                <label className="block text-xs uppercase text-gray-500 mb-2">標題</label>
-                                <textarea value={content.title} onChange={e => handleChange('title', e.target.value)} className="w-full bg-[#111] border border-white/10 p-3 text-white focus:outline-none focus:border-[#d8aa5b]" rows={2} />
-                            </div>
-                            <div>
-                                <label className="block text-xs uppercase text-gray-500 mb-2">副標題</label>
-                                <textarea value={content.subtitle} onChange={e => handleChange('subtitle', e.target.value)} className="w-full bg-[#111] border border-white/10 p-3 text-white focus:outline-none focus:border-[#d8aa5b]" rows={2} />
+                            <LocalizedField label="標題" value={content.title} onChange={v => handleChange('title', v)} rows={2} />
+                            <LocalizedField label="副標題" value={content.subtitle} onChange={v => handleChange('subtitle', v)} rows={2} />
+                            <div className="grid grid-cols-2 gap-4">
+                                <LocalizedField label="按鈕文字 (CTA)" value={content.ctaText} onChange={v => handleChange('ctaText', v)} rows={1} placeholder="e.g. Explore" />
+                                <div>
+                                    <label className="block text-xs uppercase text-gray-500 mb-2 font-bold tracking-widest">按鈕連結</label>
+                                    <textarea value={content.ctaLink || ''} onChange={e => handleChange('ctaLink', e.target.value)} className="w-full bg-[#111] border border-white/10 p-3 text-white focus:outline-none focus:border-[#d8aa5b]" rows={1} placeholder="/collection" />
+                                </div>
                             </div>
 
                             <div className="grid grid-cols-2 gap-6 p-4 bg-white/5 border border-white/10 rounded-sm">
@@ -355,14 +409,8 @@ function EditModal({ section, onClose, onSave }: { section: Section; onClose: ()
 
                     {section.type === 'text-image' && (
                         <>
-                            <div>
-                                <label className="block text-xs uppercase text-gray-500 mb-2">標題</label>
-                                <textarea value={content.heading} onChange={e => handleChange('heading', e.target.value)} className="w-full bg-[#111] border border-white/10 p-3 text-white focus:outline-none focus:border-[#d8aa5b]" rows={2} />
-                            </div>
-                            <div>
-                                <label className="block text-xs uppercase text-gray-500 mb-2">正文</label>
-                                <textarea value={content.text} onChange={e => handleChange('text', e.target.value)} className="w-full bg-[#111] border border-white/10 p-3 text-white focus:outline-none focus:border-[#d8aa5b]" rows={4} />
-                            </div>
+                            <LocalizedField label="標題" value={content.heading} onChange={v => handleChange('heading', v)} rows={2} />
+                            <LocalizedField label="正文" value={content.text} onChange={v => handleChange('text', v)} rows={4} />
                             <div className="grid grid-cols-2 gap-6">
                                 <AlignControl value={content.textAlign} onChange={v => handleChange('textAlign', v)} />
                                 <div>
@@ -381,16 +429,7 @@ function EditModal({ section, onClose, onSave }: { section: Section; onClose: ()
                                     else setContent((prev: any) => ({ ...prev, images: vals }));
                                 }}
                             />
-                            <div>
-                                <label className="block text-xs uppercase text-gray-500 mb-2">圖片上的黃字 Caption (選填)</label>
-                                <textarea
-                                    value={content.caption || ''}
-                                    onChange={e => handleChange('caption', e.target.value)}
-                                    className="w-full bg-[#111] border border-white/10 p-3 text-white focus:outline-none focus:border-[#d8aa5b]"
-                                    rows={2}
-                                    placeholder="留空則不顯示..."
-                                />
-                            </div>
+                            <LocalizedField label="圖片上的黃字 Caption (選填)" value={content.caption} onChange={v => handleChange('caption', v)} rows={2} placeholder="留空則不顯示..." />
                         </>
                     )}
 
@@ -404,34 +443,22 @@ function EditModal({ section, onClose, onSave }: { section: Section; onClose: ()
                                     else setContent((prev: any) => ({ ...prev, images: vals }));
                                 }}
                             />
-                            <div>
-                                <label className="block text-xs uppercase text-gray-500 mb-2">疊蓋說明 (選填)</label>
-                                <textarea value={content.caption} onChange={e => handleChange('caption', e.target.value)} className="w-full bg-[#111] border border-white/10 p-3 text-white focus:outline-none focus:border-[#d8aa5b]" rows={2} />
-                            </div>
+                            <LocalizedField label="疊蓋說明 (選填)" value={content.caption} onChange={v => handleChange('caption', v)} rows={2} />
                         </>
                     )}
 
                     {section.type === 'rich-text' && (
                         <div className="space-y-6">
                             <AlignControl value={content.textAlign} onChange={v => handleChange('textAlign', v)} />
-                            <div>
-                                <label className="block text-xs uppercase text-gray-500 mb-2">編輯器 (支援 Markdown/HTML)</label>
-                                <textarea value={content.text} onChange={e => handleChange('text', e.target.value)} className="w-full bg-[#111] border border-white/10 p-3 text-white focus:outline-none focus:border-[#d8aa5b]" rows={12} />
-                            </div>
+                            <LocalizedField label="編輯器 (支援 Markdown/HTML)" value={content.text} onChange={v => handleChange('text', v)} rows={12} />
                         </div>
                     )}
 
                     {section.type === 'quote' && (
                         <>
                             <AlignControl value={content.textAlign} onChange={v => handleChange('textAlign', v)} />
-                            <div>
-                                <label className="block text-xs uppercase text-gray-500 mb-2">引用文字</label>
-                                <textarea value={content.text} onChange={e => handleChange('text', e.target.value)} className="w-full bg-[#111] border border-white/10 p-3 text-white focus:outline-none focus:border-[#d8aa5b]" rows={3} />
-                            </div>
-                            <div>
-                                <label className="block text-xs uppercase text-gray-500 mb-2">作者</label>
-                                <input value={content.author} onChange={e => handleChange('author', e.target.value)} className="w-full bg-[#111] border border-white/10 p-3 text-white focus:outline-none focus:border-[#d8aa5b]" />
-                            </div>
+                            <LocalizedField label="引用文字" value={content.text} onChange={v => handleChange('text', v)} rows={3} />
+                            <LocalizedField label="作者" value={content.author} onChange={v => handleChange('author', v)} rows={1} />
                         </>
                     )}
 
@@ -442,10 +469,7 @@ function EditModal({ section, onClose, onSave }: { section: Section; onClose: ()
                                 <input value={content.videoUrl} onChange={e => handleChange('videoUrl', e.target.value)} className="w-full bg-[#111] border border-white/10 p-3 text-white focus:outline-none focus:border-[#d8aa5b]" />
                             </div>
                             <MediaPicker label="影片縮圖" value={content.thumbnail} onChange={val => handleChange('thumbnail', val)} />
-                            <div>
-                                <label className="block text-xs uppercase text-gray-500 mb-2">標籤</label>
-                                <input value={content.label} onChange={e => handleChange('label', e.target.value)} className="w-full bg-[#111] border border-white/10 p-3 text-white focus:outline-none focus:border-[#d8aa5b]" />
-                            </div>
+                            <LocalizedField label="標籤" value={content.label} onChange={v => handleChange('label', v)} rows={1} />
                         </>
                     )}
 
@@ -466,14 +490,8 @@ function EditModal({ section, onClose, onSave }: { section: Section; onClose: ()
                                     </p>
                                 </div>
                                 <div className="grid grid-cols-1 gap-4 pt-2 border-t border-[#d8aa5b]/20">
-                                    <div>
-                                        <label className="block text-[10px] uppercase text-[#d8aa5b]/70 mb-2">小標籤 (Label Override)</label>
-                                        <input value={content.label} onChange={e => handleChange('label', e.target.value)} className="w-full bg-black/20 border border-[#d8aa5b]/20 p-2 text-white text-xs focus:outline-none focus:border-[#d8aa5b]" placeholder="不填則顯示預設類別..." />
-                                    </div>
-                                    <div>
-                                        <label className="block text-[10px] uppercase text-[#d8aa5b]/70 mb-2">產品描述 (Description Override)</label>
-                                        <textarea value={content.description} onChange={e => handleChange('description', e.target.value)} className="w-full bg-black/20 border border-[#d8aa5b]/20 p-2 text-white text-xs focus:outline-none focus:border-[#d8aa5b]" rows={3} placeholder="不填則顯示產品原描述..." />
-                                    </div>
+                                    <LocalizedField label="小標籤 (Label Override)" value={content.label} onChange={v => handleChange('label', v)} rows={1} placeholder="不填則顯示預設類別..." />
+                                    <LocalizedField label="產品描述 (Description Override)" value={content.description} onChange={v => handleChange('description', v)} rows={3} placeholder="不填則顯示產品原描述..." />
                                 </div>
                             </div>
 

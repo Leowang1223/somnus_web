@@ -41,6 +41,8 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
     const setLanguage = (lang: Language) => {
         setLanguageState(lang);
         localStorage.setItem('language', lang);
+        // Also write a cookie so server components can read the language
+        document.cookie = `language=${lang}; path=/; max-age=31536000; SameSite=Lax`;
     };
 
     const t = (key: string) => {
@@ -50,14 +52,23 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
     };
 
     // CMS Translation Helper
-    // translate(product, 'name') -> returns product.name_jp if lang is jp, else fallback to product.name
+    // Handles two formats:
+    //   1. Object format: { en: "Explore", zh: "探索", jp: "探索", ko: "탐색" }
+    //   2. Suffix format: obj.name_zh, obj.name_jp (legacy DB rows)
     const translate = (obj: any, field: string) => {
         if (!obj) return '';
         const lang = language || 'en';
-        if (lang === 'en') return obj[field] || '';
+        const value = obj[field];
 
+        // Object format: { en: "...", zh: "...", jp: "...", ko: "..." }
+        if (value !== null && value !== undefined && typeof value === 'object' && !Array.isArray(value)) {
+            return String(value[lang] || value['en'] || Object.values(value).find(v => v) || '');
+        }
+
+        // Suffix format (legacy): obj.name_zh
+        if (lang === 'en') return value || '';
         const localizedKey = `${field}_${lang}`;
-        return obj[localizedKey] || obj[field] || '';
+        return obj[localizedKey] || value || '';
     };
 
     const currency = t('common.currency');

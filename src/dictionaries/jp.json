@@ -11,15 +11,12 @@
     "nav.menu": "メニュー",
     "nav.close": "閉じる",
     "nav.language": "言語",
-
     "hero.title": "静寂の香り",
     "hero.subtitle": "香りを通して、虚無を体験する。",
     "hero.cta": "コレクションを見る",
-
     "cart.title": "カートの中身",
     "cart.empty": "カートは空です。",
     "cart.checkout": "お会計",
-
     "collection.label": "ツールキット",
     "collection.title": "セレクテッドエッセンシャル",
     "collection.count": "点",
@@ -29,17 +26,14 @@
     "collection.sortPriceDesc": "価格：高い順",
     "collection.sortName": "名前 A-Z",
     "collection.empty": "商品が見つかりません。",
-
     "journal.label": "スリープジャーナル",
     "journal.title": "探求する",
     "journal.subtitle": "安らぎ。",
     "journal.readArticle": "記事を読む",
     "journal.empty": "記事が見つかりません。",
-
     "product.back": "戻る",
     "product.notFound": "商品が見つかりません",
     "product.noRitual": "詳細な説明はまだありません。",
-
     "login.title": "メンバーアクセス",
     "login.subtitle": "認証情報を入力してください。",
     "login.email": "メール",
@@ -48,7 +42,6 @@
     "login.or": "または",
     "login.entering": "読み込み中...",
     "login.error": "認証情報が無効です。",
-
     "profile.label": "サンクチュアリ",
     "profile.title": "おかえりなさい",
     "profile.logout": "ログアウト",
@@ -60,7 +53,6 @@
     "profile.savedEmpty": "保存済みのアイテムがここに表示されます。",
     "profile.exploreCollection": "コレクションを見る",
     "profile.authenticating": "認証中...",
-
     "support.title": "コンシェルジュサポート",
     "support.subtitle": "専門家に繋ぐトピックを選択してください。",
     "support.dept1": "注文お問い合わせ",
@@ -70,7 +62,6 @@
     "support.welcome": "ようこそ。最初のメッセージを入力してセッションを開始してください。",
     "support.inputReply": "返信を入力...",
     "support.inputStart": "入力してチャットを開始...",
-
     "returns.title": "返品・クレーム",
     "returns.subtitle": "完璧を追求します。商品に欠陥がある場合は、以下に詳細をご記入ください。",
     "returns.orderId": "注文ID",
@@ -90,7 +81,6 @@
     "returns.successTitle": "クレームが提出されました",
     "returns.successBody": "ケースIDが生成されました。品質管理チームが24時間以内に証拠を確認し、返品を承認します。",
     "returns.newClaim": "新しいクレームを開始",
-
     "orderConfirmation.paid": "注文確認完了",
     "orderConfirmation.placed": "注文が作成されました",
     "orderConfirmation.confirmedMsg": "商品の出荷準備を進めています。",
@@ -100,13 +90,11 @@
     "orderConfirmation.shippingTo": "配送先",
     "orderConfirmation.track": "注文を追跡",
     "orderConfirmation.returnHome": "ホームに戻る",
-
     "common.loading": "読み込み中...",
     "common.currency": "¥",
     "common.back": "戻る",
     "common.items": "点",
     "common.submitting": "送信中...",
-
     "track.title": "注文を追跡する",
     "track.subtitle": "配送状況を確認するために注文IDまたは追跡番号を入力してください。",
     "track.placeholder": "注文ID SOM-... または追跡番号",
@@ -141,5 +129,14 @@
     "track.status.outForDelivery": "配達中",
     "track.status.delivered": "配達済み",
     "track.status.failed": "配達失敗",
-    "track.status.returned": "返送済み"
+    "track.status.returned": "返送済み",
+    "journal.backToJournal": "ジャーナルへ戻る",
+    "product.selectVariation": "バリエーションを選択",
+    "product.investment": "価格",
+    "product.addToCart": "カートに追加",
+    "product.buyNow": "今すぐ購入",
+    "product.attributes": "商品属性",
+    "product.watchRitual": "儀式を見る",
+    "product.ritualArtifact": "儀式アイテム",
+    "product.selectOption": "オプションを選択してください。"
 }

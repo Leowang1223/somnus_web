@@ -11,15 +11,12 @@
     "nav.menu": "選單",
     "nav.close": "關閉",
     "nav.language": "語言",
-
     "hero.title": "寂靜之香",
     "hero.subtitle": "透過香氛，體驗虛無。",
     "hero.cta": "探索系列",
-
     "cart.title": "您的選購",
     "cart.empty": "購物車是空的。",
     "cart.checkout": "結帳",
-
     "collection.label": "工具箱",
     "collection.title": "精選必備",
     "collection.count": "件商品",
@@ -29,17 +26,14 @@
     "collection.sortPriceDesc": "價格：高→低",
     "collection.sortName": "名稱 A-Z",
     "collection.empty": "找不到商品。",
-
     "journal.label": "睡眠日誌",
     "journal.title": "探索",
     "journal.subtitle": "靜謐。",
     "journal.readArticle": "閱讀文章",
     "journal.empty": "找不到文章。",
-
     "product.back": "返回",
     "product.notFound": "找不到商品",
     "product.noRitual": "尚無詳細說明。",
-
     "login.title": "會員登入",
     "login.subtitle": "請輸入您的憑證。",
     "login.email": "電子郵件",
@@ -48,7 +42,6 @@
     "login.or": "或繼續使用",
     "login.entering": "進入中...",
     "login.error": "憑證無效。",
-
     "profile.label": "聖域",
     "profile.title": "歡迎回來",
     "profile.logout": "登出",
@@ -60,7 +53,6 @@
     "profile.savedEmpty": "您收藏的商品將顯示在此。",
     "profile.exploreCollection": "探索系列",
     "profile.authenticating": "驗證中...",
-
     "support.title": "禮賓客服",
     "support.subtitle": "請選擇主題以連接相應專員。",
     "support.dept1": "訂單查詢",
@@ -70,7 +62,6 @@
     "support.welcome": "歡迎。請輸入第一則訊息以開始安全會話。",
     "support.inputReply": "輸入回覆...",
     "support.inputStart": "輸入以開始對話...",
-
     "returns.title": "退換貨申請",
     "returns.subtitle": "我們追求完美。若您的商品有瑕疵，請填寫以下表單。",
     "returns.orderId": "訂單編號",
@@ -90,7 +81,6 @@
     "returns.successTitle": "申請已提交",
     "returns.successBody": "您的案件編號已生成。我們的品管團隊將在 24 小時內審查您的證據並授權退貨。",
     "returns.newClaim": "提交新申請",
-
     "orderConfirmation.paid": "訂單確認",
     "orderConfirmation.placed": "訂單已建立",
     "orderConfirmation.confirmedMsg": "我們正在為您的商品準備出貨。",
@@ -100,13 +90,11 @@
     "orderConfirmation.shippingTo": "寄送至",
     "orderConfirmation.track": "追蹤訂單",
     "orderConfirmation.returnHome": "返回首頁",
-
     "common.loading": "讀取中...",
     "common.currency": "NT$",
     "common.back": "返回",
     "common.items": "件",
     "common.submitting": "提交中...",
-
     "track.title": "追蹤您的訂單",
     "track.subtitle": "輸入訂單編號或物流追蹤碼來查看配送狀態。",
     "track.placeholder": "訂單編號 SOM-... 或物流追蹤碼",
@@ -141,5 +129,14 @@
     "track.status.outForDelivery": "配送中",
     "track.status.delivered": "已送達",
     "track.status.failed": "配送失敗",
-    "track.status.returned": "已退回"
+    "track.status.returned": "已退回",
+    "journal.backToJournal": "返回日誌",
+    "product.selectVariation": "選擇規格",
+    "product.investment": "價格",
+    "product.addToCart": "加入購物車",
+    "product.buyNow": "立即購買",
+    "product.attributes": "商品屬性",
+    "product.watchRitual": "觀看儀式",
+    "product.ritualArtifact": "儀式物件",
+    "product.selectOption": "請選擇規格。"
 }

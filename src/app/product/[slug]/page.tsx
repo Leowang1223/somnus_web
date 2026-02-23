@@ -3,18 +3,29 @@ import SectionRenderer from "@/components/sections/SectionRenderer";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { Suspense } from "react";
+import { cookies } from "next/headers";
+import en from '@/dictionaries/en.json';
+import zh from '@/dictionaries/zh.json';
+import jp from '@/dictionaries/jp.json';
+import ko from '@/dictionaries/ko.json';
 
 export const dynamic = 'force-dynamic';
 
+const dicts: Record<string, any> = { en, zh, jp, ko };
+
 export default async function ProductDetailPage({ params }: { params: Promise<{ slug: string }> }) {
     const { slug } = await params;
+    const cookieStore = await cookies();
+    const lang = cookieStore.get('language')?.value || 'en';
+    const dict = dicts[lang] || dicts.en;
+    const t = (key: string) => (dict as any)[key] || (dicts.en as any)[key] || key;
 
     // In static export, we re-fetch to get data. This is efficient at build time.
     const products = await getProducts();
     const product = products.find((p: any) => p.slug === slug);
 
     if (!product) {
-        return <div className="min-h-screen flex items-center justify-center text-white">Product not found</div>;
+        return <div className="min-h-screen flex items-center justify-center text-white">{t('product.notFound')}</div>;
     }
 
     return (
@@ -22,7 +33,7 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
             {/* Back Button Overlay */}
             <div className="fixed top-28 left-8 z-[60]">
                 <Link href="/collection" className="flex items-center gap-2 text-white/30 hover:text-[#d8aa5b] transition-colors uppercase text-[10px] tracking-widest font-bold">
-                    <ArrowLeft size={14} /> Back
+                    <ArrowLeft size={14} /> {t('product.back')}
                 </Link>
             </div>
 
@@ -46,7 +57,7 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
                             }]}
                             productContext={product}
                         />
-                        <p className="mt-20 text-gray-600 italic text-sm">No detailed ritual described yet.</p>
+                        <p className="mt-20 text-gray-600 italic text-sm">{t('product.noRitual')}</p>
                     </div>
                 )}
             </Suspense>

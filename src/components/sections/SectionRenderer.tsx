@@ -6,8 +6,21 @@ import Link from "next/link";
 import { ArrowRight, Play, ShoppingBag, Zap, ChevronLeft, ChevronRight } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
 import { useCart } from "@/context/CartContext";
+import { useLanguage } from "@/context/LanguageContext";
 import { useAuth } from "@/context/AuthContext";
 import { useRouter, useSearchParams } from "next/navigation";
+
+
+// Helper: resolve a CMS field that may be a plain string (legacy) or
+// a multilingual object { en: "Explore", zh: "探索", ... }
+function loc(value: any, lang: string): string {
+    if (!value && value !== 0) return '';
+    if (typeof value === 'string') return value;
+    if (typeof value === 'object' && !Array.isArray(value)) {
+        return String(value[lang] || value['en'] || Object.values(value).find(v => v) || '');
+    }
+    return String(value);
+}
 
 // --- Side Navigation Component ---
 const SideNavigation = ({ sections, activeIndex, onDotClick }: { sections: Section[], activeIndex: number, onDotClick: (i: number) => void }) => {
@@ -134,7 +147,10 @@ const UniversalCarousel = ({
 // --- Section Components ---
 
 const HeroSection = ({ content, isInView }: { content: any, isInView?: boolean }) => {
+    const { language } = useLanguage();
+    const lang = language || 'en';
     const images = content.backgroundImages || (content.backgroundImage ? [content.backgroundImage] : []);
+    const ctaText = loc(content.ctaText, lang);
 
     return (
         <section className="relative w-full h-full flex items-center justify-center overflow-hidden">
@@ -175,17 +191,17 @@ const HeroSection = ({ content, isInView }: { content: any, isInView?: boolean }
                         '--glow-color': content.titleGlowColor || 'rgba(216, 170, 91, 0.4)'
                     } as React.CSSProperties}
                 >
-                    {content.title}
+                    {loc(content.title, lang)}
                 </h1>
-                {content.subtitle && (
+                {loc(content.subtitle, lang) && (
                     <p
                         className={`text-sm md:text-base tracking-widest uppercase mt-4 mb-12 max-w-2xl relative z-10 reveal-text delay-1 ${isInView ? 'active' : ''}`}
                         style={{ color: content.subtitleColor || '#ffffff', opacity: content.subtitleColor ? 1 : 0.7 }}
                     >
-                        {content.subtitle}
+                        {loc(content.subtitle, lang)}
                     </p>
                 )}
-                {content.ctaText && (
+                {ctaText && (
                     <div
                         className={`relative z-10 reveal-text delay-2 ${isInView ? 'active' : ''}`}
                     >
@@ -196,7 +212,7 @@ const HeroSection = ({ content, isInView }: { content: any, isInView?: boolean }
                                 '--glow-color': content.glowColor || 'rgba(216, 170, 91, 0.4)'
                             } as React.CSSProperties}
                         >
-                            {content.ctaText}
+                            {ctaText}
                             <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform duration-300" />
                         </Link>
                     </div>
@@ -207,6 +223,8 @@ const HeroSection = ({ content, isInView }: { content: any, isInView?: boolean }
 };
 
 const TextImageSection = ({ content, isInView }: { content: any, isInView?: boolean }) => {
+    const { language } = useLanguage();
+    const lang = language || 'en';
     const images = content.images || (content.image ? [content.image] : []);
 
     return (
@@ -225,9 +243,9 @@ const TextImageSection = ({ content, isInView }: { content: any, isInView?: bool
                     </div>
 
                     {/* Caption Layer - z-20 (above image) */}
-                    {content.caption && (
+                    {loc(content.caption, lang) && (
                         <div className={`absolute bottom-8 left-8 text-[#d8aa5b] font-display text-2xl max-w-[200px] z-20 reveal-text ${isInView ? 'active' : ''}`}>
-                            "{content.caption}"
+                            "{loc(content.caption, lang)}"
                         </div>
                     )}
                 </div>
@@ -244,13 +262,13 @@ const TextImageSection = ({ content, isInView }: { content: any, isInView?: bool
                         className={`font-display text-4xl md:text-5xl lg:text-6xl text-white whitespace-pre-wrap reveal-text ${isInView ? 'active' : ''}`}
                         style={{ lineHeight: '1.2' }}
                     >
-                        {content.heading}
+                        {loc(content.heading, lang)}
                     </h2>
                     <div
                         className={`text-gray-400 text-base md:text-lg leading-relaxed font-light whitespace-pre-wrap reveal-text delay-1 ${isInView ? 'active' : ''}`}
                         style={{ lineHeight: '1.8' }}
                     >
-                        {content.text}
+                        {loc(content.text, lang)}
                     </div>
                 </div>
             </div>
@@ -258,20 +276,27 @@ const TextImageSection = ({ content, isInView }: { content: any, isInView?: bool
     );
 };
 
-const RichTextSection = ({ content, isInView }: { content: any, isInView?: boolean }) => (
+const RichTextSection = ({ content, isInView }: { content: any, isInView?: boolean }) => {
+    const { language } = useLanguage();
+    const lang = language || 'en';
+    return (
     <section
         className="py-12 px-6 bg-transparent"
         style={{ textAlign: content.textAlign || 'center' } as React.CSSProperties}
     >
         <div className={`w-full flex flex-col ${content.textAlign === 'left' ? 'items-start' : content.textAlign === 'right' ? 'items-end' : 'items-center'} reveal-text ${isInView ? 'active' : ''}`}>
             <div className="max-w-4xl text-gray-400 leading-relaxed font-light text-lg whitespace-pre-wrap w-full">
-                {content.text}
+                {loc(content.text, lang)}
             </div>
         </div>
     </section>
 );
+};
 
-const QuoteSection = ({ content, isInView }: { content: any, isInView?: boolean }) => (
+const QuoteSection = ({ content, isInView }: { content: any, isInView?: boolean }) => {
+    const { language } = useLanguage();
+    const lang = language || 'en';
+    return (
     <section
         className="py-24 px-6 bg-transparent relative overflow-hidden"
         style={{ textAlign: content.textAlign || 'center' } as React.CSSProperties}
@@ -282,11 +307,11 @@ const QuoteSection = ({ content, isInView }: { content: any, isInView?: boolean 
                     <Zap size={48} className={`opacity-20 ${content.textAlign === 'left' ? 'mr-auto' : content.textAlign === 'right' ? 'ml-auto' : 'mx-auto'}`} />
                 </div>
                 <blockquote className={`font-display text-3xl md:text-5xl text-white leading-tight mb-12 italic reveal-text delay-1 ${isInView ? 'active' : ''}`}>
-                    "{content.text}"
+                    "{loc(content.text, lang)}"
                 </blockquote>
                 {content.author && (
                     <div className={`text-[#d8aa5b] uppercase tracking-[0.3em] text-xs font-bold reveal-text delay-2 ${isInView ? 'active' : ''}`}>
-                        — {content.author} —
+                        — {loc(content.author, lang)} —
                     </div>
                 )}
             </div>
@@ -294,8 +319,12 @@ const QuoteSection = ({ content, isInView }: { content: any, isInView?: boolean 
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-[#d8aa5b] opacity-[0.03] blur-[150px] rounded-full"></div>
     </section>
 );
+};
 
-const VideoSection = ({ content }: { content: any }) => (
+const VideoSection = ({ content }: { content: any }) => {
+    const { language, t } = useLanguage();
+    const lang = language || 'en';
+    return (
     <section className="py-20 px-6 bg-[#050505]">
         <div className="container mx-auto max-w-5xl">
             <div className="relative aspect-video bg-[#111] rounded-sm overflow-hidden group cursor-pointer border border-white/5">
@@ -310,14 +339,17 @@ const VideoSection = ({ content }: { content: any }) => (
                     </div>
                 </div>
                 <div className="absolute bottom-8 left-8 opacity-0 group-hover:opacity-100 transition-opacity duration-500">
-                    <span className="text-[#d8aa5b] text-xs uppercase tracking-widest">{content.label || 'Watch Ritual'}</span>
+                    <span className="text-[#d8aa5b] text-xs uppercase tracking-widest">{loc(content.label, lang) || t('product.watchRitual')}</span>
                 </div>
             </div>
         </div>
     </section>
 );
+};
 
 const FullImageSection = ({ content }: { content: any }) => {
+    const { language } = useLanguage();
+    const lang = language || 'en';
     const images = content.images || (content.image ? [content.image] : []);
 
     return (
@@ -330,17 +362,17 @@ const FullImageSection = ({ content }: { content: any }) => {
                         overlayOpacity={1}
                         imageClassName="w-full h-full object-cover transition-transform duration-[2000ms] group-hover:scale-105"
                     />
-                    {content.caption && (
+                    {loc(content.caption, lang) && (
                         <div className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none">
                             <div className="text-white font-display text-xl tracking-[0.3em] uppercase border-y border-white/20 py-4 px-8">
-                                {content.caption}
+                                {loc(content.caption, lang)}
                             </div>
                         </div>
                     )}
                 </div>
                 {content.caption && (
                     <div className="mt-4 px-6 md:px-0 text-gray-500 text-[10px] uppercase tracking-widest italic text-center md:hidden">
-                        — {content.caption} —
+                        — {loc(content.caption, lang)} —
                     </div>
                 )}
             </div>
@@ -354,6 +386,8 @@ const SpacerSection = ({ content }: { content: any }) => (
 
 const PurchaseSection = ({ content, productContext, isInView }: { content: any, productContext?: any, isInView?: boolean }) => {
     const { addToCart, toggleCart } = useCart();
+    const { language, t, currency } = useLanguage();
+    const lang = language || 'en';
     const { isAuthenticated } = useAuth();
     const router = useRouter();
     const searchParams = useSearchParams();
@@ -376,7 +410,7 @@ const PurchaseSection = ({ content, productContext, isInView }: { content: any, 
     const handleBuyNow = (e?: React.MouseEvent) => {
         e?.preventDefault(); e?.stopPropagation();
         if (variants.length > 0 && !selectedVariant) {
-            alert("Please select an option.");
+            alert(t('product.selectOption'));
             return;
         }
         addToCart(product, selectedVariant);
@@ -386,7 +420,7 @@ const PurchaseSection = ({ content, productContext, isInView }: { content: any, 
     const handleAddToCart = (e?: React.MouseEvent) => {
         e?.preventDefault(); e?.stopPropagation();
         if (variants.length > 0 && !selectedVariant) {
-            alert("Please select an option.");
+            alert(t('product.selectOption'));
             return;
         }
         addToCart(product, selectedVariant);
@@ -421,19 +455,19 @@ const PurchaseSection = ({ content, productContext, isInView }: { content: any, 
                 {/* Right: Product Details */}
                 <div className="flex-1 flex flex-col items-start text-left">
                     <span className="text-[#d8aa5b] text-[10px] uppercase tracking-[0.5em] mb-4 font-bold opacity-60">
-                        {content.label || (product.category ? `${product.category} Collection` : 'Ritual Artifact')}
+                        {loc(content.label, lang) || (product.category ? `${product.category} Collection` : t('product.ritualArtifact'))}
                     </span>
                     <h2 className="font-display text-4xl md:text-7xl text-white mb-6 leading-tight">
                         {product.name}
                     </h2>
                     <p className="text-gray-400 text-sm md:text-base leading-relaxed mb-10 max-w-xl font-light">
-                        {content.description || product.description || 'A cinematic descent into stillness. Elevate your sleep ritual with our signature collection designed to bridge the gap between day and dreams.'}
+                        {loc(content.description, lang) || loc(product.description, lang) || 'A cinematic descent into stillness. Elevate your sleep ritual with our signature collection designed to bridge the gap between day and dreams.'}
                     </p>
 
                     {/* Variant Selector */}
                     {variants.length > 0 && (
                         <div className="mb-10 w-full">
-                            <span className="text-[10px] uppercase tracking-widest text-gray-500 block mb-4 font-bold">Select Variation</span>
+                            <span className="text-[10px] uppercase tracking-widest text-gray-500 block mb-4 font-bold">{t('product.selectVariation')}</span>
                             <div className="flex flex-wrap gap-3">
                                 {variants.map((v: any, idx: number) => (
                                     <button
@@ -453,9 +487,9 @@ const PurchaseSection = ({ content, productContext, isInView }: { content: any, 
 
                     <div className="flex flex-col md:flex-row items-start md:items-center gap-12 w-full mb-12">
                         <div>
-                            <span className="text-[10px] uppercase tracking-widest text-gray-500 block mb-2 font-bold">Investment</span>
+                            <span className="text-[10px] uppercase tracking-widest text-gray-500 block mb-2 font-bold">{t('product.investment')}</span>
                             <span className="text-[#d8aa5b] font-display text-3xl md:text-4xl leading-none">
-                                ${product.price}
+                                {currency}{product.price}
                             </span>
                         </div>
                         <div className="flex flex-col sm:flex-row gap-4 w-full" style={{ position: 'relative', zIndex: 9999 }}>
@@ -465,7 +499,7 @@ const PurchaseSection = ({ content, productContext, isInView }: { content: any, 
                                 className="flex-1 group relative flex items-center justify-center gap-4 px-8 py-5 bg-white text-black font-display text-[10px] tracking-[0.2em] uppercase hover:bg-[#d8aa5b] transition-all duration-700 rounded-sm cursor-pointer"
                                 style={{ pointerEvents: 'auto', position: 'relative', zIndex: 10000 }}
                             >
-                                <span>Add to Ritual</span>
+                                <span>{t('product.addToCart')}</span>
                                 <ShoppingBag size={14} />
                             </button>
 
@@ -475,7 +509,7 @@ const PurchaseSection = ({ content, productContext, isInView }: { content: any, 
                                 className="flex-1 group relative flex items-center justify-center gap-4 px-8 py-5 bg-[#d8aa5b] text-black font-display text-[10px] tracking-[0.2em] uppercase hover:bg-white transition-all duration-700 shadow-[0_0_40px_rgba(216,170,91,0.15)] rounded-sm cursor-pointer"
                                 style={{ pointerEvents: 'auto', position: 'relative', zIndex: 10000 }}
                             >
-                                <span>Buy Now</span>
+                                <span>{t('product.buyNow')}</span>
                                 <Zap size={14} className="fill-current" />
                             </button>
                         </div>
@@ -490,8 +524,8 @@ const PurchaseSection = ({ content, productContext, isInView }: { content: any, 
                                         {card.iconType === 'Scent' ? <Zap size={20} /> : <ShoppingBag size={20} />}
                                     </div>
                                     <div>
-                                        <span className="text-[9px] uppercase tracking-widest text-gray-600 block mb-1 font-bold">{card.label}</span>
-                                        <span className="text-white text-sm font-medium">{card.value}</span>
+                                        <span className="text-[9px] uppercase tracking-widest text-gray-600 block mb-1 font-bold">{loc(card.label, lang)}</span>
+                                        <span className="text-white text-sm font-medium">{loc(card.value, lang)}</span>
                                     </div>
                                 </div>
                             ))}
@@ -501,15 +535,15 @@ const PurchaseSection = ({ content, productContext, isInView }: { content: any, 
                     {/* Info List (Repurposed Ritual Steps) */}
                     {infoList.length > 0 && (
                         <div className="w-full border-t border-white/10 pt-10 mt-4 space-y-8">
-                            <span className="text-[10px] uppercase tracking-[0.3em] text-gray-500 font-bold block mb-4">Product Attributes</span>
+                            <span className="text-[10px] uppercase tracking-[0.3em] text-gray-500 font-bold block mb-4">{t('product.attributes')}</span>
                             {infoList.map((item: any, idx: number) => (
                                 <div key={idx} className="flex gap-6 items-start group">
                                     <span className="text-[#d8aa5b] font-display text-lg opacity-40 leading-none pt-1">
                                         {(idx + 1).toString().padStart(2, '0')}
                                     </span>
                                     <div>
-                                        <h4 className="text-white text-sm uppercase tracking-widest font-bold mb-2 group-hover:text-[#d8aa5b] transition-colors">{item.title}</h4>
-                                        <p className="text-gray-500 text-xs leading-relaxed font-light">{item.description}</p>
+                                        <h4 className="text-white text-sm uppercase tracking-widest font-bold mb-2 group-hover:text-[#d8aa5b] transition-colors">{loc(item.title, lang)}</h4>
+                                        <p className="text-gray-500 text-xs leading-relaxed font-light">{loc(item.description, lang)}</p>
                                     </div>
                                 </div>
                             ))}

@@ -11,15 +11,12 @@
     "nav.menu": "Menu",
     "nav.close": "Close",
     "nav.language": "Language",
-
     "hero.title": "Scent of Silence",
     "hero.subtitle": "Experience the void through fragrance.",
     "hero.cta": "Explore Collection",
-
     "cart.title": "Your Selection",
     "cart.empty": "Your cart is empty.",
     "cart.checkout": "Checkout",
-
     "collection.label": "The Toolkit",
     "collection.title": "Curated Essentials",
     "collection.count": "Artifacts",
@@ -29,17 +26,14 @@
     "collection.sortPriceDesc": "Price: High → Low",
     "collection.sortName": "Name A-Z",
     "collection.empty": "No products found.",
-
     "journal.label": "Sleep Journal",
     "journal.title": "The Science of",
     "journal.subtitle": "Sanctuary.",
     "journal.readArticle": "Read Article",
     "journal.empty": "No articles found.",
-
     "product.back": "Back",
     "product.notFound": "Product not found",
     "product.noRitual": "No detailed ritual described yet.",
-
     "login.title": "Member Access",
     "login.subtitle": "Enter your sanctuary credentials.",
     "login.email": "Email",
@@ -48,7 +42,6 @@
     "login.or": "Or Continue With",
     "login.entering": "Entering...",
     "login.error": "Invalid credentials.",
-
     "profile.label": "Sanctuary",
     "profile.title": "Welcome Back",
     "profile.logout": "Disconnect",
@@ -60,7 +53,6 @@
     "profile.savedEmpty": "Your saved rituals will appear here.",
     "profile.exploreCollection": "Explore Collection",
     "profile.authenticating": "Authenticating...",
-
     "support.title": "Concierge Support",
     "support.subtitle": "Select a topic to connect with the right specialist.",
     "support.dept1": "Order Inquiry",
@@ -70,7 +62,6 @@
     "support.welcome": "Welcome. Please type your first message to start the secure session.",
     "support.inputReply": "Type a reply...",
     "support.inputStart": "Type to start chat...",
-
     "returns.title": "Returns & Claims",
     "returns.subtitle": "We are committed to perfection. If your ritual object is flawed, please provide details below.",
     "returns.orderId": "Order ID",
@@ -90,7 +81,6 @@
     "returns.successTitle": "Claim Submitted",
     "returns.successBody": "Your case ID has been generated. Our QA team will review your evidence and authorize your return within 24 hours.",
     "returns.newClaim": "Start New Claim",
-
     "orderConfirmation.paid": "Ritual Confirmed",
     "orderConfirmation.placed": "Order Placed",
     "orderConfirmation.confirmedMsg": "We are now preparing your artifacts for their journey.",
@@ -100,13 +90,11 @@
     "orderConfirmation.shippingTo": "Shipping To",
     "orderConfirmation.track": "Track Your Order",
     "orderConfirmation.returnHome": "Return Home",
-
     "common.loading": "Loading...",
     "common.currency": "$",
     "common.back": "Back",
     "common.items": "items",
     "common.submitting": "Submitting...",
-
     "track.title": "Track Your Order",
     "track.subtitle": "Enter your order ID or tracking number to check delivery status.",
     "track.placeholder": "Order ID SOM-... or tracking number",
@@ -141,5 +129,14 @@
     "track.status.outForDelivery": "Out for Delivery",
     "track.status.delivered": "Delivered",
     "track.status.failed": "Delivery Failed",
-    "track.status.returned": "Returned"
+    "track.status.returned": "Returned",
+    "journal.backToJournal": "Back to Journal",
+    "product.selectVariation": "Select Variation",
+    "product.investment": "Investment",
+    "product.addToCart": "Add to Ritual",
+    "product.buyNow": "Buy Now",
+    "product.attributes": "Product Attributes",
+    "product.watchRitual": "Watch Ritual",
+    "product.ritualArtifact": "Ritual Artifact",
+    "product.selectOption": "Please select an option."
 }

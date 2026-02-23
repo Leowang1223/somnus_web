@@ -11,15 +11,12 @@
     "nav.menu": "메뉴",
     "nav.close": "닫기",
     "nav.language": "언어",
-
     "hero.title": "고요의 향기",
     "hero.subtitle": "향기를 통해 공허를 경험하세요.",
     "hero.cta": "컬렉션 탐색",
-
     "cart.title": "장바구니",
     "cart.empty": "장바구니가 비어 있습니다.",
     "cart.checkout": "결제하기",
-
     "collection.label": "툴킷",
     "collection.title": "큐레이션 에센셜",
     "collection.count": "개",
@@ -29,17 +26,14 @@
     "collection.sortPriceDesc": "가격: 높은 순",
     "collection.sortName": "이름 A-Z",
     "collection.empty": "상품을 찾을 수 없습니다.",
-
     "journal.label": "슬립 저널",
     "journal.title": "탐구하다",
     "journal.subtitle": "안식.",
     "journal.readArticle": "기사 읽기",
     "journal.empty": "기사를 찾을 수 없습니다.",
-
     "product.back": "뒤로",
     "product.notFound": "상품을 찾을 수 없습니다",
     "product.noRitual": "아직 상세 설명이 없습니다.",
-
     "login.title": "회원 로그인",
     "login.subtitle": "인증 정보를 입력하세요.",
     "login.email": "이메일",
@@ -48,7 +42,6 @@
     "login.or": "또는",
     "login.entering": "로딩 중...",
     "login.error": "잘못된 인증 정보입니다.",
-
     "profile.label": "성역",
     "profile.title": "환영합니다",
     "profile.logout": "로그아웃",
@@ -60,7 +53,6 @@
     "profile.savedEmpty": "저장된 아이템이 여기에 표시됩니다.",
     "profile.exploreCollection": "컬렉션 탐색",
     "profile.authenticating": "인증 중...",
-
     "support.title": "컨시어지 지원",
     "support.subtitle": "전문가에게 연결할 주제를 선택하세요.",
     "support.dept1": "주문 문의",
@@ -70,7 +62,6 @@
     "support.welcome": "환영합니다. 첫 번째 메시지를 입력하여 세션을 시작하세요.",
     "support.inputReply": "답장 입력...",
     "support.inputStart": "입력하여 채팅 시작...",
-
     "returns.title": "반품 및 클레임",
     "returns.subtitle": "완벽을 추구합니다. 상품에 결함이 있다면 아래에 세부 정보를 제공하세요.",
     "returns.orderId": "주문 ID",
@@ -90,7 +81,6 @@
     "returns.successTitle": "클레임이 제출되었습니다",
     "returns.successBody": "케이스 ID가 생성되었습니다. 품질 관리팀이 24시간 이내에 증거를 검토하고 반품을 승인합니다.",
     "returns.newClaim": "새 클레임 시작",
-
     "orderConfirmation.paid": "주문 확인 완료",
     "orderConfirmation.placed": "주문이 생성되었습니다",
     "orderConfirmation.confirmedMsg": "상품 배송 준비 중입니다.",
@@ -100,13 +90,11 @@
     "orderConfirmation.shippingTo": "배송지",
     "orderConfirmation.track": "주문 추적",
     "orderConfirmation.returnHome": "홈으로 돌아가기",
-
     "common.loading": "로딩 중...",
     "common.currency": "₩",
     "common.back": "뒤로",
     "common.items": "개",
     "common.submitting": "제출 중...",
-
     "track.title": "주문 추적",
     "track.subtitle": "배송 상태를 확인하려면 주문 ID 또는 추적 번호를 입력하세요.",
     "track.placeholder": "주문 ID SOM-... 또는 추적 번호",
@@ -141,5 +129,14 @@
     "track.status.outForDelivery": "배달 중",
     "track.status.delivered": "배달 완료",
     "track.status.failed": "배달 실패",
-    "track.status.returned": "반송됨"
+    "track.status.returned": "반송됨",
+    "journal.backToJournal": "저널로 돌아가기",
+    "product.selectVariation": "옵션 선택",
+    "product.investment": "가격",
+    "product.addToCart": "장바구니 담기",
+    "product.buyNow": "지금 구매",
+    "product.attributes": "제품 속성",
+    "product.watchRitual": "의식 보기",
+    "product.ritualArtifact": "의식 아이템",
+    "product.selectOption": "옵션을 선택해 주세요."
 }

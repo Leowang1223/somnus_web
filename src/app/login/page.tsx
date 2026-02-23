@@ -8,7 +8,7 @@ import { useSearchParams } from "next/navigation";
 import { loginAction } from "@/app/actions";
 
 function LoginContent() {
-    const { login } = useAuth();
+    const { login, syncSession } = useAuth();
     const { t } = useLanguage();
     const searchParams = useSearchParams();
     const [email, setEmail] = useState("");
@@ -34,21 +34,14 @@ function LoginContent() {
         const result = await loginAction(formData);
 
         if (result.success && result.user) {
-            // Sync session to the browser Supabase client so AuthContext
-            // picks it up immediately. The server action sets server-side
-            // cookies, but createBrowserClient reads from its own storage.
             if (result.accessToken && result.refreshToken) {
-                try {
-                    const { createClient } = await import('@/lib/supabase/client');
-                    const client = createClient();
-                    await client.auth.setSession({
-                        access_token: result.accessToken,
-                        refresh_token: result.refreshToken,
-                    });
-                } catch (_) { /* non-fatal — onAuthStateChange will retry */ }
+                // 在 AuthContext 自己的 supabase 實例上呼叫 setSession，
+                // 確保 currentSession 快取被更新、onAuthStateChange 正確觸發
+                await syncSession(result.accessToken, result.refreshToken, target);
+            } else {
+                const userRole = result.user.role as 'owner' | 'support' | 'consumer';
+                login(userRole, target);
             }
-            const userRole = result.user.role as 'owner' | 'support' | 'consumer';
-            login(userRole, target);
         } else {
             setError(result.error || t('login.error'));
         }

@@ -13,6 +13,7 @@ type AuthContextType = {
     user: User | null;
     login: (role: UserRole, redirectTo?: string) => Promise<void>;
     logout: () => Promise<void>;
+    syncSession: (accessToken: string, refreshToken: string, redirectTo?: string) => Promise<void>;
     isAuthenticated: boolean;
     isOwner: boolean;
     loading: boolean;
@@ -135,6 +136,29 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         };
     }, [supabase]);
 
+    // syncSession：在 AuthContext 自己的 supabase 實例上呼叫 setSession，
+    // 確保 onAuthStateChange 正確觸發，user/role state 立即更新
+    const syncSession = async (accessToken: string, refreshToken: string, redirectTo?: string) => {
+        if (!supabase) return;
+        try {
+            const { data } = await supabase.auth.setSession({
+                access_token: accessToken,
+                refresh_token: refreshToken,
+            });
+            if (data.session?.user) {
+                setUser(data.session.user);
+                const userRole = await fetchRole(data.session.user.id);
+                if (isMountedRef.current) setRole(userRole);
+            }
+        } catch (e) {
+            console.error('syncSession error:', e);
+        }
+        if (redirectTo) {
+            router.push(redirectTo);
+            router.refresh();
+        }
+    };
+
     const login = async (newRole: UserRole, redirectTo?: string) => {
         setRole(newRole);
 
@@ -186,6 +210,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             user,
             login,
             logout,
+            syncSession,
             isAuthenticated: !!user,
             isOwner: role === 'owner',
             loading

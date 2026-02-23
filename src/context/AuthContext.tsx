@@ -46,8 +46,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         return null;
     });
 
-    // Shared helper: fetch role from DB by user ID (matches RLS policy: auth.uid() = id)
-    const fetchRole = async (userId: string): Promise<UserRole> => {
+    // Shared helper: fetch role from DB by user ID, with email fallback
+    // Email fallback handles cases where public.users.id differs from auth UID
+    const fetchRole = async (userId: string, userEmail?: string): Promise<UserRole> => {
         if (!supabase) return 'consumer';
 
         try {
@@ -57,15 +58,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 .eq('id', userId)
                 .single() as { data: { role: string } | null; error: any };
 
-            if (error) {
-                console.error('Error fetching role:', error.message);
-                return 'consumer';
-            }
-
-            if (data?.role) {
+            if (!error && data?.role) {
                 return data.role as UserRole;
             }
 
+            // ID 查不到時，用 email 作為 fallback（帳號建立方式不同造成 ID 不一致時）
+            if (userEmail) {
+                const { data: emailData } = await supabase
+                    .from('users')
+                    .select('role')
+                    .eq('email', userEmail)
+                    .single() as { data: { role: string } | null; error: any };
+                if (emailData?.role) {
+                    return emailData.role as UserRole;
+                }
+            }
+
+            if (error) console.error('Error fetching role:', error.message);
             return 'consumer';
         } catch (error) {
             console.error('Exception fetching role:', error);
@@ -92,7 +101,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             if (session?.user) {
                 setUser(session.user);
                 try {
-                    const userRole = await fetchRole(session.user.id);
+                    const userRole = await fetchRole(session.user.id, session.user.email ?? undefined);
                     if (!isMountedRef.current) return;
                     setRole(userRole);
                 } catch (roleError) {
@@ -142,7 +151,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             });
             if (data.session?.user) {
                 setUser(data.session.user);
-                const userRole = await fetchRole(data.session.user.id);
+                const userRole = await fetchRole(data.session.user.id, data.session.user.email ?? undefined);
                 if (isMountedRef.current) setRole(userRole);
             }
         } catch (e) {
@@ -179,15 +188,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     };
 
     const logout = async () => {
+        // 1. Browser-side signOut（立即清除 Supabase client session 狀態，觸發 SIGNED_OUT 事件）
+        //    這確保即使 window.location.href 沒有觸發 reload，UI 也立即切換為未登入狀態
+        if (supabase) {
+            try {
+                await supabase.auth.signOut();
+            } catch (e) {
+                console.error('Browser signOut error:', e);
+            }
+        }
+
+        // 2. Server-side cleanup（清除 server-side session cookies）
         try {
-            // 1. 呼叫 /api/logout route handler（非 Server Action，不經過 Middleware）
-            //    route handler 內部會呼叫 server-side signOut 並在 response 上清除所有 sb-* cookies
             await fetch('/api/logout', { method: 'POST' });
         } catch (error) {
             console.error('Logout API error:', error);
         }
 
-        // 2. 清除 browser 端所有 sb-* cookies（保險措施）
+        // 3. 清除 browser 端所有 sb-* cookies（保險措施）
         if (typeof document !== 'undefined') {
             document.cookie.split(';').forEach((c) => {
                 const name = c.split('=')[0].trim();
@@ -197,11 +215,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             });
         }
 
-        // 3. 清除 React state
+        // 4. 清除 React state
         setRole(null);
         setUser(null);
 
-        // 4. 硬跳轉：強制完整頁面重載，確保所有 session 狀態歸零
+        // 5. 硬跳轉：強制完整頁面重載，確保所有 session 狀態歸零
         window.location.href = '/';
     };
 

@@ -149,24 +149,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }, [supabase]);
 
     // loginWithCredentials：直接在 AuthContext 的 supabase 實例上登入
-    // 登入成功後立即 setUser，不等 onAuthStateChange 的異步觸發，確保 router.push 前 state 已更新
+    // 用 window.location.href 硬跳轉，確保新頁面 mount 時 checkSession() 重新讀取 session
+    // router.push() 在 concurrent mode 下無法保證 setState 在渲染前完成，硬跳轉最可靠
     const loginWithCredentials = async (email: string, password: string, redirectTo?: string): Promise<{ error: string | null }> => {
         if (!supabase) return { error: 'Auth not available' };
 
-        const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+        const { error } = await supabase.auth.signInWithPassword({ email, password });
 
         if (error) return { error: error.message };
 
-        // 立即設置 user，不等 onAuthStateChange（它是異步微任務，可能在 router.push 之後才執行）
-        if (data.session?.user) {
-            setUser(data.session.user);
-            // fetchRole 非阻塞，讓 role 在背景更新
-            fetchRole(data.session.user.id).then(userRole => {
-                if (isMountedRef.current) setRole(userRole);
-            });
-        }
-
-        router.push(redirectTo || '/');
+        // 硬跳轉：強制完整頁面重載，AuthProvider 重新 mount，checkSession() 重新讀取 session
+        window.location.href = redirectTo || '/';
         return { error: null };
     };
 

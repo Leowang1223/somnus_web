@@ -46,38 +46,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         return null;
     });
 
-    // Shared helper: fetch role from DB by user ID, with email fallback
-    // Email fallback handles cases where public.users.id differs from auth UID
-    const fetchRole = async (userId: string, userEmail?: string): Promise<UserRole> => {
+    // Shared helper: fetch role via SECURITY DEFINER RPC function
+    // get_my_role() runs in Postgres, bypasses RLS, handles id mismatch via email join
+    const fetchRole = async (): Promise<UserRole> => {
         if (!supabase) return 'consumer';
 
         try {
-            const { data, error } = await supabase
-                .from('users')
-                .select('role')
-                .eq('id', userId)
-                .single() as { data: { role: string } | null; error: any };
-
-            if (!error && data?.role) {
-                return data.role as UserRole;
+            const { data, error } = await supabase.rpc('get_my_role');
+            if (error) {
+                console.error('get_my_role RPC error:', error.message);
+                return 'consumer';
             }
-
-            // ID 查不到時，用 email 作為 fallback（帳號建立方式不同造成 ID 不一致時）
-            if (userEmail) {
-                const { data: emailData } = await supabase
-                    .from('users')
-                    .select('role')
-                    .eq('email', userEmail)
-                    .single() as { data: { role: string } | null; error: any };
-                if (emailData?.role) {
-                    return emailData.role as UserRole;
-                }
-            }
-
-            if (error) console.error('Error fetching role:', error.message);
-            return 'consumer';
+            return (data as UserRole) || 'consumer';
         } catch (error) {
-            console.error('Exception fetching role:', error);
+            console.error('Exception in fetchRole:', error);
             return 'consumer';
         }
     };
@@ -101,7 +83,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             if (session?.user) {
                 setUser(session.user);
                 try {
-                    const userRole = await fetchRole(session.user.id, session.user.email ?? undefined);
+                    const userRole = await fetchRole();
                     if (!isMountedRef.current) return;
                     setRole(userRole);
                 } catch (roleError) {
@@ -151,7 +133,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             });
             if (data.session?.user) {
                 setUser(data.session.user);
-                const userRole = await fetchRole(data.session.user.id, data.session.user.email ?? undefined);
+                const userRole = await fetchRole();
                 if (isMountedRef.current) setRole(userRole);
             }
         } catch (e) {

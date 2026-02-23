@@ -36,14 +36,11 @@ export async function middleware(request: NextRequest) {
                 return NextResponse.redirect(loginUrl)
             }
 
-            // Check role from public.users table
-            const { data: userData } = await supabase
-                .from('users')
-                .select('role')
-                .eq('id', user.id)
-                .single()
+            // Check role via get_my_role() RPC（SECURITY DEFINER，繞過 RLS）
+            // 能正確處理 public.users.id ≠ auth.uid() 的情況
+            const { data: role } = await supabase.rpc('get_my_role')
 
-            if (!userData || !['owner', 'support'].includes(userData.role)) {
+            if (!role || !['owner', 'support'].includes(role as string)) {
                 return NextResponse.redirect(new URL('/', request.url))
             }
         }

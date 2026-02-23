@@ -225,9 +225,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             // 3. Clear client state
             setRole(null);
             setUser(null);
-            // 4. Client-side navigation + force refresh
-            router.push('/');
-            router.refresh();
+            // 4. 硬跳轉：確保 session cookie 完全清除後重載，與登入策略一致
+            window.location.href = '/';
         }
     };
 

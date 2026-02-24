@@ -1,8 +1,8 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { getMerchantSettingsAction, updateMerchantSettingsAction, testEcpayConnectionAction } from '@/app/actions';
-import { CreditCard, CheckCircle, AlertCircle, Settings, ChevronDown, ChevronUp } from 'lucide-react';
+import { getMerchantSettingsAction, updateMerchantSettingsAction, testEcpayConnectionAction, updateLogisticsSettingsAction } from '@/app/actions';
+import { CreditCard, CheckCircle, AlertCircle, Settings, ChevronDown, ChevronUp, Truck } from 'lucide-react';
 
 const PROVIDERS = [
     { value: 'manual', label: '手動確認付款', desc: '客戶付款後由後台手動確認（適合銀行轉帳、ATM）' },
@@ -37,6 +37,14 @@ export default function AdminSettingsPage() {
     // ECPay 測試連線
     const [ecpayTesting, setEcpayTesting] = useState(false);
     const [ecpayTestResult, setEcpayTestResult] = useState<{ success: boolean; message: string } | null>(null);
+    // ECPay 物流
+    const [logisticsMerchantId, setLogisticsMerchantId] = useState('');
+    const [logisticsHashKey, setLogisticsHashKey] = useState('');
+    const [logisticsHashIv, setLogisticsHashIv] = useState('');
+    const [logisticsTestMode, setLogisticsTestMode] = useState(true);
+    const [logisticsSaving, setLogisticsSaving] = useState(false);
+    const [logisticsSaved, setLogisticsSaved] = useState(false);
+    const [logisticsExpanded, setLogisticsExpanded] = useState(false);
 
     useEffect(() => {
         getMerchantSettingsAction().then(res => {
@@ -47,6 +55,7 @@ export default function AdminSettingsPage() {
                 setCurrency(s.payment_currency || 'TWD');
                 setEcpayTestMode(s.ecpay_test_mode ?? true);
                 setTappayTestMode(s.tappay_test_mode ?? true);
+                setLogisticsTestMode(s.ecpay_logistics_test_mode ?? true);
                 setExpanded(s.payment_provider || 'manual');
             }
             setLoading(false);
@@ -245,6 +254,90 @@ export default function AdminSettingsPage() {
                         <li>顧客結帳後系統將自動導向至您設定的金流頁面</li>
                         <li>付款成功後訂單狀態自動更新為「已付款」</li>
                     </ol>
+                </div>
+            </section>
+
+            {/* ECPay Logistics Section */}
+            <section className="mb-8">
+                <div className="flex items-center gap-3 mb-4">
+                    <Truck size={18} className="text-[#d8aa5b]" />
+                    <h2 className="text-xs uppercase tracking-widest text-[#d8aa5b] font-bold">物流設定（ECPay 超商取貨）</h2>
+                    {settings?.has_ecpay_logistics_config && <CheckCircle size={14} className="text-green-400" />}
+                </div>
+                <p className="text-gray-500 text-sm mb-4">
+                    設定後，後台可為超商取貨訂單直接建立 7-11 / 全家物流單，並自動同步物流狀態。
+                </p>
+
+                <div className="border border-white/10 rounded-sm bg-[#111]">
+                    <button
+                        type="button"
+                        onClick={() => setLogisticsExpanded(!logisticsExpanded)}
+                        className="w-full flex items-center justify-between p-4 text-left"
+                    >
+                        <span className="text-sm font-bold">ECPay 物流 API 設定</span>
+                        {logisticsExpanded ? <ChevronUp size={16} className="text-white/40" /> : <ChevronDown size={16} className="text-white/40" />}
+                    </button>
+
+                    {logisticsExpanded && (
+                        <div className="px-4 pb-4 space-y-3 border-t border-white/5 pt-4">
+                            <div className="bg-amber-500/10 border border-amber-500/20 rounded-sm p-3 text-xs text-amber-300">
+                                <strong>物流 API 憑證與金流 API 不同：</strong>需至 ECPay 後台 → 物流管理 → API 串接憑證，取得「物流專用」的 MerchantID / HashKey / HashIV。
+                            </div>
+                            <input
+                                placeholder="MerchantID（物流特店編號）"
+                                value={logisticsMerchantId}
+                                onChange={e => setLogisticsMerchantId(e.target.value)}
+                                className="w-full bg-[#050505] border border-white/10 p-3 text-white text-sm focus:outline-none focus:border-[#d8aa5b] rounded-sm"
+                            />
+                            <input
+                                placeholder="HashKey（物流）"
+                                value={logisticsHashKey}
+                                onChange={e => setLogisticsHashKey(e.target.value)}
+                                className="w-full bg-[#050505] border border-white/10 p-3 text-white text-sm focus:outline-none focus:border-[#d8aa5b] rounded-sm font-mono"
+                            />
+                            <input
+                                placeholder="HashIV（物流）"
+                                value={logisticsHashIv}
+                                onChange={e => setLogisticsHashIv(e.target.value)}
+                                className="w-full bg-[#050505] border border-white/10 p-3 text-white text-sm focus:outline-none focus:border-[#d8aa5b] rounded-sm font-mono"
+                            />
+                            <label className="flex items-center gap-3 cursor-pointer">
+                                <input type="checkbox" checked={logisticsTestMode} onChange={e => setLogisticsTestMode(e.target.checked)} className="sr-only" />
+                                <div className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-all ${logisticsTestMode ? 'bg-[#d8aa5b] border-[#d8aa5b]' : 'border-white/20'}`}>
+                                    {logisticsTestMode && <div className="w-2 h-2 bg-black rounded-sm" />}
+                                </div>
+                                <span className="text-sm text-gray-300">使用測試環境（Stage）</span>
+                            </label>
+                            <div className="bg-[#050505] border border-white/5 rounded-sm p-3 text-xs text-gray-500">
+                                <strong className="text-gray-400">物流 Webhook URL：</strong>
+                                <p className="font-mono mt-1 break-all text-gray-400">{webhookBase}/api/webhooks/logistics/ecpay</p>
+                            </div>
+                            <div className="bg-[#050505] border border-white/5 rounded-sm p-3 text-xs text-gray-500">
+                                <strong className="text-gray-400">CVS 選店回調 URL（填入 ECPay ServerReplyURL）：</strong>
+                                <p className="font-mono mt-1 break-all text-gray-400">{webhookBase}/api/logistics/cvs-callback</p>
+                            </div>
+                            <button
+                                type="button"
+                                disabled={logisticsSaving}
+                                onClick={async () => {
+                                    setLogisticsSaving(true);
+                                    setLogisticsSaved(false);
+                                    const result = await updateLogisticsSettingsAction({
+                                        ecpay_logistics_merchant_id: logisticsMerchantId || undefined,
+                                        ecpay_logistics_hash_key: logisticsHashKey || undefined,
+                                        ecpay_logistics_hash_iv: logisticsHashIv || undefined,
+                                        ecpay_logistics_test_mode: logisticsTestMode,
+                                    });
+                                    setLogisticsSaving(false);
+                                    if (result.success) { setLogisticsSaved(true); setTimeout(() => setLogisticsSaved(false), 3000); }
+                                    else alert('儲存失敗：' + result.error);
+                                }}
+                                className="flex items-center gap-2 bg-[#d8aa5b] text-black px-6 py-2.5 text-xs uppercase tracking-widest font-bold hover:bg-white transition-colors rounded-sm disabled:opacity-50"
+                            >
+                                {logisticsSaving ? '儲存中...' : logisticsSaved ? <><CheckCircle size={14} /> 已儲存</> : '儲存物流設定'}
+                            </button>
+                        </div>
+                    )}
                 </div>
             </section>
         </div>

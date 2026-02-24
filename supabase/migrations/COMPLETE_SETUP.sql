@@ -482,6 +482,22 @@ BEGIN
   IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'orders' AND column_name = 'assigned_to') THEN
     ALTER TABLE public.orders ADD COLUMN assigned_to TEXT;
   END IF;
+  -- 物流相關欄位
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'orders' AND column_name = 'shipping_method') THEN
+    ALTER TABLE public.orders ADD COLUMN shipping_method TEXT DEFAULT 'home_delivery';
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'orders' AND column_name = 'cvs_store_id') THEN
+    ALTER TABLE public.orders ADD COLUMN cvs_store_id TEXT;
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'orders' AND column_name = 'cvs_store_name') THEN
+    ALTER TABLE public.orders ADD COLUMN cvs_store_name TEXT;
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'orders' AND column_name = 'cvs_store_address') THEN
+    ALTER TABLE public.orders ADD COLUMN cvs_store_address TEXT;
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'orders' AND column_name = 'cvs_sub_type') THEN
+    ALTER TABLE public.orders ADD COLUMN cvs_sub_type TEXT;
+  END IF;
 END $$;
 
 -- ==========================================
@@ -545,6 +561,16 @@ ALTER TABLE public.payments ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.shipments ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.refunds ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.order_tags ENABLE ROW LEVEL SECURITY;
+
+-- ECPay 物流欄位（冪等）
+ALTER TABLE public.shipments ADD COLUMN IF NOT EXISTS logistics_id TEXT;
+ALTER TABLE public.shipments ADD COLUMN IF NOT EXISTS logistics_trade_no TEXT;
+ALTER TABLE public.shipments ADD COLUMN IF NOT EXISTS cvs_paper_no TEXT;
+
+ALTER TABLE public.merchant_settings ADD COLUMN IF NOT EXISTS ecpay_logistics_merchant_id TEXT;
+ALTER TABLE public.merchant_settings ADD COLUMN IF NOT EXISTS ecpay_logistics_hash_key TEXT;
+ALTER TABLE public.merchant_settings ADD COLUMN IF NOT EXISTS ecpay_logistics_hash_iv TEXT;
+ALTER TABLE public.merchant_settings ADD COLUMN IF NOT EXISTS ecpay_logistics_test_mode BOOLEAN DEFAULT TRUE;
 
 -- ==========================================
 -- 6. Users RLS Policies（無循環依賴）

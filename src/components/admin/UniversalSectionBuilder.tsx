@@ -196,12 +196,45 @@ function MultiImagePicker({ label, values = [], onChange, prefix }: {
     );
 }
 
-function LocalizedField({ label, value, onChange, rows = 2, placeholder = '' }: {
+// 字型大小控制器
+const FONT_SIZES = [10, 12, 14, 16, 18, 20, 24, 28, 32, 36, 40, 48, 56, 64, 72, 80, 96];
+
+function FontSizeControl({ value, onChange }: { value?: number; onChange: (v: number) => void }) {
+    const current = value || 0;
+    return (
+        <div className="flex items-center gap-1 bg-black/40 border border-white/10 rounded-sm px-1.5 py-0.5">
+            <button
+                type="button"
+                onClick={() => { const i = FONT_SIZES.indexOf(current); if (i > 0) onChange(FONT_SIZES[i - 1]); }}
+                className="w-5 h-5 flex items-center justify-center text-white/40 hover:text-[#d8aa5b] transition-colors text-xs font-bold"
+                title="縮小"
+            >−</button>
+            <select
+                value={current || ''}
+                onChange={e => onChange(parseInt(e.target.value) || 0)}
+                className="bg-transparent text-[10px] text-white/70 focus:outline-none cursor-pointer min-w-[52px]"
+            >
+                <option value="">預設</option>
+                {FONT_SIZES.map(s => <option key={s} value={s}>{s}px</option>)}
+            </select>
+            <button
+                type="button"
+                onClick={() => { const i = FONT_SIZES.indexOf(current); if (i < FONT_SIZES.length - 1) onChange(FONT_SIZES[i + 1]); else if (i === -1) onChange(16); }}
+                className="w-5 h-5 flex items-center justify-center text-white/40 hover:text-[#d8aa5b] transition-colors text-xs font-bold"
+                title="放大"
+            >+</button>
+        </div>
+    );
+}
+
+function LocalizedField({ label, value, onChange, rows = 2, placeholder = '', fontSize, onFontSizeChange }: {
     label: string;
     value: any;
     onChange: (val: any) => void;
     rows?: number;
     placeholder?: string;
+    fontSize?: number;
+    onFontSizeChange?: (v: number) => void;
 }) {
     const langs = ['en', 'zh', 'jp', 'ko'];
     const langLabels: Record<string, string> = { en: 'EN', zh: '中文', jp: '日本語', ko: '한국어' };
@@ -223,19 +256,24 @@ function LocalizedField({ label, value, onChange, rows = 2, placeholder = '' }: 
 
     return (
         <div className="space-y-2">
-            <div className="flex items-center justify-between">
-                <label className="block text-xs uppercase text-gray-500 font-bold tracking-widest">{label}</label>
-                <div className="flex gap-1">
-                    {langs.map(lang => (
-                        <button
-                            key={lang}
-                            type="button"
-                            onClick={() => setActiveLang(lang)}
-                            className={`text-[9px] px-2 py-1 rounded-sm font-bold uppercase tracking-widest transition-all ${activeLang === lang ? 'bg-[#d8aa5b] text-black' : 'bg-white/5 text-white/40 hover:text-white'}`}
-                        >
-                            {langLabels[lang]}
-                        </button>
-                    ))}
+            <div className="flex items-center justify-between gap-2">
+                <label className="block text-xs uppercase text-gray-500 font-bold tracking-widest shrink-0">{label}</label>
+                <div className="flex items-center gap-2">
+                    {onFontSizeChange && (
+                        <FontSizeControl value={fontSize} onChange={onFontSizeChange} />
+                    )}
+                    <div className="flex gap-1">
+                        {langs.map(lang => (
+                            <button
+                                key={lang}
+                                type="button"
+                                onClick={() => setActiveLang(lang)}
+                                className={`text-[9px] px-2 py-1 rounded-sm font-bold uppercase tracking-widest transition-all ${activeLang === lang ? 'bg-[#d8aa5b] text-black' : 'bg-white/5 text-white/40 hover:text-white'}`}
+                            >
+                                {langLabels[lang]}
+                            </button>
+                        ))}
+                    </div>
                 </div>
             </div>
             <textarea
@@ -244,7 +282,11 @@ function LocalizedField({ label, value, onChange, rows = 2, placeholder = '' }: 
                 className="w-full bg-[#111] border border-white/10 p-3 text-white focus:outline-none focus:border-[#d8aa5b]"
                 rows={rows}
                 placeholder={placeholder || `${langLabels[activeLang]} text...`}
+                style={fontSize ? { fontSize: `${fontSize}px` } : undefined}
             />
+            {fontSize && (
+                <p className="text-[9px] text-gray-600 text-right">預覽字型大小：{fontSize}px（前台將套用此尺寸）</p>
+            )}
         </div>
     );
 }
@@ -296,8 +338,10 @@ function EditModal({ section, onClose, onSave }: { section: Section; onClose: ()
                 <div className="space-y-6">
                     {section.type === 'hero' && (
                         <>
-                            <LocalizedField label="標題" value={content.title} onChange={v => handleChange('title', v)} rows={2} />
-                            <LocalizedField label="副標題" value={content.subtitle} onChange={v => handleChange('subtitle', v)} rows={2} />
+                            <LocalizedField label="標題" value={content.title} onChange={v => handleChange('title', v)} rows={2}
+                                fontSize={content.titleFontSize} onFontSizeChange={v => handleChange('titleFontSize', v)} />
+                            <LocalizedField label="副標題" value={content.subtitle} onChange={v => handleChange('subtitle', v)} rows={2}
+                                fontSize={content.subtitleFontSize} onFontSizeChange={v => handleChange('subtitleFontSize', v)} />
                             <div className="grid grid-cols-2 gap-4">
                                 <LocalizedField label="按鈕文字 (CTA)" value={content.ctaText} onChange={v => handleChange('ctaText', v)} rows={1} placeholder="e.g. Explore" />
                                 <div>
@@ -409,8 +453,10 @@ function EditModal({ section, onClose, onSave }: { section: Section; onClose: ()
 
                     {section.type === 'text-image' && (
                         <>
-                            <LocalizedField label="標題" value={content.heading} onChange={v => handleChange('heading', v)} rows={2} />
-                            <LocalizedField label="正文" value={content.text} onChange={v => handleChange('text', v)} rows={4} />
+                            <LocalizedField label="標題" value={content.heading} onChange={v => handleChange('heading', v)} rows={2}
+                                fontSize={content.headingFontSize} onFontSizeChange={v => handleChange('headingFontSize', v)} />
+                            <LocalizedField label="正文" value={content.text} onChange={v => handleChange('text', v)} rows={4}
+                                fontSize={content.textFontSize} onFontSizeChange={v => handleChange('textFontSize', v)} />
                             <div className="grid grid-cols-2 gap-6">
                                 <AlignControl value={content.textAlign} onChange={v => handleChange('textAlign', v)} />
                                 <div>
@@ -429,7 +475,8 @@ function EditModal({ section, onClose, onSave }: { section: Section; onClose: ()
                                     else setContent((prev: any) => ({ ...prev, images: vals }));
                                 }}
                             />
-                            <LocalizedField label="圖片上的黃字 Caption (選填)" value={content.caption} onChange={v => handleChange('caption', v)} rows={2} placeholder="留空則不顯示..." />
+                            <LocalizedField label="圖片上的黃字 Caption (選填)" value={content.caption} onChange={v => handleChange('caption', v)} rows={2} placeholder="留空則不顯示..."
+                                fontSize={content.captionFontSize} onFontSizeChange={v => handleChange('captionFontSize', v)} />
                         </>
                     )}
 
@@ -443,22 +490,26 @@ function EditModal({ section, onClose, onSave }: { section: Section; onClose: ()
                                     else setContent((prev: any) => ({ ...prev, images: vals }));
                                 }}
                             />
-                            <LocalizedField label="疊蓋說明 (選填)" value={content.caption} onChange={v => handleChange('caption', v)} rows={2} />
+                            <LocalizedField label="疊蓋說明 (選填)" value={content.caption} onChange={v => handleChange('caption', v)} rows={2}
+                                fontSize={content.captionFontSize} onFontSizeChange={v => handleChange('captionFontSize', v)} />
                         </>
                     )}
 
                     {section.type === 'rich-text' && (
                         <div className="space-y-6">
                             <AlignControl value={content.textAlign} onChange={v => handleChange('textAlign', v)} />
-                            <LocalizedField label="編輯器 (支援 Markdown/HTML)" value={content.text} onChange={v => handleChange('text', v)} rows={12} />
+                            <LocalizedField label="編輯器 (支援 Markdown/HTML)" value={content.text} onChange={v => handleChange('text', v)} rows={12}
+                                fontSize={content.fontSize} onFontSizeChange={v => handleChange('fontSize', v)} />
                         </div>
                     )}
 
                     {section.type === 'quote' && (
                         <>
                             <AlignControl value={content.textAlign} onChange={v => handleChange('textAlign', v)} />
-                            <LocalizedField label="引用文字" value={content.text} onChange={v => handleChange('text', v)} rows={3} />
-                            <LocalizedField label="作者" value={content.author} onChange={v => handleChange('author', v)} rows={1} />
+                            <LocalizedField label="引用文字" value={content.text} onChange={v => handleChange('text', v)} rows={3}
+                                fontSize={content.quoteFontSize} onFontSizeChange={v => handleChange('quoteFontSize', v)} />
+                            <LocalizedField label="作者" value={content.author} onChange={v => handleChange('author', v)} rows={1}
+                                fontSize={content.authorFontSize} onFontSizeChange={v => handleChange('authorFontSize', v)} />
                         </>
                     )}
 

@@ -1158,7 +1158,7 @@ export async function updatePayoutStatusAction(paymentId: string, status: 'pendi
         const updates: any = { payout_status: status };
         if (status === 'paid_out') updates.payout_at = new Date().toISOString();
 
-        await supabase.from('payments').update(updates).eq('id', paymentId);
+        await (supabase.from('payments') as any).update(updates).eq('id', paymentId);
 
         revalidatePath('/admin/payments');
         return { success: true };
@@ -1363,7 +1363,7 @@ export async function updateShipmentStatusAction(
     'use server';
     try {
         const supabase = await createClient();
-        const { data: shipment } = await supabase.from('shipments').select('*').eq('id', shipmentId).single();
+        const { data: shipment } = await (supabase.from('shipments') as any).select('*').eq('id', shipmentId).single() as { data: any };
 
         if (!shipment) return { success: false, error: 'Shipment not found' };
 
@@ -1391,15 +1391,15 @@ export async function updateShipmentStatusAction(
             updates.exception_count = (shipment.exception_count || 0) + 1;
         }
 
-        await supabase.from('shipments').update(updates).eq('id', shipmentId);
+        await (supabase.from('shipments') as any).update(updates).eq('id', shipmentId);
 
         // 同步更新訂單狀態
         if (status === 'delivered') {
-            const { data: order } = await supabase.from('orders').select('*').eq('id', shipment.order_id).single();
+            const { data: order } = await (supabase.from('orders') as any).select('*').eq('id', shipment.order_id).single() as { data: any };
             if (order) {
                 const timeline = order.timeline || [];
                 timeline.push({ status: 'delivered', date: now, note: '已簽收' });
-                await supabase.from('orders').update({
+                await (supabase.from('orders') as any).update({
                     status: 'delivered',
                     timeline,
                     last_status_update: now,
@@ -1422,7 +1422,7 @@ export async function updateShipmentStatusAction(
 export async function trackShipmentAction(trackingNumber: string) {
     'use server';
     try {
-        const shipment = await db.getShipmentByTracking(trackingNumber);
+        const shipment = await db.getShipmentByTracking(trackingNumber) as any;
         if (!shipment) return { success: false, error: 'Tracking number not found' };
 
         return {
@@ -1501,7 +1501,7 @@ export async function flagOrderAction(orderId: string, reason: string, priority:
     'use server';
     try {
         const supabase = await createClient();
-        await supabase.from('orders').update({
+        await (supabase.from('orders') as any).update({
             is_flagged: true,
             flag_reason: reason,
             flag_priority: priority,
@@ -1519,7 +1519,7 @@ export async function unflagOrderAction(orderId: string) {
     'use server';
     try {
         const supabase = await createClient();
-        await supabase.from('orders').update({
+        await (supabase.from('orders') as any).update({
             is_flagged: false,
             flag_reason: null,
             flag_priority: null,
@@ -1543,11 +1543,10 @@ export async function getMerchantSettingsAction() {
     'use server';
     try {
         const supabase = await createClient();
-        const { data, error } = await supabase
-            .from('merchant_settings')
+        const { data, error } = await (supabase.from('merchant_settings') as any)
             .select('*')
             .eq('id', 1)
-            .single();
+            .single() as { data: any; error: any };
 
         if (error || !data) {
             return { success: true, settings: { payment_provider: 'manual' } };
@@ -1565,6 +1564,8 @@ export async function getMerchantSettingsAction() {
                 has_ecpay_config: !!(data.ecpay_merchant_id && data.ecpay_hash_key && data.ecpay_hash_iv),
                 has_stripe_config: !!(data.stripe_secret_key),
                 has_tappay_config: !!(data.tappay_partner_key && data.tappay_merchant_id),
+                has_ecpay_logistics_config: !!(data.ecpay_logistics_merchant_id && data.ecpay_logistics_hash_key && data.ecpay_logistics_hash_iv),
+                ecpay_logistics_test_mode: data.ecpay_logistics_test_mode,
             }
         };
     } catch (e) {
@@ -1696,5 +1697,197 @@ export async function testEcpayConnectionAction(
             return { success: false, message: '❌ 連線逾時（10秒），請確認網路或 ECPay 服務狀態' };
         }
         return { success: false, message: `❌ 連線錯誤：${e?.message || String(e)}` };
+    }
+}
+
+// ──────────────────────────────────────────────────────────────
+// ECPay 物流 Actions
+// ──────────────────────────────────────────────────────────────
+
+/** 取得 ECPay 物流 Adapter（讀 DB 憑證） */
+async function getLogisticsAdapter() {
+    const { ECPayLogisticsAdapter } = await import('@/lib/logistics/ecpay-logistics');
+    const supabase = await createClient();
+    const { data } = await supabase
+        .from('merchant_settings')
+        .select('ecpay_logistics_merchant_id, ecpay_logistics_hash_key, ecpay_logistics_hash_iv, ecpay_logistics_test_mode')
+        .eq('id', 1)
+        .single() as { data: any };
+
+    return new ECPayLogisticsAdapter({
+        merchantId: data?.ecpay_logistics_merchant_id || '2000132',
+        hashKey:    data?.ecpay_logistics_hash_key    || 'XBERn1YOvpM9nfZc',
+        hashIv:     data?.ecpay_logistics_hash_iv     || 'h1ONHk4P4yqbl5LK',
+        testMode:   data?.ecpay_logistics_test_mode   ?? true,
+    });
+}
+
+/** 更新 ECPay 物流設定 */
+export async function updateLogisticsSettingsAction(settings: {
+    ecpay_logistics_merchant_id?: string;
+    ecpay_logistics_hash_key?: string;
+    ecpay_logistics_hash_iv?: string;
+    ecpay_logistics_test_mode?: boolean;
+}): Promise<{ success: boolean; error?: string }> {
+    'use server';
+    try {
+        const supabase = await createClient();
+        const record: any = { id: 1, updated_at: new Date().toISOString() };
+        if (settings.ecpay_logistics_merchant_id !== undefined) record.ecpay_logistics_merchant_id = settings.ecpay_logistics_merchant_id;
+        if (settings.ecpay_logistics_hash_key !== undefined)     record.ecpay_logistics_hash_key    = settings.ecpay_logistics_hash_key;
+        if (settings.ecpay_logistics_hash_iv !== undefined)      record.ecpay_logistics_hash_iv     = settings.ecpay_logistics_hash_iv;
+        if (settings.ecpay_logistics_test_mode !== undefined)    record.ecpay_logistics_test_mode   = settings.ecpay_logistics_test_mode;
+        const { error } = await supabase.from('merchant_settings').upsert(record);
+        if (error) throw error;
+        revalidatePath('/admin/settings');
+        return { success: true };
+    } catch (e: any) {
+        return { success: false, error: e.message };
+    }
+}
+
+/** 建立 ECPay CVS 物流訂單（後台出貨時呼叫） */
+export async function createEcpayLogisticsShipmentAction(params: {
+    orderId: string;
+    logisticsSubType: 'UNIMART' | 'FAMI';
+    goodsName: string;
+    goodsAmount: number;
+    senderName: string;
+    senderPhone: string;
+}): Promise<{ success: boolean; allPayLogisticsId?: string; cvsPaperNo?: string; error?: string }> {
+    'use server';
+    try {
+        const supabase = await createClient();
+        const adapter = await getLogisticsAdapter();
+
+        // 取得訂單資訊
+        const { data: order } = await supabase
+            .from('orders')
+            .select('customer_name, customer_phone, customer_email, cvs_store_id, cvs_store_name, cvs_sub_type, total')
+            .eq('id', params.orderId)
+            .single() as { data: any };
+
+        if (!order) return { success: false, error: '找不到訂單' };
+        if (!order.cvs_store_id) return { success: false, error: '此訂單無超商門市資訊' };
+
+        // 生成物流 MerchantTradeNo（最多 20 chars）
+        const dateStr = new Date().toLocaleDateString('zh-TW', { year: '2-digit', month: '2-digit', day: '2-digit' }).replace(/\//g, '');
+        const rand = Math.random().toString(36).slice(2, 6).toUpperCase();
+        const logisticsTradeNo = `L${dateStr}${rand}`.slice(0, 20);
+
+        // 取得 Webhook URL
+        const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || process.env.VERCEL_URL
+            ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000';
+        const serverReplyUrl = `${siteUrl}/api/webhooks/logistics/ecpay`;
+
+        const result = await adapter.createCVSShipment({
+            merchantTradeNo:   logisticsTradeNo,
+            logisticsSubType:  params.logisticsSubType,
+            goodsAmount:       Math.round(params.goodsAmount),
+            goodsName:         params.goodsName,
+            senderName:        params.senderName,
+            senderPhone:       params.senderPhone,
+            receiverName:      order.customer_name,
+            receiverCellPhone: (order.customer_phone || '').replace(/[^0-9]/g, ''),
+            receiverEmail:     order.customer_email,
+            receiverStoreId:   order.cvs_store_id,
+            serverReplyUrl,
+        });
+
+        if (!result.success) return result;
+
+        // 建立 shipments 記錄
+        const now = new Date().toISOString();
+        const dateStr2 = new Date().toLocaleDateString('zh-TW', { year: '2-digit', month: '2-digit', day: '2-digit' }).replace(/\//g, '');
+        const rand2 = Math.random().toString(36).slice(2, 6).toUpperCase();
+        const shipmentId = `SHIP-${dateStr2}-${rand2}`;
+        const carrierName = params.logisticsSubType === 'FAMI' ? '全家超商' : '7-11超商';
+
+        await supabase.from('shipments').upsert({
+            id:                shipmentId,
+            order_id:          params.orderId,
+            carrier:           carrierName,
+            tracking_number:   result.cvsPaperNo || logisticsTradeNo,
+            logistics_id:      result.allPayLogisticsId,
+            logistics_trade_no: logisticsTradeNo,
+            cvs_paper_no:      result.cvsPaperNo,
+            shipment_status:   'pending',
+            status_updates:    [{ timestamp: now, status: 'pending', description: '已建立物流訂單', operator: '後台' }],
+            shipped_at:        now,
+            created_at:        now,
+            updated_at:        now,
+        } as any);
+
+        // 更新訂單
+        const { data: existingOrder } = await supabase.from('orders').select('timeline').eq('id', params.orderId).single() as { data: any };
+        const timeline = Array.isArray(existingOrder?.timeline) ? existingOrder.timeline : [];
+        timeline.push({ status: 'shipped', date: now, note: `已建立${carrierName}物流訂單，寄件碼：${result.cvsPaperNo || logisticsTradeNo}` });
+
+        await (supabase.from('orders') as any).update({
+            status:              'shipped',
+            tracking_carrier:    carrierName,
+            tracking_number:     result.cvsPaperNo || logisticsTradeNo,
+            timeline,
+            last_status_update:  now,
+        }).eq('id', params.orderId);
+
+        revalidatePath('/admin/orders');
+        return { success: true, allPayLogisticsId: result.allPayLogisticsId, cvsPaperNo: result.cvsPaperNo };
+    } catch (e: any) {
+        console.error('createEcpayLogisticsShipmentAction error:', e);
+        return { success: false, error: e.message };
+    }
+}
+
+/** 查詢 ECPay 物流最新狀態（後台手動觸發） */
+export async function queryEcpayLogisticsStatusAction(shipmentId: string): Promise<{
+    success: boolean;
+    statusCode?: string;
+    statusMessage?: string;
+    error?: string;
+}> {
+    'use server';
+    try {
+        const supabase = await createClient();
+        const adapter = await getLogisticsAdapter();
+        const { CVS_STATUS_MAP, CVS_RTNCODE_TO_STATUS } = await import('@/lib/logistics/ecpay-logistics');
+
+        const { data: shipment } = await supabase
+            .from('shipments')
+            .select('logistics_trade_no, logistics_id, shipment_status, status_updates, order_id')
+            .eq('id', shipmentId)
+            .single() as { data: any };
+
+        if (!shipment?.logistics_trade_no) {
+            return { success: false, error: '找不到物流訂單編號' };
+        }
+
+        const result = await adapter.queryStatus(shipment.logistics_trade_no);
+        if (!result.success) return { success: false, error: result.error };
+
+        const rtnCode = result.rtnCode || '';
+        const newStatus = CVS_RTNCODE_TO_STATUS[rtnCode] || 'in_transit';
+        const statusMessage = CVS_STATUS_MAP[rtnCode] || result.statusMessage || '';
+
+        // 若狀態有變化，更新記錄
+        if (newStatus !== shipment.shipment_status) {
+            const statusUpdates = Array.isArray(shipment.status_updates) ? shipment.status_updates : [];
+            statusUpdates.push({
+                timestamp:   new Date().toISOString(),
+                status:      newStatus,
+                description: statusMessage,
+                operator:    'ECPay（手動查詢）',
+            });
+            await (supabase.from('shipments') as any).update({
+                shipment_status: newStatus,
+                status_updates:  statusUpdates,
+                updated_at:      new Date().toISOString(),
+            }).eq('id', shipmentId);
+        }
+
+        revalidatePath('/admin/orders');
+        return { success: true, statusCode: rtnCode, statusMessage };
+    } catch (e: any) {
+        return { success: false, error: e.message };
     }
 }

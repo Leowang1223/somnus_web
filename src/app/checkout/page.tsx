@@ -1,16 +1,28 @@
 'use client';
 
 import { useCart } from "@/context/CartContext";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { createOrderAction } from "@/app/actions";
-import { Loader2, ArrowLeft, ShieldCheck, Clock } from "lucide-react";
+import { Loader2, ArrowLeft, ShieldCheck, Clock, Store, MapPin, ChevronDown } from "lucide-react";
 import Link from "next/link";
+
+interface CVSStore {
+    storeId: string;
+    storeName: string;
+    storeAddress: string;
+    subType: string; // UNIMART | FAMI
+    displayType: string; // 7-11 | 全家
+}
 
 export default function CheckoutPage() {
     const { items, cartTotal, clearCart } = useCart();
     const router = useRouter();
     const [isLoading, setIsLoading] = useState(false);
+
+    // 配送方式：home_delivery | cvs_pickup
+    const [shippingMethod, setShippingMethod] = useState<'home_delivery' | 'cvs_pickup'>('home_delivery');
+    const [selectedCVSStore, setSelectedCVSStore] = useState<CVSStore | null>(null);
 
     // 檢查購物車中是否有預購商品
     const hasPreorder = items.some(item => item.is_preorder);
@@ -32,17 +44,40 @@ export default function CheckoutPage() {
 
     // 會計相關欄位
     const [invoiceRequired, setInvoiceRequired] = useState(false);
-    const [invoiceType, setInvoiceType] = useState('duplicate'); // duplicate(二聯) or triplicate(三聯)
-    const [taxId, setTaxId] = useState(''); // 統一編號
+    const [invoiceType, setInvoiceType] = useState('duplicate');
+    const [taxId, setTaxId] = useState('');
     const [companyName, setCompanyName] = useState('');
     const [customerNotes, setCustomerNotes] = useState('');
 
     // 計算金額
     const subtotal = cartTotal;
-    const taxRate = 5; // 5% 營業稅
+    const taxRate = 5;
     const taxAmount = useMemo(() => Math.round(subtotal * taxRate / 100 * 100) / 100, [subtotal]);
-    const shippingFee = 0; // 免運
+    const shippingFee = 0;
     const totalAmount = subtotal + taxAmount + shippingFee;
+
+    // 監聽 CVS 選店 postMessage
+    useEffect(() => {
+        const handler = (event: MessageEvent) => {
+            if (event.data?.type === 'CVS_STORE_SELECTED') {
+                setSelectedCVSStore(event.data.store);
+            }
+        };
+        window.addEventListener('message', handler);
+        return () => window.removeEventListener('message', handler);
+    }, []);
+
+    // 開啟 ECPay CVS 地圖選店彈窗
+    const openCVSMap = useCallback(() => {
+        const popup = window.open(
+            '/api/logistics/cvs-map',
+            'CVSMap',
+            'width=1000,height=680,scrollbars=yes,resizable=yes'
+        );
+        if (!popup) {
+            alert('請允許彈出視窗以選擇超商門市');
+        }
+    }, []);
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
         setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -50,6 +85,13 @@ export default function CheckoutPage() {
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+
+        // CVS 配送需確認已選門市
+        if (shippingMethod === 'cvs_pickup' && !selectedCVSStore) {
+            alert('請先選擇超商取件門市');
+            return;
+        }
+
         setIsLoading(true);
 
         const orderData = {
@@ -63,6 +105,15 @@ export default function CheckoutPage() {
                 image: item.product.image
             })),
             shippingInfo: formData,
+            customer_name: formData.fullName,
+            customer_email: formData.email,
+            customer_phone: formData.phone,
+            // 物流
+            shipping_method: shippingMethod,
+            cvs_store_id: selectedCVSStore?.storeId || null,
+            cvs_store_name: selectedCVSStore?.storeName || null,
+            cvs_store_address: selectedCVSStore?.storeAddress || null,
+            cvs_sub_type: selectedCVSStore?.subType || null,
             // 會計欄位
             currency: 'TWD',
             tax_rate: taxRate,
@@ -76,7 +127,6 @@ export default function CheckoutPage() {
             customer_notes: customerNotes || null,
         };
 
-        // 1. 建立訂單（status: pending，等待付款）
         const result = await createOrderAction(orderData);
 
         if (!result.success) {
@@ -87,7 +137,6 @@ export default function CheckoutPage() {
 
         clearCart();
 
-        // 2. 呼叫金流 API
         try {
             const payRes = await fetch('/api/payment/create', {
                 method: 'POST',
@@ -104,27 +153,22 @@ export default function CheckoutPage() {
             const payData = await payRes.json();
 
             if (payData.mode === 'form' && payData.formHtml) {
-                // ECPay：用隱藏 iframe 自動 submit form，讓用戶跳轉至付款頁面
                 const doc = new DOMParser().parseFromString(payData.formHtml, 'text/html');
                 const form = doc.querySelector('form');
                 if (form) {
-                    // 把 form 直接掛到 DOM 並 submit
                     document.body.appendChild(form);
                     form.submit();
-                    return; // 頁面跳轉，不需要繼續
+                    return;
                 }
             } else if (payData.mode === 'redirect' && payData.redirectUrl) {
-                // Stripe Hosted Checkout 等
                 window.location.href = payData.redirectUrl;
                 return;
             } else {
-                // 手動付款模式（manual）→ 直接跳到訂單確認頁
                 router.push(`/order-confirmation/${result.orderId}`);
                 return;
             }
         } catch (payErr) {
             console.error('Payment API error:', payErr);
-            // 金流失敗時仍跳轉確認頁，讓客戶知道訂單已建立
             router.push(`/order-confirmation/${result.orderId}`);
         }
 
@@ -156,6 +200,7 @@ export default function CheckoutPage() {
                     <div>
                         <h1 className="text-3xl font-display mb-8">Secure Checkout</h1>
                         <form onSubmit={handleSubmit} className="space-y-6">
+
                             {/* Contact */}
                             <div className="space-y-4">
                                 <h2 className="text-xs uppercase tracking-widest text-[#d8aa5b] font-bold mb-4">聯絡資訊</h2>
@@ -164,32 +209,97 @@ export default function CheckoutPage() {
                                     value={formData.email} onChange={handleChange}
                                     className="w-full bg-[#111] border border-white/10 p-4 text-white focus:outline-none focus:border-[#d8aa5b] transition-colors rounded-sm"
                                 />
+                                <input required name="fullName" placeholder="收件人姓名" value={formData.fullName} onChange={handleChange}
+                                    className="w-full bg-[#111] border border-white/10 p-4 text-white focus:outline-none focus:border-[#d8aa5b] transition-colors rounded-sm" />
+                                <input required name="phone" placeholder="手機號碼" value={formData.phone} onChange={handleChange}
+                                    className="w-full bg-[#111] border border-white/10 p-4 text-white focus:outline-none focus:border-[#d8aa5b] transition-colors rounded-sm" />
                             </div>
 
-                            {/* Shipping */}
+                            {/* Shipping Method */}
                             <div className="space-y-4">
-                                <h2 className="text-xs uppercase tracking-widest text-[#d8aa5b] font-bold mb-4 mt-8">收件地址</h2>
-                                <div className="grid grid-cols-2 gap-4">
-                                    <input required name="fullName" placeholder="收件人姓名" value={formData.fullName} onChange={handleChange}
-                                        className="col-span-2 w-full bg-[#111] border border-white/10 p-4 text-white focus:outline-none focus:border-[#d8aa5b] transition-colors rounded-sm" />
-                                    <input required name="addressLine1" placeholder="地址" value={formData.addressLine1} onChange={handleChange}
-                                        className="col-span-2 w-full bg-[#111] border border-white/10 p-4 text-white focus:outline-none focus:border-[#d8aa5b] transition-colors rounded-sm" />
-                                    <input required name="city" placeholder="城市" value={formData.city} onChange={handleChange}
-                                        className="w-full bg-[#111] border border-white/10 p-4 text-white focus:outline-none focus:border-[#d8aa5b] transition-colors rounded-sm" />
-                                    <input required name="postalCode" placeholder="郵遞區號" value={formData.postalCode} onChange={handleChange}
-                                        className="w-full bg-[#111] border border-white/10 p-4 text-white focus:outline-none focus:border-[#d8aa5b] transition-colors rounded-sm" />
-                                    <input required name="phone" placeholder="電話" value={formData.phone} onChange={handleChange}
-                                        className="col-span-2 w-full bg-[#111] border border-white/10 p-4 text-white focus:outline-none focus:border-[#d8aa5b] transition-colors rounded-sm" />
-                                    <select name="country" value={formData.country} onChange={handleChange}
-                                        className="col-span-2 w-full bg-[#111] border border-white/10 p-4 text-white focus:outline-none focus:border-[#d8aa5b] transition-colors rounded-sm">
-                                        <option value="Taiwan">台灣</option>
-                                        <option value="Hong Kong">香港</option>
-                                        <option value="Japan">日本</option>
-                                        <option value="United States">美國</option>
-                                        <option value="Other">其他</option>
-                                    </select>
+                                <h2 className="text-xs uppercase tracking-widest text-[#d8aa5b] font-bold mb-4 mt-8">配送方式</h2>
+                                <div className="grid grid-cols-2 gap-3">
+                                    <button
+                                        type="button"
+                                        onClick={() => setShippingMethod('home_delivery')}
+                                        className={`flex flex-col items-center gap-2 p-4 border rounded-sm transition-all ${shippingMethod === 'home_delivery' ? 'border-[#d8aa5b] bg-[#d8aa5b]/10' : 'border-white/10 bg-[#111] hover:border-white/20'}`}
+                                    >
+                                        <MapPin size={20} className={shippingMethod === 'home_delivery' ? 'text-[#d8aa5b]' : 'text-white/40'} />
+                                        <span className="text-xs font-bold uppercase tracking-widest">宅配到府</span>
+                                        <span className="text-[10px] text-gray-500">填寫收件地址</span>
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => setShippingMethod('cvs_pickup')}
+                                        className={`flex flex-col items-center gap-2 p-4 border rounded-sm transition-all ${shippingMethod === 'cvs_pickup' ? 'border-[#d8aa5b] bg-[#d8aa5b]/10' : 'border-white/10 bg-[#111] hover:border-white/20'}`}
+                                    >
+                                        <Store size={20} className={shippingMethod === 'cvs_pickup' ? 'text-[#d8aa5b]' : 'text-white/40'} />
+                                        <span className="text-xs font-bold uppercase tracking-widest">超商取貨</span>
+                                        <span className="text-[10px] text-gray-500">7-11 / 全家</span>
+                                    </button>
                                 </div>
                             </div>
+
+                            {/* Home Delivery Address */}
+                            {shippingMethod === 'home_delivery' && (
+                                <div className="space-y-4">
+                                    <h2 className="text-xs uppercase tracking-widest text-[#d8aa5b] font-bold mb-4 mt-4">收件地址</h2>
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <input required name="addressLine1" placeholder="地址" value={formData.addressLine1} onChange={handleChange}
+                                            className="col-span-2 w-full bg-[#111] border border-white/10 p-4 text-white focus:outline-none focus:border-[#d8aa5b] transition-colors rounded-sm" />
+                                        <input required name="city" placeholder="城市" value={formData.city} onChange={handleChange}
+                                            className="w-full bg-[#111] border border-white/10 p-4 text-white focus:outline-none focus:border-[#d8aa5b] transition-colors rounded-sm" />
+                                        <input required name="postalCode" placeholder="郵遞區號" value={formData.postalCode} onChange={handleChange}
+                                            className="w-full bg-[#111] border border-white/10 p-4 text-white focus:outline-none focus:border-[#d8aa5b] transition-colors rounded-sm" />
+                                        <select name="country" value={formData.country} onChange={handleChange}
+                                            className="col-span-2 w-full bg-[#111] border border-white/10 p-4 text-white focus:outline-none focus:border-[#d8aa5b] transition-colors rounded-sm">
+                                            <option value="Taiwan">台灣</option>
+                                            <option value="Hong Kong">香港</option>
+                                            <option value="Japan">日本</option>
+                                            <option value="United States">美國</option>
+                                            <option value="Other">其他</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* CVS Pickup Store */}
+                            {shippingMethod === 'cvs_pickup' && (
+                                <div className="space-y-4">
+                                    <h2 className="text-xs uppercase tracking-widest text-[#d8aa5b] font-bold mb-4 mt-4">超商取件門市</h2>
+
+                                    {selectedCVSStore ? (
+                                        <div className="bg-[#d8aa5b]/10 border border-[#d8aa5b]/30 rounded-sm p-4 space-y-2">
+                                            <div className="flex items-center justify-between">
+                                                <div className="flex items-center gap-2">
+                                                    <Store size={16} className="text-[#d8aa5b]" />
+                                                    <span className="text-sm font-bold text-[#d8aa5b]">{selectedCVSStore.displayType}</span>
+                                                </div>
+                                                <button
+                                                    type="button"
+                                                    onClick={openCVSMap}
+                                                    className="text-[10px] text-gray-400 hover:text-white transition-colors uppercase tracking-widest"
+                                                >
+                                                    重新選擇
+                                                </button>
+                                            </div>
+                                            <p className="text-white font-medium">{selectedCVSStore.storeName}</p>
+                                            <p className="text-gray-400 text-sm">{selectedCVSStore.storeAddress}</p>
+                                            <p className="text-gray-600 text-[10px]">門市代碼：{selectedCVSStore.storeId}</p>
+                                        </div>
+                                    ) : (
+                                        <button
+                                            type="button"
+                                            onClick={openCVSMap}
+                                            className="w-full border-2 border-dashed border-white/20 hover:border-[#d8aa5b]/50 rounded-sm p-6 flex flex-col items-center gap-3 transition-all group"
+                                        >
+                                            <Store size={28} className="text-white/20 group-hover:text-[#d8aa5b]/60 transition-colors" />
+                                            <span className="text-sm font-bold uppercase tracking-widest text-white/50 group-hover:text-white transition-colors">選擇取件門市</span>
+                                            <span className="text-[10px] text-gray-600">7-11 / 全家超商 · 點擊開啟地圖</span>
+                                        </button>
+                                    )}
+                                </div>
+                            )}
 
                             {/* Invoice */}
                             <div className="space-y-4">
@@ -259,7 +369,7 @@ export default function CheckoutPage() {
                             <div className="pt-8">
                                 <button
                                     type="submit"
-                                    disabled={isLoading}
+                                    disabled={isLoading || (shippingMethod === 'cvs_pickup' && !selectedCVSStore)}
                                     className="w-full bg-[#d8aa5b] text-black h-14 font-bold uppercase tracking-widest hover:bg-white transition-colors flex items-center justify-center gap-3 rounded-sm disabled:opacity-50 disabled:cursor-not-allowed"
                                 >
                                     {isLoading ? <Loader2 className="animate-spin" /> : (
@@ -268,6 +378,9 @@ export default function CheckoutPage() {
                                         </span>
                                     )}
                                 </button>
+                                {shippingMethod === 'cvs_pickup' && !selectedCVSStore && (
+                                    <p className="text-center text-amber-500 text-[10px] mt-2">請先選擇超商取件門市</p>
+                                )}
                                 <p className="text-center text-gray-600 text-[10px] mt-4 uppercase tracking-widest">
                                     Secure Checkout
                                 </p>
@@ -348,6 +461,14 @@ export default function CheckoutPage() {
                             <div className="flex justify-between text-gray-400 text-sm">
                                 <span>運費</span>
                                 <span>{shippingFee > 0 ? `NT$${shippingFee.toLocaleString()}` : '免運'}</span>
+                            </div>
+                            <div className="flex justify-between text-gray-400 text-sm">
+                                <span>配送方式</span>
+                                <span className="text-white text-xs">
+                                    {shippingMethod === 'cvs_pickup'
+                                        ? (selectedCVSStore ? `${selectedCVSStore.displayType} ${selectedCVSStore.storeName}` : '超商取貨（未選門市）')
+                                        : '宅配到府'}
+                                </span>
                             </div>
                             <div className="flex justify-between text-white text-lg font-display pt-4 border-t border-white/10 mt-4">
                                 <span>總計</span>

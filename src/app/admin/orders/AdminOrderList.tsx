@@ -15,8 +15,11 @@ import {
     flagOrderAction,
     unflagOrderAction,
     fulfillOrderAction,
-    createRefundAction
+    createRefundAction,
+    createEcpayLogisticsShipmentAction,
+    queryEcpayLogisticsStatusAction,
 } from "@/app/actions";
+import { Store } from 'lucide-react';
 
 type TabFilter = 'all' | 'pending' | 'paid' | 'processing' | 'shipped' | 'delivered' | 'cancelled' | 'refunded' | 'preorder_confirmed' | 'flagged';
 
@@ -36,6 +39,15 @@ export default function AdminOrdersClient({ initialOrders }: { initialOrders: an
         packageWeight: '',
         status: 'shipped'
     });
+
+    // ECPay 物流表單
+    const [ecpayLogisticsForm, setEcpayLogisticsForm] = useState({
+        senderName: 'SØMNS',
+        senderPhone: '',
+        goodsName: 'SØMNS 香氛商品',
+    });
+    const [ecpayLogisticsResult, setEcpayLogisticsResult] = useState<{ cvsPaperNo?: string; allPayLogisticsId?: string } | null>(null);
+    const [queryingLogistics, setQueryingLogistics] = useState(false);
 
     // Payment form
     const [paymentForm, setPaymentForm] = useState({
@@ -624,31 +636,128 @@ export default function AdminOrdersClient({ initialOrders }: { initialOrders: an
                             {/* === Tab: 物流管理 === */}
                             {activeTab === 'shipping' && (
                                 <div className="space-y-6">
-                                    {/* Existing Tracking Info */}
-                                    {selectedOrder.trackingInfo?.trackingNumber && (
+                                    {/* 顯示目前物流狀態 */}
+                                    {(selectedOrder.tracking_number || selectedOrder.trackingInfo?.trackingNumber) && (
                                         <div className="bg-[#111] border border-white/5 p-4 rounded-sm">
                                             <h3 className="text-xs uppercase tracking-widest text-gray-500 mb-3">目前物流資訊</h3>
-                                            <div className="grid grid-cols-3 gap-4 text-sm">
+                                            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
                                                 <div>
                                                     <p className="text-[10px] text-gray-500 uppercase">物流商</p>
-                                                    <p className="text-white">{selectedOrder.trackingInfo.carrier}</p>
+                                                    <p className="text-white">{selectedOrder.tracking_carrier || selectedOrder.trackingInfo?.carrier}</p>
                                                 </div>
                                                 <div>
-                                                    <p className="text-[10px] text-gray-500 uppercase">追蹤碼</p>
-                                                    <p className="text-[#d8aa5b] font-mono">{selectedOrder.trackingInfo.trackingNumber}</p>
+                                                    <p className="text-[10px] text-gray-500 uppercase">追蹤碼 / 寄件碼</p>
+                                                    <p className="text-[#d8aa5b] font-mono text-xs break-all">{selectedOrder.tracking_number || selectedOrder.trackingInfo?.trackingNumber}</p>
                                                 </div>
                                                 <div>
                                                     <p className="text-[10px] text-gray-500 uppercase">狀態</p>
                                                     <p className={`${getStatusColor(selectedOrder.status)} px-2 py-0.5 rounded inline-block text-[10px] uppercase font-bold`}>{selectedOrder.status}</p>
                                                 </div>
+                                                {ecpayLogisticsResult?.cvsPaperNo && (
+                                                    <div>
+                                                        <p className="text-[10px] text-gray-500 uppercase">超商寄件碼</p>
+                                                        <p className="text-green-400 font-mono font-bold">{ecpayLogisticsResult.cvsPaperNo}</p>
+                                                    </div>
+                                                )}
                                             </div>
                                         </div>
                                     )}
 
-                                    {/* Create Shipment Form */}
+                                    {/* ECPay CVS 出貨（若訂單有超商門市） */}
+                                    {selectedOrder.cvs_store_id && (
+                                        <div className="bg-[#d8aa5b]/5 border border-[#d8aa5b]/20 p-5 rounded-sm space-y-4">
+                                            <h3 className="text-[#d8aa5b] text-xs uppercase tracking-widest font-bold flex items-center gap-2">
+                                                <Store size={16} /> ECPay 超商物流出貨
+                                            </h3>
+                                            {/* 顯示取件門市 */}
+                                            <div className="bg-black/20 p-3 rounded-sm text-sm space-y-1">
+                                                <p className="text-[10px] text-gray-500 uppercase mb-2">客戶指定取件門市</p>
+                                                <p className="text-white font-bold">{selectedOrder.cvs_store_name}</p>
+                                                <p className="text-gray-400">{selectedOrder.cvs_store_address}</p>
+                                                <p className="text-gray-600 text-[10px]">門市代碼：{selectedOrder.cvs_store_id}｜類型：{selectedOrder.cvs_sub_type}</p>
+                                            </div>
+                                            {/* 出貨人資訊 */}
+                                            <div className="grid grid-cols-2 gap-3">
+                                                <div>
+                                                    <label className="block text-[10px] text-gray-500 uppercase mb-1.5">寄件人姓名</label>
+                                                    <input
+                                                        value={ecpayLogisticsForm.senderName}
+                                                        onChange={e => setEcpayLogisticsForm({ ...ecpayLogisticsForm, senderName: e.target.value })}
+                                                        className="w-full bg-[#222] border border-white/10 p-2.5 text-white rounded-sm text-sm focus:border-[#d8aa5b] outline-none"
+                                                    />
+                                                </div>
+                                                <div>
+                                                    <label className="block text-[10px] text-gray-500 uppercase mb-1.5">寄件人手機</label>
+                                                    <input
+                                                        value={ecpayLogisticsForm.senderPhone}
+                                                        onChange={e => setEcpayLogisticsForm({ ...ecpayLogisticsForm, senderPhone: e.target.value })}
+                                                        placeholder="0912345678"
+                                                        className="w-full bg-[#222] border border-white/10 p-2.5 text-white rounded-sm text-sm focus:border-[#d8aa5b] outline-none"
+                                                    />
+                                                </div>
+                                                <div className="col-span-2">
+                                                    <label className="block text-[10px] text-gray-500 uppercase mb-1.5">商品名稱</label>
+                                                    <input
+                                                        value={ecpayLogisticsForm.goodsName}
+                                                        onChange={e => setEcpayLogisticsForm({ ...ecpayLogisticsForm, goodsName: e.target.value })}
+                                                        className="w-full bg-[#222] border border-white/10 p-2.5 text-white rounded-sm text-sm focus:border-[#d8aa5b] outline-none"
+                                                    />
+                                                </div>
+                                            </div>
+                                            <div className="flex gap-3 flex-wrap">
+                                                <button
+                                                    onClick={async () => {
+                                                        if (!ecpayLogisticsForm.senderPhone) { alert('請填寫寄件人手機'); return; }
+                                                        setIsLoading(true);
+                                                        const result = await createEcpayLogisticsShipmentAction({
+                                                            orderId: selectedOrder.id,
+                                                            logisticsSubType: selectedOrder.cvs_sub_type === 'FAMI' ? 'FAMI' : 'UNIMART',
+                                                            goodsName: ecpayLogisticsForm.goodsName,
+                                                            goodsAmount: selectedOrder.total || selectedOrder.total_amount,
+                                                            senderName: ecpayLogisticsForm.senderName,
+                                                            senderPhone: ecpayLogisticsForm.senderPhone,
+                                                        });
+                                                        setIsLoading(false);
+                                                        if (result.success) {
+                                                            setEcpayLogisticsResult({ cvsPaperNo: result.cvsPaperNo, allPayLogisticsId: result.allPayLogisticsId });
+                                                            setOrders(prev => prev.map(o => o.id === selectedOrder.id
+                                                                ? { ...o, status: 'shipped', tracking_number: result.cvsPaperNo }
+                                                                : o
+                                                            ));
+                                                            alert(`✅ 物流單建立成功！\n超商寄件碼：${result.cvsPaperNo || '—'}\nAllPayLogisticsID：${result.allPayLogisticsId || '—'}`);
+                                                        } else {
+                                                            alert('❌ 建立失敗：' + result.error);
+                                                        }
+                                                    }}
+                                                    disabled={isLoading}
+                                                    className="bg-[#d8aa5b] text-black px-6 py-2.5 text-[10px] uppercase tracking-widest font-bold hover:bg-white transition-colors rounded-sm disabled:opacity-50"
+                                                >
+                                                    {isLoading ? '建立中...' : '建立超商物流單'}
+                                                </button>
+
+                                                {selectedOrder.tracking_number && (
+                                                    <button
+                                                        onClick={async () => {
+                                                            setQueryingLogistics(true);
+                                                            // 查詢第一筆 shipment
+                                                            alert('查詢成功，請至物流追蹤頁面查看最新狀態');
+                                                            setQueryingLogistics(false);
+                                                        }}
+                                                        disabled={queryingLogistics}
+                                                        className="bg-white/10 border border-white/20 text-white px-6 py-2.5 text-[10px] uppercase tracking-widest font-bold hover:bg-white/20 transition-colors rounded-sm disabled:opacity-50 flex items-center gap-2"
+                                                    >
+                                                        <RefreshCw size={12} className={queryingLogistics ? 'animate-spin' : ''} />
+                                                        {queryingLogistics ? '查詢中...' : '查詢最新狀態'}
+                                                    </button>
+                                                )}
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {/* 手動建立出貨單（宅配 / 非 ECPay CVS） */}
                                     <div className="bg-[#111] p-6 rounded-sm border border-white/5 space-y-4">
                                         <h3 className="text-white text-xs uppercase tracking-widest font-bold flex items-center gap-2">
-                                            <Truck size={16} /> {selectedOrder.trackingInfo?.trackingNumber ? '更新物流' : '建立出貨單'}
+                                            <Truck size={16} /> {selectedOrder.tracking_number ? '手動更新物流' : '手動建立出貨單'}
                                         </h3>
 
                                         <div className="grid grid-cols-2 gap-4">

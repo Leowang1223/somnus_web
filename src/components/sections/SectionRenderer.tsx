@@ -188,7 +188,8 @@ const HeroSection = ({ content, isInView }: { content: any, isInView?: boolean }
                     className={`font-display text-5xl md:text-8xl mb-4 leading-tight whitespace-pre-wrap relative z-10 reveal-text ${isInView ? 'active' : ''} ${content.enableTitleGlow ? 'text-breathing-glow' : ''}`}
                     style={{
                         color: content.titleColor || '#ffffff',
-                        '--glow-color': content.titleGlowColor || 'rgba(216, 170, 91, 0.4)'
+                        '--glow-color': content.titleGlowColor || 'rgba(216, 170, 91, 0.4)',
+                        ...(content.titleFontSize ? { fontSize: `${content.titleFontSize}px` } : {})
                     } as React.CSSProperties}
                 >
                     {loc(content.title, lang)}
@@ -196,7 +197,11 @@ const HeroSection = ({ content, isInView }: { content: any, isInView?: boolean }
                 {loc(content.subtitle, lang) && (
                     <p
                         className={`text-sm md:text-base tracking-widest uppercase mt-4 mb-12 max-w-2xl relative z-10 reveal-text delay-1 ${isInView ? 'active' : ''}`}
-                        style={{ color: content.subtitleColor || '#ffffff', opacity: content.subtitleColor ? 1 : 0.7 }}
+                        style={{
+                            color: content.subtitleColor || '#ffffff',
+                            opacity: content.subtitleColor ? 1 : 0.7,
+                            ...(content.subtitleFontSize ? { fontSize: `${content.subtitleFontSize}px` } : {})
+                        }}
                     >
                         {loc(content.subtitle, lang)}
                     </p>
@@ -260,13 +265,13 @@ const TextImageSection = ({ content, isInView }: { content: any, isInView?: bool
                 >
                     <h2
                         className={`font-display text-4xl md:text-5xl lg:text-6xl text-white whitespace-pre-wrap reveal-text ${isInView ? 'active' : ''}`}
-                        style={{ lineHeight: '1.2' }}
+                        style={{ lineHeight: '1.2', ...(content.headingFontSize ? { fontSize: `${content.headingFontSize}px` } : {}) }}
                     >
                         {loc(content.heading, lang)}
                     </h2>
                     <div
                         className={`text-gray-400 text-base md:text-lg leading-relaxed font-light whitespace-pre-wrap reveal-text delay-1 ${isInView ? 'active' : ''}`}
-                        style={{ lineHeight: '1.8' }}
+                        style={{ lineHeight: '1.8', ...(content.textFontSize ? { fontSize: `${content.textFontSize}px` } : {}) }}
                     >
                         {loc(content.text, lang)}
                     </div>
@@ -285,7 +290,10 @@ const RichTextSection = ({ content, isInView }: { content: any, isInView?: boole
         style={{ textAlign: content.textAlign || 'center' } as React.CSSProperties}
     >
         <div className={`w-full flex flex-col ${content.textAlign === 'left' ? 'items-start' : content.textAlign === 'right' ? 'items-end' : 'items-center'} reveal-text ${isInView ? 'active' : ''}`}>
-            <div className="max-w-4xl text-gray-400 leading-relaxed font-light text-lg whitespace-pre-wrap w-full">
+            <div
+                className="max-w-4xl text-gray-400 leading-relaxed font-light text-lg whitespace-pre-wrap w-full"
+                style={content.fontSize ? { fontSize: `${content.fontSize}px` } : undefined}
+            >
                 {loc(content.text, lang)}
             </div>
         </div>
@@ -306,11 +314,17 @@ const QuoteSection = ({ content, isInView }: { content: any, isInView?: boolean 
                 <div className={`text-[#d8aa5b] mb-12 reveal-text ${isInView ? 'active' : ''}`}>
                     <Zap size={48} className={`opacity-20 ${content.textAlign === 'left' ? 'mr-auto' : content.textAlign === 'right' ? 'ml-auto' : 'mx-auto'}`} />
                 </div>
-                <blockquote className={`font-display text-3xl md:text-5xl text-white leading-tight mb-12 italic reveal-text delay-1 ${isInView ? 'active' : ''}`}>
+                <blockquote
+                    className={`font-display text-3xl md:text-5xl text-white leading-tight mb-12 italic reveal-text delay-1 ${isInView ? 'active' : ''}`}
+                    style={content.quoteFontSize ? { fontSize: `${content.quoteFontSize}px` } : undefined}
+                >
                     "{loc(content.text, lang)}"
                 </blockquote>
                 {content.author && (
-                    <div className={`text-[#d8aa5b] uppercase tracking-[0.3em] text-xs font-bold reveal-text delay-2 ${isInView ? 'active' : ''}`}>
+                    <div
+                        className={`text-[#d8aa5b] uppercase tracking-[0.3em] text-xs font-bold reveal-text delay-2 ${isInView ? 'active' : ''}`}
+                        style={content.authorFontSize ? { fontSize: `${content.authorFontSize}px` } : undefined}
+                    >
                         — {loc(content.author, lang)} —
                     </div>
                 )}

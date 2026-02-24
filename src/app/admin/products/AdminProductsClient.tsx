@@ -285,12 +285,19 @@ export default function AdminProductsClient({ initialProducts }: { initialProduc
                             <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
                                 {/* Form Side */}
                                 <form action={async (formData) => {
-                                    // Append all language fields
+                                    // Append English name/description (controlled inputs without name attr)
+                                    formData.append('name', currentProduct.name || '');
+                                    formData.append('description', currentProduct.description || '');
+                                    // Append other language fields
                                     ['zh', 'jp', 'ko'].forEach(lang => {
                                         formData.append(`name_${lang}`, currentProduct[`name_${lang}`] || '');
                                         formData.append(`description_${lang}`, currentProduct[`description_${lang}`] || '');
                                     });
-                                    await updateProductAction(formData);
+                                    const result = await updateProductAction(formData);
+                                    if (!result.success) {
+                                        alert('儲存失敗，請稍後再試');
+                                        return;
+                                    }
                                     setIsEditing(false);
                                     router.refresh();
                                 }} className="space-y-8 relative z-10">
@@ -415,9 +422,17 @@ export default function AdminProductsClient({ initialProducts }: { initialProduc
                                                         </select>
                                                     </div>
                                                 </div>
-                                                <div className="mt-6">
-                                                    <label className="block text-xs uppercase tracking-widest text-gray-500 mb-2">價格 ($)</label>
-                                                    <input name="price" type="number" defaultValue={currentProduct.price} className="w-full bg-white/5 border border-white/10 p-4 text-white focus:outline-none focus:border-[#d8aa5b]" required />
+                                                <div className="mt-6 grid grid-cols-2 gap-4">
+                                                    <div>
+                                                        <label className="block text-xs uppercase tracking-widest text-gray-500 mb-2">售價 ($)</label>
+                                                        <input name="price" type="number" min="0" step="0.01" defaultValue={currentProduct.price} className="w-full bg-white/5 border border-white/10 p-4 text-white focus:outline-none focus:border-[#d8aa5b]" required />
+                                                    </div>
+                                                    <div>
+                                                        <label className="block text-xs uppercase tracking-widest text-gray-500 mb-2 flex items-center gap-1">
+                                                            成本 ($) <span className="text-[10px] text-gray-600 normal-case">(僅後台可見)</span>
+                                                        </label>
+                                                        <input name="cost" type="number" min="0" step="0.01" defaultValue={currentProduct.cost || 0} className="w-full bg-white/5 border border-white/10 p-4 text-white focus:outline-none focus:border-[#d8aa5b]" />
+                                                    </div>
                                                 </div>
                                             </div>
 

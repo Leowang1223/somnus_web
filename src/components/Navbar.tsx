@@ -141,9 +141,9 @@ export default function Navbar() {
                     {/* Cart */}
                     <button onClick={toggleCart} className="flex items-center gap-2 hover:text-[#d8aa5b] transition-colors relative group">
                         <ShoppingBag size={18} />
-                        <span className="hidden md:inline">{t('nav.cart')} ({itemCount})</span>
+                        <span className="hidden lg:inline">{t('nav.cart')} ({itemCount})</span>
                         {itemCount > 0 && (
-                            <span className="md:hidden absolute -top-1.5 -right-1.5 w-4 h-4 bg-[#d8aa5b] text-black text-[9px] font-bold rounded-full flex items-center justify-center">
+                            <span className="lg:hidden absolute -top-1.5 -right-1.5 w-4 h-4 bg-[#d8aa5b] text-black text-[9px] font-bold rounded-full flex items-center justify-center">
                                 {itemCount}
                             </span>
                         )}

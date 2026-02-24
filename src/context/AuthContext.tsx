@@ -94,23 +94,27 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                     const requestId = ++roleRequestIdRef.current;
                     try {
                         const userRole = await fetchRole();
-                        // 若有更新的請求已經開始，丟棄此舊結果（不 return，繼續執行後面的 setLoading）
+                        // 只在「最新請求」時才更新 role 與 loading
+                        // stale 請求靜默丟棄，由更新的請求負責 setLoading(false)
                         if (isMountedRef.current && requestId === roleRequestIdRef.current) {
                             setRole(userRole);
+                            setLoading(false);
                         }
                     } catch (roleError) {
                         console.error('onAuthStateChange: error fetching role:', roleError);
-                        if (isMountedRef.current && requestId === roleRequestIdRef.current) setRole('consumer');
+                        if (isMountedRef.current && requestId === roleRequestIdRef.current) {
+                            setRole('consumer');
+                            setLoading(false);
+                        }
                     }
                 }
             } else {
                 setUser(null);
                 setRole(null);
-            }
-
-            // INITIAL_SESSION 觸發時（無論有無 session），結束 loading 狀態
-            if (event === 'INITIAL_SESSION') {
-                if (isMountedRef.current) setLoading(false);
+                // 無 session 的 INITIAL_SESSION → 立即解除 loading（用戶未登入狀態）
+                if (event === 'INITIAL_SESSION' && isMountedRef.current) {
+                    setLoading(false);
+                }
             }
         });
 

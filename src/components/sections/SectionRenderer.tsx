@@ -163,7 +163,7 @@ const HeroSection = ({ content, isInView }: { content: any, isInView?: boolean }
             <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[60vw] h-[60vw] bg-[radial-gradient(circle,_rgba(216,170,91,0.15)_0%,_transparent_70%)] blur-[100px] z-[5] animate-pulse duration-[8000ms]"></div>
 
             <div
-                className={`relative z-20 flex flex-col px-6 md:px-24 transition-all duration-700 hero-content-container`}
+                className={`relative z-20 flex flex-col px-6 lg:px-24 transition-all duration-700 hero-content-container`}
                 style={{
                     width: '100%',
                     maxWidth: `${content.containerWidth || 95}vw`,

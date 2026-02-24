@@ -44,6 +44,14 @@ function toProductDB(model: any) {
         description_zh: model.description_zh,
         description_jp: model.description_jp,
         description_ko: model.description_ko,
+        // Preorder fields
+        is_preorder: model.is_preorder,
+        preorder_start_date: model.preorder_start_date,
+        preorder_end_date: model.preorder_end_date,
+        expected_ship_date: model.expected_ship_date,
+        preorder_limit: model.preorder_limit,
+        preorder_sold: model.preorder_sold,
+        preorder_deposit_percentage: model.preorder_deposit_percentage,
     };
 }
 

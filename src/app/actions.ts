@@ -308,7 +308,11 @@ export async function updateProductAction(formData: FormData) {
     try {
         const products = await db.getProducts();
         const id = formData.get('id') as string;
-        const name = formData.get('name') as string;
+        const nameEn = formData.get('name') as string;
+        const nameZh = formData.get('name_zh') as string;
+        const nameJp = formData.get('name_jp') as string;
+        const nameKo = formData.get('name_ko') as string;
+        const name = nameEn || nameZh || nameJp || nameKo || '';
         const existingProduct = products.find((p: any) => p.id === id);
 
         const tagsInput = formData.get('tags') as string;

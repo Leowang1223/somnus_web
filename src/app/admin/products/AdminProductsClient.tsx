@@ -222,8 +222,8 @@ export default function AdminProductsClient({ initialProducts }: { initialProduc
                                             {product.image && <img src={product.image} className="w-full h-full object-cover" alt="" />}
                                         </div>
                                         <div>
-                                            <span className="font-display block">{product.name}</span>
-                                            {product.name_zh && <span className="text-xs text-gray-500 block">{product.name_zh}</span>}
+                                            <span className="font-display block">{product.name || product.name_zh || product.name_jp || product.name_ko || '(未命名)'}</span>
+                                            {product.name_zh && product.name_zh !== product.name && <span className="text-xs text-gray-500 block">{product.name_zh}</span>}
                                         </div>
                                     </div>
                                 </td>
@@ -285,14 +285,13 @@ export default function AdminProductsClient({ initialProducts }: { initialProduc
                             <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
                                 {/* Form Side */}
                                 <form action={async (formData) => {
-                                    // Append English name/description (controlled inputs without name attr)
-                                    formData.append('name', currentProduct.name || '');
-                                    formData.append('description', currentProduct.description || '');
-                                    // Append other language fields
-                                    ['zh', 'jp', 'ko'].forEach(lang => {
-                                        formData.append(`name_${lang}`, currentProduct[`name_${lang}`] || '');
-                                        formData.append(`description_${lang}`, currentProduct[`description_${lang}`] || '');
-                                    });
+                                    // Validate at least one name is filled
+                                    const hasAnyName = currentProduct.name || currentProduct.name_zh ||
+                                        currentProduct.name_jp || currentProduct.name_ko;
+                                    if (!hasAnyName) {
+                                        alert('請至少填寫一種語言的產品名稱');
+                                        return;
+                                    }
                                     const result = await updateProductAction(formData);
                                     if (!result.success) {
                                         alert('儲存失敗，請稍後再試');

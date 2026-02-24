@@ -264,17 +264,62 @@ const TextImageSection = ({ content, isInView }: { content: any, isInView?: bool
     const images = content.images || (content.image ? [content.image] : []);
     const headingText = loc(content.heading, lang);
     const headingRef = useRef<HTMLHeadingElement>(null);
+    const containerRef = useRef<HTMLDivElement>(null);
     const { fittedSize: headingSize, shrinkApplied: headingShrunk } = useAutoFitText(headingRef, {
         maxFontSize: content.headingFontSize,
         text: headingText,
         minFontSize: 16,
     });
 
+    // Content-aware layout: only switch to vertical stack when text area
+    // would be compressed to touch the image zone (< 240px text space left).
+    // IMAGE_WIDTH (400px) + MIN_TEXT_WIDTH (240px) + GAP (48px) = 688px threshold.
+    // Above 688px → row layout; below → column layout.
+    // This replaces the fixed `md:` CSS breakpoint so the image only "moves"
+    // when text is truly being squeezed against it.
+    const IMAGE_WIDTH = content.imageWidth || 400;
+    const MIN_TEXT_WIDTH = 240;
+    const GAP = 48;
+    const ROW_THRESHOLD = IMAGE_WIDTH + MIN_TEXT_WIDTH + GAP;
+
+    const [useRowLayout, setUseRowLayout] = useState(true);
+
+    useEffect(() => {
+        const container = containerRef.current;
+        if (!container) return;
+
+        const checkLayout = () => {
+            const width = container.clientWidth;
+            setUseRowLayout(width >= ROW_THRESHOLD);
+        };
+
+        checkLayout();
+        const observer = new ResizeObserver(checkLayout);
+        observer.observe(container);
+        return () => observer.disconnect();
+    }, [ROW_THRESHOLD]);
+
+    const isReversed = content.imagePosition === 'right';
+    const flexDirection = useRowLayout
+        ? (isReversed ? 'row-reverse' : 'row')
+        : 'column';
+
     return (
         <section className="py-32 px-6 bg-[#050505] relative z-20">
-            <div className={`container mx-auto flex flex-col ${content.imagePosition === 'right' ? 'md:flex-row-reverse' : 'md:flex-row'} items-center gap-8 md:gap-12 lg:gap-16`}>
-                {/* Image - Fixed/Max Width */}
-                <div className="w-full md:w-[400px] lg:w-[450px] flex-shrink-0 relative aspect-[4/5] bg-[#111] overflow-hidden rounded-sm group">
+            <div
+                ref={containerRef}
+                className="container mx-auto items-center"
+                style={{
+                    display: 'flex',
+                    flexDirection: flexDirection as React.CSSProperties['flexDirection'],
+                    gap: useRowLayout ? '3rem' : '2rem',
+                }}
+            >
+                {/* Image - Fixed Width (only shrinks to full-width when layout switches to column) */}
+                <div
+                    className="flex-shrink-0 relative aspect-[4/5] bg-[#111] overflow-hidden rounded-sm group"
+                    style={{ width: useRowLayout ? `${IMAGE_WIDTH}px` : '100%' }}
+                >
                     {/* Image Layer - z-10 */}
                     <div className="absolute inset-0 z-10">
                         <UniversalCarousel
@@ -295,15 +340,15 @@ const TextImageSection = ({ content, isInView }: { content: any, isInView?: bool
 
                 {/* Text - Flexible, expands as needed */}
                 <div
-                    className={`flex-grow min-w-0 space-y-6 md:space-y-8 flex flex-col`}
+                    className={`flex-grow min-w-0 space-y-6 flex flex-col`}
                     style={{
-                        textAlign: content.textAlign || (content.imagePosition === 'right' ? 'left' : 'left'),
+                        textAlign: content.textAlign || 'left',
                         alignItems: content.textAlign === 'center' ? 'center' : content.textAlign === 'right' ? 'flex-end' : 'flex-start'
                     } as React.CSSProperties}
                 >
                     <h2
                         ref={headingRef}
-                        className={`font-display text-4xl md:text-5xl lg:text-6xl text-white reveal-text ${isInView ? 'active' : ''}`}
+                        className={`font-display text-4xl lg:text-6xl text-white reveal-text ${isInView ? 'active' : ''}`}
                         style={Object.assign(
                             { lineHeight: '1.2' } as React.CSSProperties,
                             headingShrunk
@@ -316,7 +361,7 @@ const TextImageSection = ({ content, isInView }: { content: any, isInView?: bool
                         {headingText}
                     </h2>
                     <div
-                        className={`text-gray-400 text-base md:text-lg leading-relaxed font-light whitespace-pre-wrap reveal-text delay-1 ${isInView ? 'active' : ''}`}
+                        className={`text-gray-400 text-base leading-relaxed font-light whitespace-pre-wrap reveal-text delay-1 ${isInView ? 'active' : ''}`}
                         style={{ lineHeight: '1.8', ...(content.textFontSize ? { fontSize: `${content.textFontSize}px` } : {}) }}
                     >
                         {loc(content.text, lang)}
@@ -629,7 +674,7 @@ const SectionWrapper = ({ section, isFirst, noSnap, productContext }: { section:
             <motion.div
                 className={`w-full ${noSnap ? 'min-h-[50vh]' : 'h-full'} relative overflow-hidden`}
                 initial={{ opacity: 0.92, scale: 1.015 }}
-                animate={isInView ? { opacity: 1, scale: 1 } : {}}
+                animate={{ opacity: isInView ? 1 : 0.92, scale: isInView ? 1 : 1.015 }}
                 transition={{ duration: 1.2, ease: [0.16, 1, 0.3, 1] }}
             >
                 {/* Background Layer */}

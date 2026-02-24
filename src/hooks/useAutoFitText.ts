@@ -21,13 +21,15 @@ interface AutoFitResult {
 /**
  * Shrinks font size to keep text on one line within its parent container.
  *
- * CRITICAL design decisions to avoid infinite loops:
- *  - ResizeObserver tracks WIDTH only (height changes from our own font-size
- *    mutations must NOT re-trigger measurement — that is the main cause of
- *    the "jumping" background / animation loop).
+ * CRITICAL design decisions to avoid infinite loops and mobile Safari crashes:
+ *  - NEVER mutate the real element's position/visibility during measurement.
+ *    Instead, clone it to a hidden off-screen container so the real element's
+ *    layout is never disturbed (prevents framer-motion paint errors).
+ *  - ResizeObserver tracks WIDTH only (height changes from font-size mutations
+ *    must NOT re-trigger measurement).
+ *  - 10px width threshold ignores micro-changes (mobile address bar ±3px,
+ *    framer-motion scale 1.015→1 animation ±5.6px at 375px width).
  *  - An isMeasuring guard prevents re-entrant calls.
- *  - When maxFontSize is undefined, we read the CSS-based size by temporarily
- *    clearing the inline style so we read Tailwind classes, not our own output.
  */
 export function useAutoFitText<T extends HTMLElement>(
     ref: RefObject<T | null>,
@@ -46,6 +48,20 @@ export function useAutoFitText<T extends HTMLElement>(
         let lastWidth = -1;
         let isMeasuring = false;
 
+        // Persistent hidden measurement container — created once per hook instance.
+        // Positioned absolutely off-screen so it never affects document flow.
+        const measureContainer = document.createElement('div');
+        measureContainer.setAttribute('aria-hidden', 'true');
+        Object.assign(measureContainer.style, {
+            position: 'fixed',
+            top: '-9999px',
+            left: '-9999px',
+            visibility: 'hidden',
+            pointerEvents: 'none',
+            overflow: 'hidden',
+        });
+        document.body.appendChild(measureContainer);
+
         const measure = () => {
             if (isMeasuring) return;
             isMeasuring = true;
@@ -56,9 +72,9 @@ export function useAutoFitText<T extends HTMLElement>(
                 if (availableWidth === 0) return;
 
                 // ── Determine target max font size ──────────────────────────
-                // When maxFontSize is not explicitly provided, read from CSS
-                // by temporarily clearing any inline style we may have set.
-                // This prevents reading our own shrunken value as the "max".
+                // When maxFontSize is not explicitly provided, read from the
+                // real element's CSS by temporarily clearing our own inline
+                // style (so Tailwind classes take effect, not our shrunken value).
                 let targetMax: number;
                 if (maxFontSize && maxFontSize > 0) {
                     targetMax = maxFontSize;
@@ -69,28 +85,28 @@ export function useAutoFitText<T extends HTMLElement>(
                     el.style.fontSize = prev; // restore
                 }
 
+                // ── Build a clone for off-screen measurement ────────────────
+                // The clone lives in measureContainer — the real element is
+                // NEVER moved to absolute/hidden, so no layout disruption.
+                const clone = el.cloneNode(true) as HTMLElement;
+                const computedStyle = window.getComputedStyle(el);
+                Object.assign(clone.style, {
+                    position: 'static',
+                    visibility: 'hidden',
+                    whiteSpace: 'nowrap',
+                    display: 'inline-block',
+                    width: 'auto',
+                    maxWidth: 'none',
+                    fontFamily: computedStyle.fontFamily,
+                    fontWeight: computedStyle.fontWeight,
+                    letterSpacing: computedStyle.letterSpacing,
+                    fontSize: `${targetMax}px`,
+                });
+                measureContainer.appendChild(clone);
+
                 // ── Test if text fits at targetMax ─────────────────────────
-                // Save current inline values and measure with a temporary
-                // position:absolute clone to avoid changing the document flow.
-                const savedFS = el.style.fontSize;
-                const savedWS = el.style.whiteSpace;
-                const savedPos = el.style.position;
-                const savedVis = el.style.visibility;
-
-                // Take element out of flow during measurement to prevent
-                // height changes from propagating to parent → no observer loop
-                el.style.position = 'absolute';
-                el.style.visibility = 'hidden';
-                el.style.whiteSpace = 'nowrap';
-                el.style.fontSize = `${targetMax}px`;
-
-                if (el.scrollWidth <= availableWidth) {
-                    // Fits at max — restore and report no shrinking needed
-                    el.style.position = savedPos;
-                    el.style.visibility = savedVis;
-                    el.style.fontSize = savedFS;
-                    el.style.whiteSpace = savedWS;
-
+                if (clone.scrollWidth <= availableWidth) {
+                    measureContainer.removeChild(clone);
                     setResult(prev =>
                         prev.fittedSize === targetMax && !prev.shrinkApplied
                             ? prev
@@ -106,8 +122,8 @@ export function useAutoFitText<T extends HTMLElement>(
 
                 while (lo <= hi) {
                     const mid = Math.floor((lo + hi) / 2);
-                    el.style.fontSize = `${mid}px`;
-                    if (el.scrollWidth <= availableWidth) {
+                    clone.style.fontSize = `${mid}px`;
+                    if (clone.scrollWidth <= availableWidth) {
                         best = mid;
                         lo = mid + 1;
                     } else {
@@ -115,12 +131,7 @@ export function useAutoFitText<T extends HTMLElement>(
                     }
                 }
 
-                // Restore ALL inline styles before setting state
-                // (React will apply the new fittedSize via the style prop)
-                el.style.position = savedPos;
-                el.style.visibility = savedVis;
-                el.style.fontSize = savedFS;
-                el.style.whiteSpace = savedWS;
+                measureContainer.removeChild(clone);
 
                 setResult(prev =>
                     prev.fittedSize === best && prev.shrinkApplied
@@ -137,12 +148,12 @@ export function useAutoFitText<T extends HTMLElement>(
         // ── Watch WIDTH only, ignore height changes ──────────────────────
         // Height changes caused by our own font-size mutations must NOT
         // re-trigger the observer — that is the infinite-loop root cause.
-        // Also ignore micro-changes < 5px (mobile address bar causes ±3px
-        // width fluctuations that don't meaningfully affect text layout).
+        // 10px threshold: ignores mobile address bar (±3px) AND the
+        // framer-motion scale 1.015→1 animation (≈5.6px at 375px width).
         const observer = new ResizeObserver((entries) => {
             for (const entry of entries) {
                 const newWidth = Math.round(entry.contentRect.width);
-                if (Math.abs(newWidth - lastWidth) < 5) return; // height-only or micro-resize → skip
+                if (Math.abs(newWidth - lastWidth) < 10) return; // height-only, address-bar, or scale-animation micro-change → skip
                 lastWidth = newWidth;
                 cancelAnimationFrame(rafId);
                 rafId = requestAnimationFrame(measure);
@@ -154,6 +165,9 @@ export function useAutoFitText<T extends HTMLElement>(
         return () => {
             cancelAnimationFrame(rafId);
             observer.disconnect();
+            if (measureContainer.parentNode) {
+                document.body.removeChild(measureContainer);
+            }
         };
     }, [text, maxFontSize, minFontSize]);
 

@@ -137,10 +137,12 @@ export function useAutoFitText<T extends HTMLElement>(
         // ── Watch WIDTH only, ignore height changes ──────────────────────
         // Height changes caused by our own font-size mutations must NOT
         // re-trigger the observer — that is the infinite-loop root cause.
+        // Also ignore micro-changes < 5px (mobile address bar causes ±3px
+        // width fluctuations that don't meaningfully affect text layout).
         const observer = new ResizeObserver((entries) => {
             for (const entry of entries) {
                 const newWidth = Math.round(entry.contentRect.width);
-                if (newWidth === lastWidth) return; // height-only change → skip
+                if (Math.abs(newWidth - lastWidth) < 5) return; // height-only or micro-resize → skip
                 lastWidth = newWidth;
                 cancelAnimationFrame(rafId);
                 rafId = requestAnimationFrame(measure);

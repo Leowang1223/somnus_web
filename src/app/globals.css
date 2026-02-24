@@ -160,7 +160,9 @@ body::after {
 /* --- LUXURY SNAP SCROLL & ANIMATIONS --- */
 
 .snap-container {
+  /* 100svh = small viewport height，手機地址欄顯示/隱藏時高度不變，防止跳動 */
   height: 100vh;
+  height: 100svh;
   overflow-y: auto;
   scroll-snap-type: y mandatory;
   scroll-behavior: smooth;
@@ -176,7 +178,9 @@ body::after {
 }
 
 .snap-section {
+  /* 100svh 確保 snap section 高度穩定，不隨手機地址欄顯隱變化 */
   height: 100vh;
+  height: 100svh;
   width: 100%;
   scroll-snap-align: start;
   scroll-snap-stop: always;

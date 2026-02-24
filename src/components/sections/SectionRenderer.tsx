@@ -620,17 +620,17 @@ const PurchaseSection = ({ content, productContext, isInView }: { content: any, 
 const SectionWrapper = ({ section, isFirst, noSnap, productContext }: { section: Section, isFirst?: boolean, noSnap?: boolean, productContext?: any }) => {
     const bg = section.backgroundConfig;
     const ref = useRef(null);
-    const isInView = useInView(ref, { amount: 0.3, margin: "0px 0px -10% 0px" });
+    // once:true → 入場動畫只播一次，isInView 永遠保持 true 不回頭
+    // 解決手機地址欄 100vh 抖動造成閾值反覆切換 → 背景/圖片跳針問題
+    const isInView = useInView(ref, { once: true, amount: 0.15 });
 
     return (
         <section ref={ref} className={`${noSnap ? 'relative w-full' : 'snap-section relative'} group`}>
             <motion.div
                 className={`w-full ${noSnap ? 'min-h-[50vh]' : 'h-full'} relative overflow-hidden`}
-                animate={{
-                    opacity: isInView ? 1 : 0.95,
-                    scale: isInView ? 1 : 1.02
-                }}
-                transition={{ duration: 1.5, ease: [0.16, 1, 0.3, 1] }}
+                initial={{ opacity: 0.92, scale: 1.015 }}
+                animate={isInView ? { opacity: 1, scale: 1 } : {}}
+                transition={{ duration: 1.2, ease: [0.16, 1, 0.3, 1] }}
             >
                 {/* Background Layer */}
                 {bg && bg.url && (

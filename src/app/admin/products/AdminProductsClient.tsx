@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { updateProductAction, uploadFileAction, deleteProductAction, bulkUpdateStatusAction } from "@/app/actions";
 import { Edit, Plus, Save, X, Layout, Trash2, Upload, Loader2, Image as ImageIcon, ChevronDown, Check, Zap, DollarSign } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -85,6 +85,11 @@ function MediaPicker({ label, value, onChange, focusPoint, onFocusChange, prefix
 export default function AdminProductsClient({ initialProducts }: { initialProducts: CMSProduct[] }) {
     const router = useRouter();
     const [products, setProducts] = useState(initialProducts);
+
+    // 同步伺服器最新資料到本地 state（router.refresh() 後 initialProducts prop 會更新）
+    useEffect(() => {
+        setProducts(initialProducts);
+    }, [initialProducts]);
     const [isEditing, setIsEditing] = useState(false);
     const [currentProduct, setCurrentProduct] = useState<any>(null);
     const [selectedIds, setSelectedIds] = useState<string[]>([]);

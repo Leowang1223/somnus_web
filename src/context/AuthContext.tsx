@@ -64,6 +64,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
     };
 
+    // 追蹤最新的 fetchRole 請求 ID，確保舊的 stale 結果不會覆蓋新結果（防競態條件）
+    const roleRequestIdRef = useRef(0);
+
     useEffect(() => {
         if (!supabase) {
             console.warn('⚠️ Supabase client not available. Running in limited mode.');
@@ -82,13 +85,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
             if (session?.user) {
                 setUser(session.user);
-                try {
-                    const userRole = await fetchRole();
-                    if (!isMountedRef.current) return;
-                    setRole(userRole);
-                } catch (roleError) {
-                    console.error('onAuthStateChange: error fetching role:', roleError);
-                    if (isMountedRef.current) setRole('consumer');
+
+                // TOKEN_REFRESHED 只是更新 token，user/role 沒有改變
+                // 跳過 fetchRole 避免不必要的 RPC 呼叫，以及多個事件並發時的競態覆蓋
+                const shouldFetchRole = ['INITIAL_SESSION', 'SIGNED_IN', 'USER_UPDATED', 'PASSWORD_RECOVERY'].includes(event);
+
+                if (shouldFetchRole) {
+                    const requestId = ++roleRequestIdRef.current;
+                    try {
+                        const userRole = await fetchRole();
+                        // 若有更新的請求已經開始，丟棄此舊結果
+                        if (!isMountedRef.current || requestId !== roleRequestIdRef.current) return;
+                        setRole(userRole);
+                    } catch (roleError) {
+                        console.error('onAuthStateChange: error fetching role:', roleError);
+                        if (isMountedRef.current && requestId === roleRequestIdRef.current) setRole('consumer');
+                    }
                 }
             } else {
                 setUser(null);
@@ -123,19 +135,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     };
 
     // syncSession：在 AuthContext 自己的 supabase 實例上呼叫 setSession，
-    // 確保 onAuthStateChange 正確觸發，user/role state 立即更新
+    // setSession 會觸發 SIGNED_IN event → onAuthStateChange 負責 fetchRole
+    // 不在此處重複呼叫 fetchRole，避免與 onAuthStateChange 產生競態條件
     const syncSession = async (accessToken: string, refreshToken: string, redirectTo?: string) => {
         if (!supabase) return;
         try {
-            const { data } = await supabase.auth.setSession({
+            await supabase.auth.setSession({
                 access_token: accessToken,
                 refresh_token: refreshToken,
             });
-            if (data.session?.user) {
-                setUser(data.session.user);
-                const userRole = await fetchRole();
-                if (isMountedRef.current) setRole(userRole);
-            }
+            // user/role 狀態由 onAuthStateChange (SIGNED_IN event) 更新
         } catch (e) {
             console.error('syncSession error:', e);
         }

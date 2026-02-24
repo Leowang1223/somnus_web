@@ -23,7 +23,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     return (
         <div className="min-h-screen bg-[#050505] flex pt-24">
             {/* Sidebar */}
-            <aside className="w-64 border-r border-white/10 p-6 fixed h-full bg-[#050505] z-40">
+            <aside className="admin-sidebar w-64 border-r border-white/10 p-6 fixed h-full bg-[#050505] z-40">
                 <h2 className="text-[#d8aa5b] font-display text-lg mb-8 tracking-widest uppercase">控制台</h2>
 
                 <nav className="space-y-2">
@@ -77,7 +77,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             </aside>
 
             {/* Main Content */}
-            <main className="flex-1 ml-64 p-10 bg-[#0a0a09]">
+            <main className="admin-main-content flex-1 ml-64 p-10 bg-[#0a0a09]">
                 {children}
             </main>
         </div>

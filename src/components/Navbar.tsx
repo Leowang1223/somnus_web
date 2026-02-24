@@ -81,8 +81,8 @@ export default function Navbar() {
                     <div className="absolute inset-0 bg-[#d8aa5b] opacity-[0.02] mix-blend-overlay pointer-events-none"></div>
                 )}
 
-                {/* Left Links – hidden on mobile */}
-                <div className="hidden md:flex gap-8 text-sm tracking-[0.2em] font-medium uppercase text-white/90">
+                {/* Left Links – hidden below lg (1024px) */}
+                <div className="hidden lg:flex gap-8 text-sm tracking-[0.2em] font-medium uppercase text-white/90">
                     <Link href="/" className="hover:text-[#d8aa5b] transition-colors relative group">
                         {t('nav.home')}
                         <span className="absolute -bottom-1 left-0 w-0 h-[1px] bg-[#d8aa5b] transition-all group-hover:w-full"></span>
@@ -97,9 +97,9 @@ export default function Navbar() {
                     </Link>
                 </div>
 
-                {/* Mobile: Hamburger placeholder to balance logo */}
+                {/* Mobile / Tablet: Hamburger (shown below lg) */}
                 <button
-                    className="md:hidden text-white/80 hover:text-[#d8aa5b] transition-colors"
+                    className="lg:hidden text-white/80 hover:text-[#d8aa5b] transition-colors"
                     onClick={() => setMobileMenuOpen(true)}
                     aria-label={t('nav.menu')}
                 >
@@ -115,7 +115,7 @@ export default function Navbar() {
                 {/* Right Icons */}
                 <div className="flex items-center gap-3 md:gap-6 text-sm tracking-[0.2em] uppercase text-white/90">
                     {/* Language Switcher */}
-                    <div className="relative hidden md:block" ref={langRef}>
+                    <div className="relative hidden lg:block" ref={langRef}>
                         <button
                             onClick={() => setShowLangMenu(!showLangMenu)}
                             className="flex items-center gap-1.5 hover:text-[#d8aa5b] transition-colors text-xs"
@@ -157,7 +157,7 @@ export default function Navbar() {
                                 className="flex items-center gap-2 hover:text-[#d8aa5b] transition-colors"
                             >
                                 <User size={18} />
-                                <span className="hidden md:inline">{(role === 'owner' || role === 'support') ? 'Admin' : t('nav.profile')}</span>
+                                <span className="hidden lg:inline">{(role === 'owner' || role === 'support') ? 'Admin' : t('nav.profile')}</span>
                             </button>
                             {showUserMenu && (
                                 <div className="absolute right-0 top-full mt-4 bg-[#0a0a09] border border-white/10 rounded-sm min-w-[180px] shadow-2xl overflow-hidden">
@@ -196,7 +196,7 @@ export default function Navbar() {
                     ) : (
                         <Link href="/login" className="flex items-center gap-2 hover:text-[#d8aa5b] transition-colors">
                             <User size={18} />
-                            <span className="hidden md:inline">{t('nav.login')}</span>
+                            <span className="hidden lg:inline">{t('nav.login')}</span>
                         </Link>
                     )}
                 </div>
@@ -266,20 +266,31 @@ export default function Navbar() {
 
                             {/* Auth */}
                             {isAuthenticated ? (
-                                <div className="flex gap-4">
-                                    <Link
-                                        href="/profile"
-                                        onClick={() => setMobileMenuOpen(false)}
-                                        className="flex items-center gap-2 text-sm text-white/70 hover:text-white transition-colors"
-                                    >
-                                        <User size={16} /> {t('nav.profile')}
-                                    </Link>
-                                    <button
-                                        onClick={() => { logout(); setMobileMenuOpen(false); }}
-                                        className="flex items-center gap-2 text-sm text-red-400 hover:text-red-300 transition-colors"
-                                    >
-                                        {t('nav.logout')}
-                                    </button>
+                                <div className="flex flex-col gap-3">
+                                    {(role === 'owner' || role === 'support') && (
+                                        <Link
+                                            href="/admin"
+                                            onClick={() => setMobileMenuOpen(false)}
+                                            className="flex items-center gap-2 text-sm text-[#d8aa5b] hover:text-white transition-colors font-medium"
+                                        >
+                                            <User size={16} /> {t('nav.admin')}
+                                        </Link>
+                                    )}
+                                    <div className="flex gap-4">
+                                        <Link
+                                            href="/profile"
+                                            onClick={() => setMobileMenuOpen(false)}
+                                            className="flex items-center gap-2 text-sm text-white/70 hover:text-white transition-colors"
+                                        >
+                                            <User size={16} /> {t('nav.profile')}
+                                        </Link>
+                                        <button
+                                            onClick={() => { logout(); setMobileMenuOpen(false); }}
+                                            className="flex items-center gap-2 text-sm text-red-400 hover:text-red-300 transition-colors"
+                                        >
+                                            {t('nav.logout')}
+                                        </button>
+                                    </div>
                                 </div>
                             ) : (
                                 <Link

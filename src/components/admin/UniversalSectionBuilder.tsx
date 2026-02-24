@@ -1,12 +1,13 @@
 'use client';
 
 import { Section, SectionType } from "@/types/cms";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, DragEndEvent } from '@dnd-kit/core';
 import { arrayMove, SortableContext, sortableKeyboardCoordinates, verticalListSortingStrategy, useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { GripVertical, Edit, Eye, EyeOff, Trash2, Plus, Type, Image as ImageIcon, Video, Quote, Layout, Upload, Loader2, ShoppingBag, Zap } from "lucide-react";
+import { GripVertical, Edit, Eye, EyeOff, Trash2, Plus, Type, Image as ImageIcon, Video, Quote, Layout, Upload, Loader2, ShoppingBag, Zap, Monitor, Tablet, Smartphone } from "lucide-react";
 import { uploadFileAction } from "@/app/actions";
+import { useAutoFitText } from "@/hooks/useAutoFitText";
 
 // Sortable Item Component
 function SortableItem({ section, onEdit, onToggle, onDelete }: {
@@ -313,11 +314,158 @@ function AlignControl({ value, onChange, label = '文字對齊方式' }: { value
     );
 }
 
+// ── Mini Section Preview ──────────────────────────────────────────────────────
+// Renders a scaled-down preview of a section at a simulated viewport width.
+// Uses the same useAutoFitText hook so the preview matches what users see live.
+function SectionMiniPreview({
+    section,
+    previewWidth,
+    containerWidth,
+}: {
+    section: Section;
+    previewWidth: number;
+    containerWidth: number;
+}) {
+    const scale = Math.min(1, containerWidth / previewWidth);
+    const previewHeight = section.type === 'hero' ? 380 : section.type === 'text-image' ? 260 : 220;
+    const content = section.content;
+
+    // Resolve multilingual value
+    function getLoc(v: any): string {
+        if (!v) return '';
+        if (typeof v === 'string') return v;
+        if (typeof v === 'object') {
+            return String(v['zh'] || v['en'] || Object.values(v).find(Boolean) || '');
+        }
+        return '';
+    }
+
+    const titleText = getLoc(content.title || content.heading || content.text || '');
+    const subtitleText = getLoc(content.subtitle || '');
+    const bodyText = getLoc(content.text || '');
+
+    const titleRef = useRef<HTMLDivElement>(null);
+    const subRef = useRef<HTMLDivElement>(null);
+
+    const maxTitleSize =
+        content.titleFontSize || content.headingFontSize ||
+        (previewWidth >= 1280 ? 72 : previewWidth >= 768 ? 56 : 36);
+    const maxSubSize = content.subtitleFontSize || (previewWidth >= 768 ? 14 : 11);
+
+    const { fittedSize: titleFit, shrinkApplied: titleShrunk } = useAutoFitText(titleRef, {
+        maxFontSize: maxTitleSize,
+        text: titleText,
+        minFontSize: 10,
+    });
+    const { fittedSize: subFit, shrinkApplied: subShrunk } = useAutoFitText(subRef, {
+        maxFontSize: maxSubSize,
+        text: subtitleText,
+        minFontSize: 8,
+    });
+
+    const deviceLabel =
+        previewWidth === 375 ? '📱 手機 375px' :
+            previewWidth === 768 ? '📟 平板 768px' : '🖥 桌機 1280px';
+
+    const badgeColor = titleShrunk || subShrunk ? '#f59e0b' : '#22c55e';
+    const badgeText = titleShrunk || subShrunk ? `已縮至 ${titleFit}px（原 ${maxTitleSize}px）` : '✓ 尺寸合適';
+
+    return (
+        <div className="flex-shrink-0" style={{ width: containerWidth }}>
+            <div className="flex items-center justify-between mb-1.5 px-1">
+                <span className="text-[9px] text-gray-400 uppercase tracking-widest">{deviceLabel}</span>
+                <span style={{ color: badgeColor }} className="text-[9px] font-bold">{badgeText}</span>
+            </div>
+            <div style={{ width: containerWidth, height: Math.round(previewHeight * scale), overflow: 'hidden', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 2, background: '#050505' }}>
+                <div style={{
+                    width: previewWidth,
+                    height: previewHeight,
+                    transform: `scale(${scale})`,
+                    transformOrigin: 'top left',
+                    background: '#050505',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: content.textAlign === 'left' ? 'flex-start' : content.textAlign === 'right' ? 'flex-end' : 'center',
+                    justifyContent: 'center',
+                    padding: Math.round(previewWidth * 0.05),
+                    gap: 12,
+                    overflow: 'hidden',
+                    boxSizing: 'border-box',
+                }}>
+                    {/* Title / Heading */}
+                    {titleText && (
+                        <div
+                            ref={titleRef}
+                            style={{
+                                fontFamily: '"Cormorant Garamond", Georgia, serif',
+                                fontSize: `${titleFit}px`,
+                                color: content.titleColor || content.headingColor || '#ffffff',
+                                whiteSpace: titleShrunk ? 'nowrap' : 'pre-wrap',
+                                lineHeight: 1.2,
+                                maxWidth: '100%',
+                                overflow: 'hidden',
+                                textAlign: (content.textAlign as any) || 'center',
+                            }}
+                        >
+                            {titleText}
+                        </div>
+                    )}
+                    {/* Subtitle */}
+                    {subtitleText && (
+                        <div
+                            ref={subRef}
+                            style={{
+                                fontFamily: 'system-ui, sans-serif',
+                                fontSize: `${subFit}px`,
+                                color: content.subtitleColor || 'rgba(255,255,255,0.6)',
+                                letterSpacing: '0.15em',
+                                textTransform: 'uppercase',
+                                whiteSpace: subShrunk ? 'nowrap' : undefined,
+                                maxWidth: '100%',
+                                overflow: 'hidden',
+                                textAlign: (content.textAlign as any) || 'center',
+                            }}
+                        >
+                            {subtitleText}
+                        </div>
+                    )}
+                    {/* Body text preview (rich-text / text-image body) */}
+                    {!titleText && !subtitleText && bodyText && (
+                        <div style={{
+                            fontFamily: 'system-ui, sans-serif',
+                            fontSize: `${content.fontSize || content.textFontSize || 14}px`,
+                            color: 'rgba(160,160,160,0.9)',
+                            lineHeight: 1.7,
+                            maxWidth: '100%',
+                            overflow: 'hidden',
+                            textAlign: (content.textAlign as any) || 'center',
+                            display: '-webkit-box',
+                            WebkitLineClamp: 5,
+                            WebkitBoxOrient: 'vertical',
+                        } as React.CSSProperties}>
+                            {bodyText}
+                        </div>
+                    )}
+                </div>
+            </div>
+        </div>
+    );
+}
+
 // Editor Modal Component
 function EditModal({ section, onClose, onSave }: { section: Section; onClose: () => void; onSave: (s: Section) => void }) {
     const [content, setContent] = useState(section.content);
     // Fix: Manage backgroundConfig in local state to prevent modal closing on change
     const [backgroundConfig, setBackgroundConfig] = useState(section.backgroundConfig || { opacity: 1, blur: 0, grain: 0 });
+    const [activeTab, setActiveTab] = useState<'edit' | 'preview'>('edit');
+    const previewContainerRef = useRef<HTMLDivElement>(null);
+    const [previewContainerWidth, setPreviewContainerWidth] = useState(320);
+
+    useEffect(() => {
+        if (activeTab === 'preview' && previewContainerRef.current) {
+            setPreviewContainerWidth(previewContainerRef.current.clientWidth);
+        }
+    }, [activeTab]);
 
     const handleChange = (key: string, value: any) => {
         setContent({ ...content, [key]: value });
@@ -327,22 +475,69 @@ function EditModal({ section, onClose, onSave }: { section: Section; onClose: ()
         setBackgroundConfig((prev: any) => ({ ...prev, [key]: value }));
     };
 
+    // Current section with live content for preview
+    const liveSection = { ...section, content, backgroundConfig };
+
     return (
-        <div className="fixed inset-0 z-[100] bg-black/90 backdrop-blur-md flex items-center justify-center p-4">
-            <div className="bg-[#0a0a09] border border-white/10 w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-sm p-8 shadow-2xl">
-                <div className="flex justify-between items-center mb-8 border-b border-white/5 pb-4">
-                    <h2 className="text-white font-display text-2xl uppercase tracking-widest">編輯 {section.type}</h2>
-                    <span className="text-gray-500 text-[10px] font-mono uppercase">{section.id}</span>
+        <div className="fixed inset-0 z-[100] bg-black/90 backdrop-blur-md flex items-center justify-center p-2 sm:p-4">
+            <div className="bg-[#0a0a09] border border-white/10 w-full max-w-2xl max-h-[95vh] overflow-y-auto rounded-sm shadow-2xl">
+                {/* Modal Header */}
+                <div className="sticky top-0 z-10 bg-[#0a0a09] border-b border-white/5 px-4 sm:px-8 py-4 flex flex-wrap gap-3 items-center justify-between">
+                    <div className="flex items-center gap-3">
+                        <h2 className="text-white font-display text-base sm:text-xl uppercase tracking-widest">編輯 {section.type}</h2>
+                        <span className="hidden sm:inline text-gray-600 text-[9px] font-mono">{section.id}</span>
+                    </div>
+                    {/* Edit / Preview Tabs */}
+                    <div className="flex gap-1 bg-black/40 p-1 rounded-sm border border-white/5">
+                        <button
+                            type="button"
+                            onClick={() => setActiveTab('edit')}
+                            className={`flex items-center gap-1.5 px-3 py-1.5 text-[10px] uppercase font-bold tracking-widest rounded-sm transition-all ${activeTab === 'edit' ? 'bg-[#d8aa5b] text-black' : 'text-white/40 hover:text-white'}`}
+                        >
+                            <Edit size={10} /> 編輯
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => setActiveTab('preview')}
+                            className={`flex items-center gap-1.5 px-3 py-1.5 text-[10px] uppercase font-bold tracking-widest rounded-sm transition-all ${activeTab === 'preview' ? 'bg-[#d8aa5b] text-black' : 'text-white/40 hover:text-white'}`}
+                        >
+                            <Monitor size={10} /> 預覽
+                        </button>
+                    </div>
                 </div>
 
-                <div className="space-y-6">
+                {/* Preview Panel */}
+                {activeTab === 'preview' && (
+                    <div ref={previewContainerRef} className="px-4 sm:px-8 py-6 space-y-4">
+                        <p className="text-[9px] text-gray-500 uppercase tracking-widest leading-relaxed">
+                            以下為發布後在各裝置的文字渲染效果。<span className="text-[#d8aa5b]">橙色</span>表示字型已自動縮小以維持單行排版。
+                        </p>
+                        <div className="flex flex-col gap-5">
+                            {[375, 768, 1280].map(w => (
+                                <SectionMiniPreview
+                                    key={w}
+                                    section={liveSection}
+                                    previewWidth={w}
+                                    containerWidth={previewContainerWidth || 320}
+                                />
+                            ))}
+                        </div>
+                        <p className="text-[9px] text-gray-600 italic mt-2">
+                            ※ 預覽為文字排版模擬，背景圖片不顯示於此。
+                        </p>
+                    </div>
+                )}
+
+                {/* Edit Panel */}
+                {activeTab === 'edit' && (
+                <div className="px-4 sm:px-8 py-4 sm:py-6 space-y-6">
                     {section.type === 'hero' && (
                         <>
                             <LocalizedField label="標題" value={content.title} onChange={v => handleChange('title', v)} rows={2}
                                 fontSize={content.titleFontSize} onFontSizeChange={v => handleChange('titleFontSize', v)} />
                             <LocalizedField label="副標題" value={content.subtitle} onChange={v => handleChange('subtitle', v)} rows={2}
                                 fontSize={content.subtitleFontSize} onFontSizeChange={v => handleChange('subtitleFontSize', v)} />
-                            <div className="grid grid-cols-2 gap-4">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                 <LocalizedField label="按鈕文字 (CTA)" value={content.ctaText} onChange={v => handleChange('ctaText', v)} rows={1} placeholder="e.g. Explore" />
                                 <div>
                                     <label className="block text-xs uppercase text-gray-500 mb-2 font-bold tracking-widest">按鈕連結</label>
@@ -350,7 +545,7 @@ function EditModal({ section, onClose, onSave }: { section: Section; onClose: ()
                                 </div>
                             </div>
 
-                            <div className="grid grid-cols-2 gap-6 p-4 bg-white/5 border border-white/10 rounded-sm">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 p-4 bg-white/5 border border-white/10 rounded-sm">
                                 <AlignControl value={content.textAlign} onChange={v => handleChange('textAlign', v)} />
                                 <div>
                                     <label className="block text-xs uppercase text-gray-500 mb-2">容器寬度 (內容邊界)</label>
@@ -370,7 +565,7 @@ function EditModal({ section, onClose, onSave }: { section: Section; onClose: ()
                                 </div>
                             </div>
 
-                            <div className="grid grid-cols-2 gap-6">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                                 <div>
                                     <label className="block text-xs uppercase text-gray-500 mb-2 text-white">標題顏色</label>
                                     <div className="flex gap-2">
@@ -457,7 +652,7 @@ function EditModal({ section, onClose, onSave }: { section: Section; onClose: ()
                                 fontSize={content.headingFontSize} onFontSizeChange={v => handleChange('headingFontSize', v)} />
                             <LocalizedField label="正文" value={content.text} onChange={v => handleChange('text', v)} rows={4}
                                 fontSize={content.textFontSize} onFontSizeChange={v => handleChange('textFontSize', v)} />
-                            <div className="grid grid-cols-2 gap-6">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                                 <AlignControl value={content.textAlign} onChange={v => handleChange('textAlign', v)} />
                                 <div>
                                     <label className="block text-xs uppercase text-gray-500 mb-2">圖片位置</label>
@@ -653,7 +848,7 @@ function EditModal({ section, onClose, onSave }: { section: Section; onClose: ()
                                         handleBackgroundChange('type', val.match(/\.(mp4|webm)$/) ? 'video' : 'image');
                                     }}
                                 />
-                                <div className="grid grid-cols-2 gap-4">
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                     <div>
                                         <label className="block text-[10px] uppercase text-gray-500 mb-2">不透明度 ({backgroundConfig.opacity ?? 1})</label>
                                         <input
@@ -691,11 +886,14 @@ function EditModal({ section, onClose, onSave }: { section: Section; onClose: ()
                         </div>
                     </div>
                 </div>
+                )}{/* end edit panel */}
 
-                <div className="flex justify-end gap-4 mt-12 pt-8 border-t border-white/5">
+                {/* Save / Cancel — always visible regardless of active tab */}
+                <div className="sticky bottom-0 bg-[#0a0a09] border-t border-white/5 px-4 sm:px-8 py-4 flex justify-end gap-4">
                     <button onClick={onClose} className="text-white/40 hover:text-white px-4 py-2 transition-colors uppercase text-[10px] tracking-widest font-bold">取消</button>
-                    <button onClick={() => onSave({ ...section, content, backgroundConfig })} className="bg-[#d8aa5b] text-black px-8 py-3 font-bold uppercase tracking-widest hover:bg-white rounded-sm transition-all shadow-[0_4px_20px_rgba(216,170,91,0.2)]">儲存變更</button>
+                    <button onClick={() => onSave({ ...section, content, backgroundConfig })} className="bg-[#d8aa5b] text-black px-6 sm:px-8 py-3 font-bold uppercase tracking-widest hover:bg-white rounded-sm transition-all shadow-[0_4px_20px_rgba(216,170,91,0.2)]">儲存變更</button>
                 </div>
+
             </div>
         </div>
     );

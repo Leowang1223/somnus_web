@@ -9,6 +9,7 @@ import { useCart } from "@/context/CartContext";
 import { useLanguage } from "@/context/LanguageContext";
 import { useAuth } from "@/context/AuthContext";
 import { useRouter, useSearchParams } from "next/navigation";
+import { useAutoFitText } from "@/hooks/useAutoFitText";
 
 
 // Helper: resolve a CMS field that may be a plain string (legacy) or
@@ -151,6 +152,20 @@ const HeroSection = ({ content, isInView }: { content: any, isInView?: boolean }
     const lang = language || 'en';
     const images = content.backgroundImages || (content.backgroundImage ? [content.backgroundImage] : []);
     const ctaText = loc(content.ctaText, lang);
+    const titleText = loc(content.title, lang);
+    const subtitleText = loc(content.subtitle, lang);
+    const titleRef = useRef<HTMLHeadingElement>(null);
+    const subtitleRef = useRef<HTMLParagraphElement>(null);
+    const { fittedSize: titleSize, shrinkApplied: titleShrunk } = useAutoFitText(titleRef, {
+        maxFontSize: content.titleFontSize,
+        text: titleText,
+        minFontSize: 14,
+    });
+    const { fittedSize: subtitleSize, shrinkApplied: subtitleShrunk } = useAutoFitText(subtitleRef, {
+        maxFontSize: content.subtitleFontSize,
+        text: subtitleText,
+        minFontSize: 10,
+    });
 
     return (
         <section className="relative w-full h-full flex items-center justify-center overflow-hidden">
@@ -185,25 +200,29 @@ const HeroSection = ({ content, isInView }: { content: any, isInView?: boolean }
                 )}
 
                 <h1
-                    className={`font-display text-5xl md:text-8xl mb-4 leading-tight whitespace-pre-wrap relative z-10 reveal-text ${isInView ? 'active' : ''} ${content.enableTitleGlow ? 'text-breathing-glow' : ''}`}
+                    ref={titleRef}
+                    className={`font-display text-5xl md:text-8xl mb-4 leading-tight relative z-10 reveal-text ${isInView ? 'active' : ''} ${content.enableTitleGlow ? 'text-breathing-glow' : ''}`}
                     style={{
                         color: content.titleColor || '#ffffff',
                         '--glow-color': content.titleGlowColor || 'rgba(216, 170, 91, 0.4)',
-                        ...(content.titleFontSize ? { fontSize: `${content.titleFontSize}px` } : {})
+                        fontSize: `${titleSize}px`,
+                        whiteSpace: titleShrunk ? 'nowrap' : 'pre-wrap',
                     } as React.CSSProperties}
                 >
-                    {loc(content.title, lang)}
+                    {titleText}
                 </h1>
-                {loc(content.subtitle, lang) && (
+                {subtitleText && (
                     <p
+                        ref={subtitleRef}
                         className={`text-sm md:text-base tracking-widest uppercase mt-4 mb-12 max-w-2xl relative z-10 reveal-text delay-1 ${isInView ? 'active' : ''}`}
                         style={{
                             color: content.subtitleColor || '#ffffff',
                             opacity: content.subtitleColor ? 1 : 0.7,
-                            ...(content.subtitleFontSize ? { fontSize: `${content.subtitleFontSize}px` } : {})
+                            fontSize: `${subtitleSize}px`,
+                            whiteSpace: subtitleShrunk ? 'nowrap' : undefined,
                         }}
                     >
-                        {loc(content.subtitle, lang)}
+                        {subtitleText}
                     </p>
                 )}
                 {ctaText && (
@@ -231,6 +250,13 @@ const TextImageSection = ({ content, isInView }: { content: any, isInView?: bool
     const { language } = useLanguage();
     const lang = language || 'en';
     const images = content.images || (content.image ? [content.image] : []);
+    const headingText = loc(content.heading, lang);
+    const headingRef = useRef<HTMLHeadingElement>(null);
+    const { fittedSize: headingSize, shrinkApplied: headingShrunk } = useAutoFitText(headingRef, {
+        maxFontSize: content.headingFontSize,
+        text: headingText,
+        minFontSize: 16,
+    });
 
     return (
         <section className="py-32 px-6 bg-[#050505] relative z-20">
@@ -264,10 +290,15 @@ const TextImageSection = ({ content, isInView }: { content: any, isInView?: bool
                     } as React.CSSProperties}
                 >
                     <h2
-                        className={`font-display text-4xl md:text-5xl lg:text-6xl text-white whitespace-pre-wrap reveal-text ${isInView ? 'active' : ''}`}
-                        style={{ lineHeight: '1.2', ...(content.headingFontSize ? { fontSize: `${content.headingFontSize}px` } : {}) }}
+                        ref={headingRef}
+                        className={`font-display text-4xl md:text-5xl lg:text-6xl text-white reveal-text ${isInView ? 'active' : ''}`}
+                        style={{
+                            lineHeight: '1.2',
+                            fontSize: `${headingSize}px`,
+                            whiteSpace: headingShrunk ? 'nowrap' : 'pre-wrap',
+                        }}
                     >
-                        {loc(content.heading, lang)}
+                        {headingText}
                     </h2>
                     <div
                         className={`text-gray-400 text-base md:text-lg leading-relaxed font-light whitespace-pre-wrap reveal-text delay-1 ${isInView ? 'active' : ''}`}

@@ -1521,3 +1521,89 @@ export async function unflagOrderAction(orderId: string) {
         return { success: false };
     }
 }
+
+// ==========================================
+// ⚙️ Merchant Settings Actions
+// ==========================================
+
+/**
+ * 取得商家設定（金流設定）
+ */
+export async function getMerchantSettingsAction() {
+    'use server';
+    try {
+        const supabase = await createClient();
+        const { data, error } = await supabase
+            .from('merchant_settings')
+            .select('*')
+            .eq('id', 1)
+            .single();
+
+        if (error || !data) {
+            return { success: true, settings: { payment_provider: 'manual' } };
+        }
+
+        // 隱藏敏感欄位（只傳遞 provider 類型與 test_mode，不傳遞 keys）
+        return {
+            success: true,
+            settings: {
+                payment_provider: data.payment_provider,
+                ecpay_test_mode: data.ecpay_test_mode,
+                tappay_test_mode: data.tappay_test_mode,
+                payment_currency: data.payment_currency,
+                // 是否已設定（有值但不回傳實際值）
+                has_ecpay_config: !!(data.ecpay_merchant_id && data.ecpay_hash_key && data.ecpay_hash_iv),
+                has_stripe_config: !!(data.stripe_secret_key),
+                has_tappay_config: !!(data.tappay_partner_key && data.tappay_merchant_id),
+            }
+        };
+    } catch (e) {
+        return { success: false, settings: null };
+    }
+}
+
+/**
+ * 更新商家金流設定
+ */
+export async function updateMerchantSettingsAction(settings: {
+    payment_provider?: string;
+    ecpay_merchant_id?: string;
+    ecpay_hash_key?: string;
+    ecpay_hash_iv?: string;
+    ecpay_test_mode?: boolean;
+    stripe_publishable_key?: string;
+    stripe_secret_key?: string;
+    stripe_webhook_secret?: string;
+    tappay_partner_key?: string;
+    tappay_merchant_id?: string;
+    tappay_test_mode?: boolean;
+    payment_currency?: string;
+}) {
+    'use server';
+    try {
+        const supabase = await createClient();
+
+        const record: any = { id: 1, updated_at: new Date().toISOString() };
+        if (settings.payment_provider !== undefined) record.payment_provider = settings.payment_provider;
+        if (settings.ecpay_merchant_id)   record.ecpay_merchant_id = settings.ecpay_merchant_id;
+        if (settings.ecpay_hash_key)      record.ecpay_hash_key = settings.ecpay_hash_key;
+        if (settings.ecpay_hash_iv)       record.ecpay_hash_iv = settings.ecpay_hash_iv;
+        if (settings.ecpay_test_mode !== undefined) record.ecpay_test_mode = settings.ecpay_test_mode;
+        if (settings.stripe_publishable_key) record.stripe_publishable_key = settings.stripe_publishable_key;
+        if (settings.stripe_secret_key)   record.stripe_secret_key = settings.stripe_secret_key;
+        if (settings.stripe_webhook_secret) record.stripe_webhook_secret = settings.stripe_webhook_secret;
+        if (settings.tappay_partner_key)  record.tappay_partner_key = settings.tappay_partner_key;
+        if (settings.tappay_merchant_id)  record.tappay_merchant_id = settings.tappay_merchant_id;
+        if (settings.tappay_test_mode !== undefined) record.tappay_test_mode = settings.tappay_test_mode;
+        if (settings.payment_currency)    record.payment_currency = settings.payment_currency;
+
+        const { error } = await supabase.from('merchant_settings').upsert(record);
+        if (error) throw error;
+
+        revalidatePath('/admin/settings');
+        return { success: true };
+    } catch (e: any) {
+        console.error('updateMerchantSettingsAction error:', e);
+        return { success: false, error: e.message };
+    }
+}

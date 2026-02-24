@@ -67,6 +67,12 @@ function LoginContent() {
                     {t('login.submit')}
                 </button>
 
+                <div className="text-center">
+                    <a href="/forgot-password" className="text-gray-500 hover:text-[#d8aa5b] text-xs transition-colors uppercase tracking-widest">
+                        忘記密碼？
+                    </a>
+                </div>
+
                 <div className="relative flex py-6 items-center">
                     <div className="flex-grow border-t border-white/10"></div>
                     <span className="flex-shrink-0 mx-4 text-gray-500 text-[10px] uppercase tracking-widest">{t('login.or')}</span>

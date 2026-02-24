@@ -1035,7 +1035,71 @@ BEGIN
 END $$;
 
 -- ==========================================
--- 19. 驗證結果
+-- 19. 商家設定表（金流隨插即用）
+-- ==========================================
+
+-- merchant_settings：儲存金流服務商 API 金鑰
+-- 只有一筆記錄（id=1），所有欄位皆為加密儲存建議（目前明文，可接 Vault）
+CREATE TABLE IF NOT EXISTS public.merchant_settings (
+  id INTEGER PRIMARY KEY DEFAULT 1,
+
+  -- 啟用的金流服務商
+  payment_provider TEXT NOT NULL DEFAULT 'manual'
+    CHECK (payment_provider IN ('manual', 'ecpay', 'stripe', 'tappay')),
+
+  -- ECPay 綠界
+  ecpay_merchant_id     TEXT,
+  ecpay_hash_key        TEXT,
+  ecpay_hash_iv         TEXT,
+  ecpay_test_mode       BOOLEAN DEFAULT TRUE,
+
+  -- Stripe
+  stripe_publishable_key TEXT,
+  stripe_secret_key      TEXT,
+  stripe_webhook_secret  TEXT,
+
+  -- TapPay
+  tappay_partner_key  TEXT,
+  tappay_merchant_id  TEXT,
+  tappay_test_mode    BOOLEAN DEFAULT TRUE,
+
+  -- 通用設定
+  payment_currency TEXT DEFAULT 'TWD',
+
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- 確保只有一筆記錄（id=1）
+INSERT INTO public.merchant_settings (id, payment_provider)
+VALUES (1, 'manual')
+ON CONFLICT (id) DO NOTHING;
+
+-- RLS：只有 owner/support 可讀寫，一般用戶不可存取
+ALTER TABLE public.merchant_settings ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "merchant_settings_owner_read" ON public.merchant_settings;
+CREATE POLICY "merchant_settings_owner_read" ON public.merchant_settings
+  FOR SELECT USING (
+    EXISTS (
+      SELECT 1 FROM public.users
+      WHERE id = auth.uid()
+      AND role IN ('owner', 'support')
+    )
+  );
+
+DROP POLICY IF EXISTS "merchant_settings_owner_write" ON public.merchant_settings;
+CREATE POLICY "merchant_settings_owner_write" ON public.merchant_settings
+  FOR ALL USING (
+    EXISTS (
+      SELECT 1 FROM public.users
+      WHERE id = auth.uid()
+      AND role = 'owner'
+    )
+  );
+
+-- ==========================================
+-- 20. 驗證結果
 -- ==========================================
 SELECT '=== Users Policies ===' AS section;
 SELECT policyname, cmd FROM pg_policies WHERE tablename = 'users' ORDER BY policyname;

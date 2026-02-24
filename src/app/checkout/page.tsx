@@ -76,15 +76,59 @@ export default function CheckoutPage() {
             customer_notes: customerNotes || null,
         };
 
+        // 1. 建立訂單（status: pending，等待付款）
         const result = await createOrderAction(orderData);
 
-        if (result.success) {
-            clearCart();
-            router.push(`/order-confirmation/${result.orderId}`);
-        } else {
-            alert('Order creation failed. Please try again.');
+        if (!result.success) {
+            alert('訂單建立失敗，請再試一次。');
             setIsLoading(false);
+            return;
         }
+
+        clearCart();
+
+        // 2. 呼叫金流 API
+        try {
+            const payRes = await fetch('/api/payment/create', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    orderId: result.orderId,
+                    amount: totalAmount,
+                    currency: 'TWD',
+                    description: `SØMNS 訂單 ${result.orderId}`,
+                    customerEmail: formData.email,
+                }),
+            });
+
+            const payData = await payRes.json();
+
+            if (payData.mode === 'form' && payData.formHtml) {
+                // ECPay：用隱藏 iframe 自動 submit form，讓用戶跳轉至付款頁面
+                const doc = new DOMParser().parseFromString(payData.formHtml, 'text/html');
+                const form = doc.querySelector('form');
+                if (form) {
+                    // 把 form 直接掛到 DOM 並 submit
+                    document.body.appendChild(form);
+                    form.submit();
+                    return; // 頁面跳轉，不需要繼續
+                }
+            } else if (payData.mode === 'redirect' && payData.redirectUrl) {
+                // Stripe Hosted Checkout 等
+                window.location.href = payData.redirectUrl;
+                return;
+            } else {
+                // 手動付款模式（manual）→ 直接跳到訂單確認頁
+                router.push(`/order-confirmation/${result.orderId}`);
+                return;
+            }
+        } catch (payErr) {
+            console.error('Payment API error:', payErr);
+            // 金流失敗時仍跳轉確認頁，讓客戶知道訂單已建立
+            router.push(`/order-confirmation/${result.orderId}`);
+        }
+
+        setIsLoading(false);
     };
 
     if (items.length === 0) {

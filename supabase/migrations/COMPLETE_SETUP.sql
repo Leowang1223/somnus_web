@@ -61,6 +61,30 @@ CREATE TABLE IF NOT EXISTS public.products (
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
+-- 補齊 products 表缺少的欄位（冪等，安全重複執行）
+ALTER TABLE public.products ADD COLUMN IF NOT EXISTS cost NUMERIC(10, 2) DEFAULT 0;
+ALTER TABLE public.products ADD COLUMN IF NOT EXISTS hover_video TEXT;
+ALTER TABLE public.products ADD COLUMN IF NOT EXISTS aspect_ratio TEXT;
+ALTER TABLE public.products ADD COLUMN IF NOT EXISTS tags JSONB DEFAULT '[]'::jsonb;
+ALTER TABLE public.products ADD COLUMN IF NOT EXISTS focus_point JSONB;
+ALTER TABLE public.products ADD COLUMN IF NOT EXISTS sections JSONB DEFAULT '[]'::jsonb;
+ALTER TABLE public.products ADD COLUMN IF NOT EXISTS variants JSONB DEFAULT '[]'::jsonb;
+ALTER TABLE public.products ADD COLUMN IF NOT EXISTS supplier JSONB DEFAULT '{}'::jsonb;
+ALTER TABLE public.products ADD COLUMN IF NOT EXISTS name_zh TEXT;
+ALTER TABLE public.products ADD COLUMN IF NOT EXISTS name_jp TEXT;
+ALTER TABLE public.products ADD COLUMN IF NOT EXISTS name_ko TEXT;
+ALTER TABLE public.products ADD COLUMN IF NOT EXISTS description_zh TEXT;
+ALTER TABLE public.products ADD COLUMN IF NOT EXISTS description_jp TEXT;
+ALTER TABLE public.products ADD COLUMN IF NOT EXISTS description_ko TEXT;
+ALTER TABLE public.products ADD COLUMN IF NOT EXISTS is_preorder BOOLEAN DEFAULT false;
+ALTER TABLE public.products ADD COLUMN IF NOT EXISTS preorder_start_date TIMESTAMPTZ;
+ALTER TABLE public.products ADD COLUMN IF NOT EXISTS preorder_end_date TIMESTAMPTZ;
+ALTER TABLE public.products ADD COLUMN IF NOT EXISTS expected_ship_date TIMESTAMPTZ;
+ALTER TABLE public.products ADD COLUMN IF NOT EXISTS preorder_limit INTEGER;
+ALTER TABLE public.products ADD COLUMN IF NOT EXISTS preorder_sold INTEGER DEFAULT 0;
+ALTER TABLE public.products ADD COLUMN IF NOT EXISTS preorder_deposit_percentage INTEGER DEFAULT 100;
+ALTER TABLE public.products ADD COLUMN IF NOT EXISTS preorder_status TEXT DEFAULT 'upcoming';
+
 -- Orders 訂單表
 CREATE TABLE IF NOT EXISTS public.orders (
   id TEXT PRIMARY KEY,

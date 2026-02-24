@@ -202,12 +202,19 @@ const HeroSection = ({ content, isInView }: { content: any, isInView?: boolean }
                 <h1
                     ref={titleRef}
                     className={`font-display text-5xl md:text-8xl mb-4 leading-tight relative z-10 reveal-text ${isInView ? 'active' : ''} ${content.enableTitleGlow ? 'text-breathing-glow' : ''}`}
-                    style={{
-                        color: content.titleColor || '#ffffff',
-                        '--glow-color': content.titleGlowColor || 'rgba(216, 170, 91, 0.4)',
-                        fontSize: `${titleSize}px`,
-                        whiteSpace: titleShrunk ? 'nowrap' : 'pre-wrap',
-                    } as React.CSSProperties}
+                    style={Object.assign(
+                        {
+                            color: content.titleColor || '#ffffff',
+                            '--glow-color': content.titleGlowColor || 'rgba(216, 170, 91, 0.4)',
+                        } as React.CSSProperties,
+                        // Only override fontSize when hook is shrinking OR user set an explicit size.
+                        // Let Tailwind text-5xl/text-8xl handle defaults — avoids circular reads.
+                        titleShrunk
+                            ? { fontSize: `${titleSize}px`, whiteSpace: 'nowrap' as const }
+                            : content.titleFontSize
+                                ? { fontSize: `${content.titleFontSize}px` }
+                                : {}
+                    )}
                 >
                     {titleText}
                 </h1>
@@ -215,12 +222,17 @@ const HeroSection = ({ content, isInView }: { content: any, isInView?: boolean }
                     <p
                         ref={subtitleRef}
                         className={`text-sm md:text-base tracking-widest uppercase mt-4 mb-12 max-w-2xl relative z-10 reveal-text delay-1 ${isInView ? 'active' : ''}`}
-                        style={{
-                            color: content.subtitleColor || '#ffffff',
-                            opacity: content.subtitleColor ? 1 : 0.7,
-                            fontSize: `${subtitleSize}px`,
-                            whiteSpace: subtitleShrunk ? 'nowrap' : undefined,
-                        }}
+                        style={Object.assign(
+                            {
+                                color: content.subtitleColor || '#ffffff',
+                                opacity: content.subtitleColor ? 1 : 0.7,
+                            } as React.CSSProperties,
+                            subtitleShrunk
+                                ? { fontSize: `${subtitleSize}px`, whiteSpace: 'nowrap' as const }
+                                : content.subtitleFontSize
+                                    ? { fontSize: `${content.subtitleFontSize}px` }
+                                    : {}
+                        )}
                     >
                         {subtitleText}
                     </p>
@@ -292,11 +304,14 @@ const TextImageSection = ({ content, isInView }: { content: any, isInView?: bool
                     <h2
                         ref={headingRef}
                         className={`font-display text-4xl md:text-5xl lg:text-6xl text-white reveal-text ${isInView ? 'active' : ''}`}
-                        style={{
-                            lineHeight: '1.2',
-                            fontSize: `${headingSize}px`,
-                            whiteSpace: headingShrunk ? 'nowrap' : 'pre-wrap',
-                        }}
+                        style={Object.assign(
+                            { lineHeight: '1.2' } as React.CSSProperties,
+                            headingShrunk
+                                ? { fontSize: `${headingSize}px`, whiteSpace: 'nowrap' as const }
+                                : content.headingFontSize
+                                    ? { fontSize: `${content.headingFontSize}px` }
+                                    : {}
+                        )}
                     >
                         {headingText}
                     </h2>

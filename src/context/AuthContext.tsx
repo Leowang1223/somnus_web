@@ -46,20 +46,25 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         return null;
     });
 
-    // Shared helper: fetch role via SECURITY DEFINER RPC function
-    // get_my_role() runs in Postgres, bypasses RLS, handles id mismatch via email join
+    // Shared helper: fetch role via server-side API endpoint
+    // /api/auth/role uses server-side supabase (same as middleware) → 更可靠，不受 browser-side JWT timing 影響
+    // 加入 8 秒 AbortController timeout 防止網路問題造成永久 loading
     const fetchRole = async (): Promise<UserRole> => {
-        if (!supabase) return 'consumer';
-
         try {
-            const { data, error } = await supabase.rpc('get_my_role');
-            if (error) {
-                console.error('get_my_role RPC error:', error.message);
-                return 'consumer';
-            }
-            return (data as UserRole) || 'consumer';
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 8000);
+
+            const res = await fetch('/api/auth/role', {
+                signal: controller.signal,
+                cache: 'no-store',
+            });
+            clearTimeout(timeoutId);
+
+            if (!res.ok) return 'consumer';
+            const json = await res.json();
+            return (json.role as UserRole) || 'consumer';
         } catch (error) {
-            console.error('Exception in fetchRole:', error);
+            console.error('fetchRole error:', error);
             return 'consumer';
         }
     };
@@ -80,6 +85,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
         // 只用 onAuthStateChange（Supabase 官方推薦），避免與 getSession() 的競態條件
         // INITIAL_SESSION 事件取代 getSession() 的初始 session 偵測功能
+        // 安全保護：確保 loading 最多 15 秒後一定被解除（防止任何意外造成永久 loading）
+        const safetyTimeout = setTimeout(() => {
+            if (isMountedRef.current) {
+                console.warn('AuthContext: safety timeout reached, forcing setLoading(false)');
+                setLoading(false);
+            }
+        }, 15000);
+
         const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
             if (!isMountedRef.current) return;
 
@@ -121,6 +134,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         return () => {
             isMountedRef.current = false;
             subscription.unsubscribe();
+            clearTimeout(safetyTimeout);
         };
     }, [supabase]);
 

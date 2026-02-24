@@ -94,9 +94,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                     const requestId = ++roleRequestIdRef.current;
                     try {
                         const userRole = await fetchRole();
-                        // 若有更新的請求已經開始，丟棄此舊結果
-                        if (!isMountedRef.current || requestId !== roleRequestIdRef.current) return;
-                        setRole(userRole);
+                        // 若有更新的請求已經開始，丟棄此舊結果（不 return，繼續執行後面的 setLoading）
+                        if (isMountedRef.current && requestId === roleRequestIdRef.current) {
+                            setRole(userRole);
+                        }
                     } catch (roleError) {
                         console.error('onAuthStateChange: error fetching role:', roleError);
                         if (isMountedRef.current && requestId === roleRequestIdRef.current) setRole('consumer');

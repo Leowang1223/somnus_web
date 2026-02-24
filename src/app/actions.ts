@@ -409,7 +409,10 @@ export async function updateProductAction(formData: FormData) {
         if (product.slug) revalidatePath(`/product/${product.slug}`);
 
         return { success: true };
-    } catch (e) { console.error(e); return { success: false }; }
+    } catch (e: any) {
+        console.error('updateProductAction failed:', e);
+        return { success: false, error: e?.message || String(e) };
+    }
 }
 
 export async function getDashboardStatsAction() {

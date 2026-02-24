@@ -294,7 +294,7 @@ export default function AdminProductsClient({ initialProducts }: { initialProduc
                                     }
                                     const result = await updateProductAction(formData);
                                     if (!result.success) {
-                                        alert('儲存失敗，請稍後再試');
+                                        alert(`儲存失敗：${(result as any).error || '請稍後再試'}`);
                                         return;
                                     }
                                     setIsEditing(false);

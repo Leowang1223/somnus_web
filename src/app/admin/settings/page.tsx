@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { getMerchantSettingsAction, updateMerchantSettingsAction } from '@/app/actions';
+import { getMerchantSettingsAction, updateMerchantSettingsAction, testEcpayConnectionAction } from '@/app/actions';
 import { CreditCard, CheckCircle, AlertCircle, Settings, ChevronDown, ChevronUp } from 'lucide-react';
 
 const PROVIDERS = [
@@ -34,6 +34,9 @@ export default function AdminSettingsPage() {
     const [tappayPartnerKey, setTappayPartnerKey] = useState('');
     const [tappayMerchantId, setTappayMerchantId] = useState('');
     const [tappayTestMode, setTappayTestMode] = useState(true);
+    // ECPay 測試連線
+    const [ecpayTesting, setEcpayTesting] = useState(false);
+    const [ecpayTestResult, setEcpayTestResult] = useState<{ success: boolean; message: string } | null>(null);
 
     useEffect(() => {
         getMerchantSettingsAction().then(res => {
@@ -146,6 +149,29 @@ export default function AdminSettingsPage() {
                                     <div className="bg-[#050505] border border-white/5 rounded-sm p-3 text-xs text-gray-500">
                                         <strong className="text-gray-400">Webhook URL（填入 ECPay 後台）：</strong>
                                         <p className="font-mono mt-1 break-all text-gray-400">{webhookBase}/api/webhooks/payment/ecpay</p>
+                                    </div>
+                                    <div className="flex items-center gap-3 pt-1">
+                                        <button
+                                            type="button"
+                                            disabled={ecpayTesting}
+                                            onClick={async () => {
+                                                setEcpayTesting(true);
+                                                setEcpayTestResult(null);
+                                                const result = await testEcpayConnectionAction(ecpayMerchantId, ecpayHashKey, ecpayHashIv, ecpayTestMode);
+                                                setEcpayTestResult(result);
+                                                setEcpayTesting(false);
+                                            }}
+                                            className="flex items-center gap-2 bg-white/5 hover:bg-white/10 border border-white/10 text-white text-xs px-4 py-2 rounded-sm transition-colors disabled:opacity-50"
+                                        >
+                                            {ecpayTesting ? (
+                                                <><span className="animate-spin inline-block w-3 h-3 border border-white/40 border-t-white rounded-full" /> 測試中...</>
+                                            ) : '測試連線'}
+                                        </button>
+                                        {ecpayTestResult && (
+                                            <span className={`text-xs ${ecpayTestResult.success ? 'text-green-400' : 'text-red-400'}`}>
+                                                {ecpayTestResult.message}
+                                            </span>
+                                        )}
                                     </div>
                                 </div>
                             )}

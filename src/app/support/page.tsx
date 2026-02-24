@@ -1,8 +1,8 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { submitTicketAction, getTicketUpdatesAction, replyToTicketAction } from "@/app/actions";
-import { Send, User as UserIcon, Headphones } from 'lucide-react';
+import { submitTicketAction, getTicketUpdatesAction, replyToTicketAction, uploadFileAction } from "@/app/actions";
+import { Send, User as UserIcon, Headphones, Paperclip, X } from 'lucide-react';
 import { useLanguage } from "@/context/LanguageContext";
 
 export default function SupportPage() {
@@ -12,7 +12,10 @@ export default function SupportPage() {
     const [ticketId, setTicketId] = useState<string | null>(null);
     const [messages, setMessages] = useState<any[]>([]);
     const [newMessage, setNewMessage] = useState('');
+    const [pendingImage, setPendingImage] = useState<string | null>(null);
+    const [imageUploading, setImageUploading] = useState(false);
     const messagesEndRef = useRef<HTMLDivElement>(null);
+    const fileInputRef = useRef<HTMLInputElement>(null);
 
     const departments = [
         t('support.dept1'),
@@ -59,15 +62,33 @@ export default function SupportPage() {
         }
     };
 
-    const sendMessage = async () => {
-        if (!newMessage.trim() || !ticketId) return;
+    const handleImageSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+        setImageUploading(true);
+        const formData = new FormData();
+        formData.append('file', file);
+        formData.append('prefix', 'cs');
+        const result = await uploadFileAction(formData);
+        if (result.url) {
+            setPendingImage(result.url);
+        }
+        setImageUploading(false);
+        e.target.value = '';
+    };
 
-        const tempMsg = { id: `temp-${Date.now()}`, sender: 'user', content: newMessage, timestamp: Date.now() };
+    const sendMessage = async () => {
+        if (!newMessage.trim() && !pendingImage) return;
+        if (!ticketId) return;
+
+        const imgUrl = pendingImage;
+        const tempMsg = { id: `temp-${Date.now()}`, sender: 'user', content: newMessage, timestamp: Date.now(), image_url: imgUrl || undefined };
         setMessages(prev => [...prev, tempMsg]);
         const msgToSend = newMessage;
         setNewMessage('');
+        setPendingImage(null);
 
-        await replyToTicketAction(ticketId, msgToSend, 'user');
+        await replyToTicketAction(ticketId, msgToSend, 'user', imgUrl || undefined);
     };
 
     if (view === 'department') {
@@ -127,7 +148,12 @@ export default function SupportPage() {
                                     {msg.sender === 'user' ? <UserIcon size={14} /> : <Headphones size={14} />}
                                 </div>
                                 <div className={`p-3 max-w-[85%] text-sm ${msg.sender === 'user' ? 'bg-[#d8aa5b]/10 text-[#d8aa5b] rounded-tl-lg rounded-bl-lg rounded-br-lg' : 'bg-[#222] text-gray-300 rounded-tr-lg rounded-br-lg rounded-bl-lg'}`}>
-                                    {msg.content}
+                                    {msg.content && <p>{msg.content}</p>}
+                                    {msg.image_url && (
+                                        <a href={msg.image_url} target="_blank" rel="noreferrer" className="block mt-1">
+                                            <img src={msg.image_url} alt="附件" className="max-w-[200px] rounded-sm hover:opacity-80 transition-opacity" />
+                                        </a>
+                                    )}
                                 </div>
                             </div>
                         ))
@@ -137,22 +163,44 @@ export default function SupportPage() {
 
                 {/* Input */}
                 <div className="p-4 border-t border-white/10 bg-[#151515]">
-                    <div className="relative">
-                        <input
-                            value={newMessage}
-                            onChange={(e) => setNewMessage(e.target.value)}
-                            onKeyDown={(e) => {
-                                if (e.key === 'Enter') ticketId ? sendMessage() : startChat(newMessage);
-                            }}
-                            className="w-full bg-[#0a0a09] border border-white/10 p-3 pr-10 rounded-sm text-sm focus:border-[#d8aa5b] outline-none"
-                            placeholder={ticketId ? t('support.inputReply') : t('support.inputStart')}
-                        />
-                        <button
-                            onClick={() => ticketId ? sendMessage() : startChat(newMessage)}
-                            className="absolute right-2 top-1/2 -translate-y-1/2 text-[#d8aa5b] hover:text-white"
-                        >
-                            <Send size={16} />
-                        </button>
+                    {pendingImage && (
+                        <div className="mb-2 flex items-center gap-2">
+                            <img src={pendingImage} alt="預覽" className="w-14 h-14 object-cover rounded-sm" />
+                            <button onClick={() => setPendingImage(null)} className="text-white/40 hover:text-white"><X size={14} /></button>
+                        </div>
+                    )}
+                    <div className="relative flex items-center gap-2">
+                        {ticketId && (
+                            <>
+                                <input ref={fileInputRef} type="file" accept="image/*" onChange={handleImageSelect} className="hidden" />
+                                <button
+                                    type="button"
+                                    onClick={() => fileInputRef.current?.click()}
+                                    disabled={imageUploading}
+                                    className="text-white/40 hover:text-[#d8aa5b] transition-colors shrink-0 disabled:opacity-30"
+                                    title="上傳圖片"
+                                >
+                                    {imageUploading ? <span className="animate-spin inline-block w-4 h-4 border border-white/40 border-t-white rounded-full" /> : <Paperclip size={16} />}
+                                </button>
+                            </>
+                        )}
+                        <div className="relative flex-1">
+                            <input
+                                value={newMessage}
+                                onChange={(e) => setNewMessage(e.target.value)}
+                                onKeyDown={(e) => {
+                                    if (e.key === 'Enter') ticketId ? sendMessage() : startChat(newMessage);
+                                }}
+                                className="w-full bg-[#0a0a09] border border-white/10 p-3 pr-10 rounded-sm text-sm focus:border-[#d8aa5b] outline-none"
+                                placeholder={ticketId ? t('support.inputReply') : t('support.inputStart')}
+                            />
+                            <button
+                                onClick={() => ticketId ? sendMessage() : startChat(newMessage)}
+                                className="absolute right-2 top-1/2 -translate-y-1/2 text-[#d8aa5b] hover:text-white"
+                            >
+                                <Send size={16} />
+                            </button>
+                        </div>
                     </div>
                 </div>
             </div>

@@ -175,7 +175,7 @@ export async function submitTicketAction(formData: FormData) {
     }
 }
 
-export async function replyToTicketAction(ticketId: string, content: string, sender: 'user' | 'admin') {
+export async function replyToTicketAction(ticketId: string, content: string, sender: 'user' | 'admin', imageUrl?: string) {
     try {
         const supabase = await createClient();
 
@@ -192,14 +192,17 @@ export async function replyToTicketAction(ticketId: string, content: string, sen
         }
 
         // 2. Append new message
+        const newMsg: Record<string, any> = {
+            id: `msg-${Date.now()}`,
+            sender,
+            content,
+            timestamp: Date.now(),
+        };
+        if (imageUrl) newMsg.image_url = imageUrl;
+
         const newMessages = [
             ...(ticket.messages as any[] || []),
-            {
-                id: `msg-${Date.now()}`,
-                sender,
-                content,
-                timestamp: Date.now()
-            }
+            newMsg,
         ];
 
         // 3. Update ticket
@@ -1612,5 +1615,86 @@ export async function updateMerchantSettingsAction(settings: {
     } catch (e: any) {
         console.error('updateMerchantSettingsAction error:', e);
         return { success: false, error: e.message };
+    }
+}
+
+// ──────────────────────────────────────────────────────────────
+// ECPay 測試連線
+// ──────────────────────────────────────────────────────────────
+export async function testEcpayConnectionAction(
+    merchantId: string,
+    hashKey: string,
+    hashIv: string,
+    testMode: boolean
+): Promise<{ success: boolean; message: string }> {
+    'use server';
+    try {
+        if (!merchantId || !hashKey || !hashIv) {
+            return { success: false, message: '請填寫 MerchantID、HashKey、HashIV' };
+        }
+
+        const { createHash } = await import('crypto');
+
+        // 使用 QueryTradeInfo V5 API 發送帶有假交易編號的請求
+        // ECPay 若憑證正確會回傳「查無此筆訂單」，若錯誤則回傳簽章驗證失敗
+        const timestamp = Math.floor(Date.now() / 1000).toString();
+        const testTradeNo = 'STEST' + timestamp.slice(-15); // max 20 chars
+
+        const params: Record<string, string> = {
+            MerchantID: merchantId,
+            MerchantTradeNo: testTradeNo,
+            TimeStamp: timestamp,
+        };
+
+        // 計算 CheckMacValue（與 ecpay.ts 邏輯相同）
+        const sorted = Object.keys(params)
+            .sort((a, b) => a.toLowerCase().localeCompare(b.toLowerCase()))
+            .map(k => `${k}=${params[k]}`)
+            .join('&');
+        const raw = `HashKey=${hashKey}&${sorted}&HashIV=${hashIv}`;
+        const encoded = encodeURIComponent(raw).toLowerCase()
+            .replace(/%20/g, '+').replace(/%21/g, '!').replace(/%28/g, '(')
+            .replace(/%29/g, ')').replace(/%2a/g, '*');
+        const checkMac = createHash('sha256').update(encoded).digest('hex').toUpperCase();
+
+        const body = new URLSearchParams({
+            ...params,
+            CheckMacValue: checkMac,
+        });
+
+        const endpoint = testMode
+            ? 'https://payment-stage.ecpay.com.tw/Cashier/QueryTradeInfo/V5'
+            : 'https://payment.ecpay.com.tw/Cashier/QueryTradeInfo/V5';
+
+        const res = await fetch(endpoint, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: body.toString(),
+            signal: AbortSignal.timeout(10000),
+        });
+
+        const text = await res.text();
+
+        // ECPay 回傳 URL-encoded 格式，RtnCode=10200002 表示「查無此筆訂單」（憑證正確！）
+        // RtnCode=10100058 = CheckMacValue 錯誤（憑證錯誤）
+        if (text.includes('RtnCode=10200002') || text.includes('RtnCode=1')) {
+            return { success: true, message: `✅ 連線成功（${testMode ? '測試環境' : '正式環境'}），憑證格式有效` };
+        }
+        if (text.includes('RtnCode=10100058') || text.includes('CheckMacValue')) {
+            return { success: false, message: '❌ CheckMacValue 驗證失敗，請確認 HashKey / HashIV 是否正確' };
+        }
+        if (text.includes('MerchantID') && text.includes('RtnCode')) {
+            return { success: true, message: `✅ 連線成功（${testMode ? '測試環境' : '正式環境'}），ECPay 回應正常` };
+        }
+        // HTML 回應通常表示參數錯誤
+        if (text.startsWith('<!') || text.startsWith('<html')) {
+            return { success: false, message: '❌ MerchantID 無效或 IP 未加入白名單，請確認帳號設定' };
+        }
+        return { success: false, message: `❌ 未預期回應：${text.slice(0, 120)}` };
+    } catch (e: any) {
+        if (e?.name === 'TimeoutError') {
+            return { success: false, message: '❌ 連線逾時（10秒），請確認網路或 ECPay 服務狀態' };
+        }
+        return { success: false, message: `❌ 連線錯誤：${e?.message || String(e)}` };
     }
 }

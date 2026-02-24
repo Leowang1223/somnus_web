@@ -67,10 +67,17 @@ function LoginContent() {
                     {t('login.submit')}
                 </button>
 
-                <div className="text-center">
-                    <a href="/forgot-password" className="text-gray-500 hover:text-[#d8aa5b] text-xs transition-colors uppercase tracking-widest">
+                <div className="text-center space-y-2">
+                    <a href="/forgot-password" className="block text-gray-500 hover:text-[#d8aa5b] text-xs transition-colors uppercase tracking-widest">
                         忘記密碼？
                     </a>
+                    <div>
+                        <span className="text-gray-500 text-xs">還沒有帳號？</span>
+                        {" "}
+                        <a href="/register" className="text-[#d8aa5b] hover:text-white text-xs transition-colors uppercase tracking-widest">
+                            立即註冊
+                        </a>
+                    </div>
                 </div>
 
                 <div className="relative flex py-6 items-center">

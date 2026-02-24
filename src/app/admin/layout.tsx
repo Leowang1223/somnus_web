@@ -75,7 +75,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     );
 
     return (
-        <div className="min-h-screen bg-[#050505] flex pt-24">
+        <div className="min-h-screen bg-[#050505] flex pt-28 lg:pt-24">
             {/* 手機版頂部導航列（lg 以下顯示） */}
             <div className="lg:hidden fixed top-16 left-0 right-0 z-40 bg-[#050505] border-b border-white/10 flex items-center px-4 h-12">
                 <button

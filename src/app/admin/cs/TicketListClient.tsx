@@ -1,14 +1,17 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { updateTicketStatusAction, claimTicketAction, replyToTicketAction, getAdminTicketsAction, getTicketUpdatesAction } from "@/app/actions";
-import { CheckCircle, MessageSquare, RefreshCw, UserPlus, Send } from "lucide-react";
+import { useState, useEffect, useRef } from 'react';
+import { updateTicketStatusAction, claimTicketAction, replyToTicketAction, getAdminTicketsAction, getTicketUpdatesAction, uploadFileAction } from "@/app/actions";
+import { CheckCircle, MessageSquare, RefreshCw, UserPlus, Send, Paperclip, X } from "lucide-react";
 
 export default function TicketListClient({ tickets: initialTickets, adminEmail, adminId }: { tickets: any[], adminEmail: string, adminId: string }) {
     const [view, setView] = useState<'queue' | 'mine'>('queue');
     const [selectedTicketId, setSelectedTicketId] = useState<string | null>(null);
     const [replyMessage, setReplyMessage] = useState('');
     const [tickets, setTickets] = useState(initialTickets);
+    const [pendingImage, setPendingImage] = useState<string | null>(null);
+    const [imageUploading, setImageUploading] = useState(false);
+    const fileInputRef = useRef<HTMLInputElement>(null);
 
     // Poll for ticket list updates every 5 seconds
     useEffect(() => {
@@ -49,18 +52,34 @@ export default function TicketListClient({ tickets: initialTickets, adminEmail, 
         setView('mine');
     };
 
+    const handleImageSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+        setImageUploading(true);
+        const formData = new FormData();
+        formData.append('file', file);
+        formData.append('prefix', 'cs-admin');
+        const result = await uploadFileAction(formData);
+        if (result.url) setPendingImage(result.url);
+        setImageUploading(false);
+        e.target.value = '';
+    };
+
     const handleReply = async () => {
-        if (!selectedTicketId || !replyMessage.trim()) return;
+        if (!selectedTicketId || (!replyMessage.trim() && !pendingImage)) return;
         const msg = replyMessage;
+        const imgUrl = pendingImage;
         setReplyMessage('');
+        setPendingImage(null);
 
         // Optimistic UI
-        const tempMsg = { id: `msg-${Date.now()}`, sender: 'admin', content: msg, timestamp: Date.now() };
+        const tempMsg: any = { id: `msg-${Date.now()}`, sender: 'admin', content: msg, timestamp: Date.now() };
+        if (imgUrl) tempMsg.image_url = imgUrl;
         setTickets(prev => prev.map(t =>
             t.id === selectedTicketId ? { ...t, messages: [...(t.messages || []), tempMsg] } : t
         ));
 
-        await replyToTicketAction(selectedTicketId, msg, 'admin');
+        await replyToTicketAction(selectedTicketId, msg, 'admin', imgUrl || undefined);
     };
 
     const handleStatusUpdate = async (id: string, newStatus: string) => {
@@ -93,7 +112,12 @@ export default function TicketListClient({ tickets: initialTickets, adminEmail, 
                             selectedTicket.messages.map((msg: any, idx: number) => (
                                 <div key={msg.id || idx} className={`flex flex-col ${msg.sender === 'admin' ? 'items-end' : 'items-start'}`}>
                                     <div className={`p-3 max-w-[80%] text-sm rounded-sm ${msg.sender === 'admin' ? 'bg-[#d8aa5b] text-black' : 'bg-[#222] text-gray-300'}`}>
-                                        {msg.content}
+                                        {msg.content && <p>{msg.content}</p>}
+                                        {msg.image_url && (
+                                            <a href={msg.image_url} target="_blank" rel="noreferrer" className="block mt-1">
+                                                <img src={msg.image_url} alt="附件" className="max-w-[200px] rounded-sm hover:opacity-80 transition-opacity" />
+                                            </a>
+                                        )}
                                     </div>
                                     <span className="text-[10px] text-gray-600 mt-1">{new Date(msg.timestamp).toLocaleTimeString()}</span>
                                 </div>
@@ -104,20 +128,38 @@ export default function TicketListClient({ tickets: initialTickets, adminEmail, 
                     </div>
 
                     <div className="p-4 border-t border-white/10 bg-[#151515]">
-                        <div className="relative">
-                            <input
-                                value={replyMessage}
-                                onChange={(e) => setReplyMessage(e.target.value)}
-                                onKeyDown={(e) => e.key === 'Enter' && handleReply()}
-                                className="w-full bg-[#0a0a09] border border-white/10 p-4 pr-12 rounded-sm text-sm focus:border-[#d8aa5b] outline-none text-white"
-                                placeholder="Type a reply..."
-                            />
+                        {pendingImage && (
+                            <div className="mb-2 flex items-center gap-2">
+                                <img src={pendingImage} alt="預覽" className="w-14 h-14 object-cover rounded-sm" />
+                                <button onClick={() => setPendingImage(null)} className="text-white/40 hover:text-white"><X size={14} /></button>
+                            </div>
+                        )}
+                        <div className="relative flex items-center gap-2">
+                            <input ref={fileInputRef} type="file" accept="image/*" onChange={handleImageSelect} className="hidden" />
                             <button
-                                onClick={handleReply}
-                                className="absolute right-2 top-1/2 -translate-y-1/2 p-2 text-[#d8aa5b] hover:text-white"
+                                type="button"
+                                onClick={() => fileInputRef.current?.click()}
+                                disabled={imageUploading}
+                                className="text-white/40 hover:text-[#d8aa5b] transition-colors shrink-0 disabled:opacity-30"
+                                title="上傳圖片"
                             >
-                                <Send size={18} />
+                                {imageUploading ? <span className="animate-spin inline-block w-4 h-4 border border-white/40 border-t-white rounded-full" /> : <Paperclip size={16} />}
                             </button>
+                            <div className="relative flex-1">
+                                <input
+                                    value={replyMessage}
+                                    onChange={(e) => setReplyMessage(e.target.value)}
+                                    onKeyDown={(e) => e.key === 'Enter' && handleReply()}
+                                    className="w-full bg-[#0a0a09] border border-white/10 p-4 pr-12 rounded-sm text-sm focus:border-[#d8aa5b] outline-none text-white"
+                                    placeholder="Type a reply..."
+                                />
+                                <button
+                                    onClick={handleReply}
+                                    className="absolute right-2 top-1/2 -translate-y-1/2 p-2 text-[#d8aa5b] hover:text-white"
+                                >
+                                    <Send size={18} />
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>

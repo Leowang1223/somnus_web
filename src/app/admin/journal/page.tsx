@@ -2,6 +2,9 @@
 import { getArticles } from "@/lib/db";
 import AdminJournalClient from "./AdminJournalClient";
 
+// Admin journal list must always fetch fresh data after create/update.
+export const revalidate = 0;
+export const dynamic = 'force-dynamic';
 
 export default async function AdminJournalPage() {
     const articles = await getArticles();

@@ -333,9 +333,15 @@ export async function getArticles() {
             .select('*')
             .order('date', { ascending: false });
 
-        if (error) return [];
+        if (error) {
+            console.error('DB: getArticles failed:', error);
+            return [];
+        }
         return data.map(toArticleModel);
-    } catch (e) { return []; }
+    } catch (e) {
+        console.error('DB Exception (getArticles):', e);
+        return [];
+    }
 }
 
 export async function getPublicArticles() {

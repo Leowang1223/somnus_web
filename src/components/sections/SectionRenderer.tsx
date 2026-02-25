@@ -326,9 +326,9 @@ const TextImageSection = ({ content, isInView }: { content: any, isInView?: bool
         <div
             className="flex-shrink-0 min-w-0 space-y-6 flex flex-col"
             style={{
-                // Natural width in row mode, capped so it never overlaps image zone
-                width: useRowLayout ? 'auto' : '100%',
-                maxWidth: useRowLayout ? `calc(${100 - IMAGE_PCT}% - 2rem)` : '100%',
+                // Fixed width so text block always occupies its allocated zone
+                // regardless of content length — prevents image from "sticking"
+                width: useRowLayout ? `calc(${100 - IMAGE_PCT}% - 2rem)` : '100%',
                 padding: useRowLayout ? '0 3rem' : '0',
                 textAlign: (content.textAlign || 'left') as React.CSSProperties['textAlign'],
                 alignItems: content.textAlign === 'center' ? 'center'
@@ -436,30 +436,94 @@ const QuoteSection = ({ content, isInView }: { content: any, isInView?: boolean 
 );
 };
 
+function getYoutubeId(url: string): string | null {
+    const match = url.match(/(?:v=|youtu\.be\/)([^&?/]+)/);
+    return match?.[1] ?? null;
+}
+
 const VideoSection = ({ content }: { content: any }) => {
     const { language, t } = useLanguage();
     const lang = language || 'en';
+    const [isOpen, setIsOpen] = useState(false);
+
+    const videoUrl: string = content.videoUrl || '';
+    const youtubeId = videoUrl ? getYoutubeId(videoUrl) : null;
+
+    const openModal = () => { if (videoUrl) setIsOpen(true); };
+    const closeModal = () => setIsOpen(false);
+
     return (
-    <section className="py-20 px-6 bg-[#050505]">
-        <div className="container mx-auto max-w-5xl">
-            <div className="relative aspect-video bg-[#111] rounded-sm overflow-hidden group cursor-pointer border border-white/5">
-                {content.thumbnail ? (
-                    <img src={content.thumbnail} alt="Video Thumbnail" className="w-full h-full object-cover opacity-60 group-hover:scale-105 transition-transform duration-[2000ms]" />
-                ) : (
-                    <div className="absolute inset-0 bg-[#0a0a0a]"></div>
-                )}
-                <div className="absolute inset-0 flex items-center justify-center">
-                    <div className="w-20 h-20 rounded-full border border-white/20 flex items-center justify-center bg-white/5 backdrop-blur-sm group-hover:bg-[#d8aa5b] group-hover:border-[#d8aa5b] transition-all duration-500">
-                        <Play size={24} className="text-white group-hover:text-black transition-colors ml-1" />
+        <>
+            <section className="py-20 px-6 bg-[#050505]">
+                <div className="container mx-auto max-w-5xl">
+                    <div
+                        className={`relative aspect-video bg-[#111] rounded-sm overflow-hidden group border border-white/5 ${videoUrl ? 'cursor-pointer' : 'cursor-default'}`}
+                        onClick={openModal}
+                    >
+                        {content.thumbnail ? (
+                            <img src={content.thumbnail} alt="Video Thumbnail" className="w-full h-full object-cover opacity-60 group-hover:scale-105 transition-transform duration-[2000ms]" />
+                        ) : (
+                            <div className="absolute inset-0 bg-[#0a0a0a]"></div>
+                        )}
+                        {videoUrl && (
+                            <div className="absolute inset-0 flex items-center justify-center">
+                                <div className="w-20 h-20 rounded-full border border-white/20 flex items-center justify-center bg-white/5 backdrop-blur-sm group-hover:bg-[#d8aa5b] group-hover:border-[#d8aa5b] transition-all duration-500">
+                                    <Play size={24} className="text-white group-hover:text-black transition-colors ml-1" />
+                                </div>
+                            </div>
+                        )}
+                        <div className="absolute bottom-8 left-8 opacity-0 group-hover:opacity-100 transition-opacity duration-500">
+                            <span className="text-[#d8aa5b] text-xs uppercase tracking-widest">{loc(content.label, lang) || t('product.watchRitual')}</span>
+                        </div>
                     </div>
                 </div>
-                <div className="absolute bottom-8 left-8 opacity-0 group-hover:opacity-100 transition-opacity duration-500">
-                    <span className="text-[#d8aa5b] text-xs uppercase tracking-widest">{loc(content.label, lang) || t('product.watchRitual')}</span>
-                </div>
-            </div>
-        </div>
-    </section>
-);
+            </section>
+
+            <AnimatePresence>
+                {isOpen && (
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        transition={{ duration: 0.3 }}
+                        className="fixed inset-0 z-[9999] bg-black/90 flex items-center justify-center p-4"
+                        onClick={closeModal}
+                    >
+                        <motion.div
+                            initial={{ scale: 0.95, opacity: 0 }}
+                            animate={{ scale: 1, opacity: 1 }}
+                            exit={{ scale: 0.95, opacity: 0 }}
+                            transition={{ duration: 0.3 }}
+                            className="relative w-full max-w-5xl aspect-video bg-black"
+                            onClick={e => e.stopPropagation()}
+                        >
+                            {youtubeId ? (
+                                <iframe
+                                    src={`https://www.youtube.com/embed/${youtubeId}?autoplay=1`}
+                                    allow="autoplay; fullscreen"
+                                    allowFullScreen
+                                    className="w-full h-full"
+                                />
+                            ) : (
+                                <video
+                                    src={videoUrl}
+                                    controls
+                                    autoPlay
+                                    className="w-full h-full"
+                                />
+                            )}
+                            <button
+                                onClick={closeModal}
+                                className="absolute -top-10 right-0 text-white/60 hover:text-white text-xs uppercase tracking-widest transition-colors"
+                            >
+                                關閉 ✕
+                            </button>
+                        </motion.div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
+        </>
+    );
 };
 
 const FullImageSection = ({ content }: { content: any }) => {

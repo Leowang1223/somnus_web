@@ -14,6 +14,8 @@ export default function SupportPage() {
     const [newMessage, setNewMessage] = useState('');
     const [pendingImage, setPendingImage] = useState<string | null>(null);
     const [imageUploading, setImageUploading] = useState(false);
+    const [isSending, setIsSending] = useState(false);
+    const [startError, setStartError] = useState('');
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -49,16 +51,28 @@ export default function SupportPage() {
     }, [ticketId]);
 
     const startChat = async (msg: string) => {
+        if (!msg.trim()) return;
+        setIsSending(true);
+        setStartError('');
+
         const formData = new FormData();
         formData.append('type', 'support');
         formData.append('department', department);
         formData.append('message', msg);
 
-        const res = await submitTicketAction(formData);
-        if (res.success && res.ticketId) {
-            setTicketId(res.ticketId);
-            setMessages([{ id: 'init', sender: 'user', content: msg, timestamp: Date.now() }]);
-            setView('chat');
+        try {
+            const res = await submitTicketAction(formData);
+            if (res.success && res.ticketId) {
+                setTicketId(res.ticketId);
+                setMessages([{ id: 'init', sender: 'user', content: msg, timestamp: Date.now() }]);
+                setNewMessage('');
+            } else {
+                setStartError('訊息傳送失敗，請稍後再試。');
+            }
+        } catch {
+            setStartError('網路錯誤，請稍後再試。');
+        } finally {
+            setIsSending(false);
         }
     };
 
@@ -79,16 +93,24 @@ export default function SupportPage() {
 
     const sendMessage = async () => {
         if (!newMessage.trim() && !pendingImage) return;
-        if (!ticketId) return;
+        if (!ticketId || isSending) return;
 
+        setIsSending(true);
         const imgUrl = pendingImage;
-        const tempMsg = { id: `temp-${Date.now()}`, sender: 'user', content: newMessage, timestamp: Date.now(), image_url: imgUrl || undefined };
-        setMessages(prev => [...prev, tempMsg]);
         const msgToSend = newMessage;
+
+        const tempMsg = { id: `temp-${Date.now()}`, sender: 'user', content: msgToSend, timestamp: Date.now(), image_url: imgUrl || undefined };
+        setMessages(prev => [...prev, tempMsg]);
         setNewMessage('');
         setPendingImage(null);
 
-        await replyToTicketAction(ticketId, msgToSend, 'user', imgUrl || undefined);
+        try {
+            await replyToTicketAction(ticketId, msgToSend, 'user', imgUrl || undefined);
+        } catch {
+            // 樂觀更新已顯示，失敗也保留訊息在畫面上
+        } finally {
+            setIsSending(false);
+        }
     };
 
     if (view === 'department') {
@@ -163,6 +185,9 @@ export default function SupportPage() {
 
                 {/* Input */}
                 <div className="p-4 border-t border-white/10 bg-[#151515]">
+                    {startError && (
+                        <p className="text-red-400 text-xs mb-2 px-1">{startError}</p>
+                    )}
                     {pendingImage && (
                         <div className="mb-2 flex items-center gap-2">
                             <img src={pendingImage} alt="預覽" className="w-14 h-14 object-cover rounded-sm" />
@@ -176,7 +201,7 @@ export default function SupportPage() {
                                 <button
                                     type="button"
                                     onClick={() => fileInputRef.current?.click()}
-                                    disabled={imageUploading}
+                                    disabled={imageUploading || isSending}
                                     className="text-white/40 hover:text-[#d8aa5b] transition-colors shrink-0 disabled:opacity-30"
                                     title="上傳圖片"
                                 >
@@ -189,16 +214,23 @@ export default function SupportPage() {
                                 value={newMessage}
                                 onChange={(e) => setNewMessage(e.target.value)}
                                 onKeyDown={(e) => {
-                                    if (e.key === 'Enter') ticketId ? sendMessage() : startChat(newMessage);
+                                    if (e.key === 'Enter' && !isSending) {
+                                        ticketId ? sendMessage() : startChat(newMessage);
+                                    }
                                 }}
-                                className="w-full bg-[#0a0a09] border border-white/10 p-3 pr-10 rounded-sm text-sm focus:border-[#d8aa5b] outline-none"
+                                disabled={isSending}
+                                className="w-full bg-[#0a0a09] border border-white/10 p-3 pr-10 rounded-sm text-sm focus:border-[#d8aa5b] outline-none disabled:opacity-50"
                                 placeholder={ticketId ? t('support.inputReply') : t('support.inputStart')}
                             />
                             <button
                                 onClick={() => ticketId ? sendMessage() : startChat(newMessage)}
-                                className="absolute right-2 top-1/2 -translate-y-1/2 text-[#d8aa5b] hover:text-white"
+                                disabled={isSending}
+                                className="absolute right-2 top-1/2 -translate-y-1/2 text-[#d8aa5b] hover:text-white disabled:opacity-40 transition-opacity"
                             >
-                                <Send size={16} />
+                                {isSending
+                                    ? <span className="animate-spin inline-block w-4 h-4 border border-[#d8aa5b]/40 border-t-[#d8aa5b] rounded-full" />
+                                    : <Send size={16} />
+                                }
                             </button>
                         </div>
                     </div>

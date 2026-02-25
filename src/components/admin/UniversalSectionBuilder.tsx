@@ -124,29 +124,34 @@ function MediaPicker({ label, value, onChange, focusPoint, onFocusChange, prefix
                 </label>
             </div>
 
-            {value && onFocusChange && (
+            {value && (
                 <div className="space-y-2">
-                    <p className="text-[10px] uppercase text-gray-600 tracking-widest">設定焦點（點擊圖片）</p>
+                    {onFocusChange && (
+                        <p className="text-[10px] uppercase text-gray-600 tracking-widest">設定焦點（點擊圖片）</p>
+                    )}
                     <div
-                        className="relative aspect-video bg-black border border-white/5 overflow-hidden cursor-crosshair group"
+                        className={`relative aspect-video bg-black border border-white/5 overflow-hidden group ${onFocusChange ? 'cursor-crosshair' : ''}`}
                         onClick={(e) => {
+                            if (!onFocusChange) return;
                             const rect = e.currentTarget.getBoundingClientRect();
                             const x = Math.round(((e.clientX - rect.left) / rect.width) * 100);
                             const y = Math.round(((e.clientY - rect.top) / rect.height) * 100);
                             onFocusChange({ x, y });
                         }}
                     >
-                        {value.match(/\.(mp4|webm)$/) ? (
+                        {value.match(/\.(mp4|webm)(\?.*)?$/i) ? (
                             <video src={value} className="w-full h-full object-cover opacity-50" muted />
                         ) : (
-                            <img src={value} className="w-full h-full object-cover opacity-50" alt="焦點預覽" />
+                            <img src={value} className="w-full h-full object-cover opacity-50" alt="預覽" />
                         )}
-                        <div
-                            className="absolute w-6 h-6 border-2 border-[#d8aa5b] rounded-full -translate-x-1/2 -translate-y-1/2 shadow-[0_0_15px_rgba(216,170,91,0.5)] pointer-events-none"
-                            style={{ left: `${focusPoint?.x ?? 50}%`, top: `${focusPoint?.y ?? 50}%` }}
-                        >
-                            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-1 h-1 bg-[#d8aa5b] rounded-full"></div>
-                        </div>
+                        {onFocusChange && (
+                            <div
+                                className="absolute w-6 h-6 border-2 border-[#d8aa5b] rounded-full -translate-x-1/2 -translate-y-1/2 shadow-[0_0_15px_rgba(216,170,91,0.5)] pointer-events-none"
+                                style={{ left: `${focusPoint?.x ?? 50}%`, top: `${focusPoint?.y ?? 50}%` }}
+                            >
+                                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-1 h-1 bg-[#d8aa5b] rounded-full"></div>
+                            </div>
+                        )}
                     </div>
                 </div>
             )}
@@ -710,10 +715,7 @@ function EditModal({ section, onClose, onSave }: { section: Section; onClose: ()
 
                     {section.type === 'video' && (
                         <>
-                            <div>
-                                <label className="block text-xs uppercase text-gray-500 mb-2">影片 URL (MP4 / YouTube)</label>
-                                <input value={content.videoUrl} onChange={e => handleChange('videoUrl', e.target.value)} className="w-full bg-[#111] border border-white/10 p-3 text-white focus:outline-none focus:border-[#d8aa5b]" />
-                            </div>
+                            <MediaPicker label="影片 URL (MP4 / YouTube URL 或上傳)" value={content.videoUrl || ''} onChange={val => handleChange('videoUrl', val)} prefix="video" />
                             <MediaPicker label="影片縮圖" value={content.thumbnail} onChange={val => handleChange('thumbnail', val)} />
                             <LocalizedField label="標籤" value={content.label} onChange={v => handleChange('label', v)} rows={1} />
                         </>

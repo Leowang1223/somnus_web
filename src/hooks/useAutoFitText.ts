@@ -90,14 +90,19 @@ export function useAutoFitText<T extends HTMLElement>(
 
                 // ── Clone-based off-screen measurement ──────────────────────
                 // The real element is NEVER moved or mutated during measurement.
+                // If text has newlines, measure the longest line with pre-wrap
+                // so the hook doesn't collapse multiline text into one line.
+                const hasNewlines = text.includes('\n');
+                const measureWhiteSpace = hasNewlines ? 'pre-wrap' : 'nowrap';
+
                 const clone = el.cloneNode(true) as HTMLElement;
                 const computedStyle = window.getComputedStyle(el);
                 Object.assign(clone.style, {
                     position: 'static',
                     visibility: 'hidden',
-                    whiteSpace: 'nowrap',
+                    whiteSpace: measureWhiteSpace,
                     display: 'inline-block',
-                    width: 'auto',
+                    width: hasNewlines ? `${availableWidth}px` : 'auto',
                     maxWidth: 'none',
                     fontFamily: computedStyle.fontFamily,
                     fontWeight: computedStyle.fontWeight,
@@ -106,6 +111,7 @@ export function useAutoFitText<T extends HTMLElement>(
                 });
                 measureContainer.appendChild(clone);
 
+                // For pre-wrap, check scrollWidth vs availableWidth (longest line)
                 if (clone.scrollWidth <= availableWidth) {
                     // Text fits at max — restore normal rendering
                     measureContainer.removeChild(clone);
@@ -141,7 +147,8 @@ export function useAutoFitText<T extends HTMLElement>(
 
                 // Direct DOM apply first — prevents visible flicker between now and re-render
                 el.style.fontSize = `${best}px`;
-                el.style.whiteSpace = 'nowrap';
+                // Preserve pre-wrap when text has newlines so line breaks render correctly
+                el.style.whiteSpace = hasNewlines ? 'pre-wrap' : 'nowrap';
                 // Then sync React state
                 setResult(prev =>
                     prev.fittedSize === best && prev.shrinkApplied

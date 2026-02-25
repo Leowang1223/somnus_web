@@ -98,7 +98,7 @@ export default function ProductListClient({ initialProducts }: { initialProducts
             </div>
 
             {/* Product Grid */}
-            <div className="grid grid-cols-4 lg:grid-cols-5 gap-3 lg:gap-4">
+            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-3 lg:gap-4">
                 {filtered.map((product, index) => (
                     <Link href={`/product/${product.slug}`} key={product.id}>
                         <motion.div
@@ -108,7 +108,7 @@ export default function ProductListClient({ initialProducts }: { initialProducts
                             className="group relative"
                         >
                             <div
-                                className="bg-[#0a0a09] overflow-hidden rounded-sm relative mb-6 border border-white/5 transition-all duration-700"
+                                className="bg-[#0a0a09] overflow-hidden rounded-sm relative mb-3 md:mb-6 border border-white/5 transition-all duration-700"
                                 style={{
                                     aspectRatio: product.aspectRatio === '1:1' ? '1 / 1' : product.aspectRatio === '16:9' ? '16 / 9' : '4 / 5'
                                 }}
@@ -149,12 +149,14 @@ export default function ProductListClient({ initialProducts }: { initialProducts
                                 <div className="absolute -inset-1 bg-gradient-to-r from-transparent via-white/5 to-transparent -translate-x-full group-hover:animate-shimmer pointer-events-none"></div>
                             </div>
 
-                            <div className="flex justify-between items-end">
-                                <div>
-                                    <h3 className="text-white font-display text-xl mb-1 group-hover:text-[#d8aa5b] transition-colors duration-300">{translate(product, 'name')}</h3>
-                                    <p className="text-gray-500 text-[10px] uppercase tracking-wider">{product.category}</p>
+                            <div className="flex flex-col md:flex-row md:justify-between md:items-end gap-1 md:gap-3">
+                                <div className="min-w-0">
+                                    <h3 className="text-white font-display text-base md:text-xl leading-tight line-clamp-2 mb-0 md:mb-1 group-hover:text-[#d8aa5b] transition-colors duration-300">
+                                        {translate(product, 'name')}
+                                    </h3>
+                                    <p className="text-gray-500 text-[10px] uppercase tracking-wider truncate">{product.category}</p>
                                 </div>
-                                <span className="text-[#d8aa5b] font-display text-lg">{currency}{product.price}</span>
+                                <span className="text-[#d8aa5b] font-display text-xl md:text-lg leading-none">{currency}{product.price}</span>
                             </div>
                         </motion.div>
                     </Link>

@@ -584,6 +584,78 @@ export default function AdminProductsClient({ initialProducts }: { initialProduc
                                             </div>
                                         </div>
 
+                                        {/* ── Variants / SKU Editor ── */}
+                                        <div className="border border-white/10 bg-white/[0.02] p-6 rounded-sm space-y-4 mt-6">
+                                            <div className="flex items-center justify-between mb-2">
+                                                <h3 className="text-sm uppercase tracking-widest text-[#d8aa5b] font-bold">規格 / 屬性 (Variants)</h3>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setCurrentProduct({
+                                                        ...currentProduct,
+                                                        variants: [...(currentProduct.variants || []), { id: `var-${Date.now()}`, name: '', price: '', stock: 0 }]
+                                                    })}
+                                                    className="text-[10px] text-[#d8aa5b] hover:underline flex items-center gap-1"
+                                                >
+                                                    <Plus size={12} /> 新增規格
+                                                </button>
+                                            </div>
+                                            {(currentProduct.variants || []).length === 0 ? (
+                                                <p className="text-[10px] text-gray-600 italic">尚無規格 — 若商品有不同顏色 / 尺寸，請新增</p>
+                                            ) : (
+                                                <div className="space-y-3">
+                                                    <div className="grid grid-cols-[1fr_auto_auto_auto] gap-2 text-[9px] uppercase text-gray-600 tracking-widest px-1">
+                                                        <span>規格名稱</span><span>售價 (空白=產品售價)</span><span>庫存數量</span><span></span>
+                                                    </div>
+                                                    {(currentProduct.variants || []).map((v: any, i: number) => (
+                                                        <div key={v.id || i} className="grid grid-cols-[1fr_auto_auto_auto] gap-2 items-center bg-white/5 p-3 rounded-sm">
+                                                            <input
+                                                                value={v.name || ''}
+                                                                onChange={e => {
+                                                                    const vs = [...(currentProduct.variants || [])];
+                                                                    vs[i] = { ...vs[i], name: e.target.value };
+                                                                    setCurrentProduct({ ...currentProduct, variants: vs });
+                                                                }}
+                                                                placeholder="如：黑色、S號"
+                                                                className="bg-black border border-white/10 p-2 text-white text-[11px] outline-none focus:border-[#d8aa5b] rounded-sm"
+                                                            />
+                                                            <input
+                                                                type="number"
+                                                                value={v.price || ''}
+                                                                onChange={e => {
+                                                                    const vs = [...(currentProduct.variants || [])];
+                                                                    vs[i] = { ...vs[i], price: e.target.value ? Number(e.target.value) : '' };
+                                                                    setCurrentProduct({ ...currentProduct, variants: vs });
+                                                                }}
+                                                                placeholder="選填"
+                                                                className="w-24 bg-black border border-white/10 p-2 text-white text-[11px] outline-none focus:border-[#d8aa5b] rounded-sm"
+                                                            />
+                                                            <input
+                                                                type="number"
+                                                                min="0"
+                                                                value={v.stock ?? 0}
+                                                                onChange={e => {
+                                                                    const vs = [...(currentProduct.variants || [])];
+                                                                    vs[i] = { ...vs[i], stock: Number(e.target.value) };
+                                                                    setCurrentProduct({ ...currentProduct, variants: vs });
+                                                                }}
+                                                                className="w-20 bg-black border border-white/10 p-2 text-white text-[11px] outline-none focus:border-[#d8aa5b] rounded-sm"
+                                                            />
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => {
+                                                                    const vs = (currentProduct.variants || []).filter((_: any, idx: number) => idx !== i);
+                                                                    setCurrentProduct({ ...currentProduct, variants: vs });
+                                                                }}
+                                                                className="text-red-500/40 hover:text-red-500 transition-colors"
+                                                            >
+                                                                <Trash2 size={14} />
+                                                            </button>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            )}
+                                        </div>
+
                                         <div className="flex gap-4 pt-6">
                                             <button type="submit" className="flex-1 bg-[#d8aa5b] text-black h-16 font-bold uppercase tracking-[0.2em] hover:bg-white transition-all shadow-xl flex items-center justify-center gap-3">
                                                 <Save size={18} /> {currentProduct.id ? '確認變更' : '初始化產品'}
@@ -600,6 +672,7 @@ export default function AdminProductsClient({ initialProducts }: { initialProduc
                                     ))}
                                     <input type="hidden" name="name" value={currentProduct.name || ''} /> {/* EN fallback */}
                                     <input type="hidden" name="description" value={currentProduct.description || ''} />
+                                    <input type="hidden" name="variants" value={JSON.stringify(currentProduct.variants || [])} />
                                 </form>
 
                                 {/* Preview / Info Side */}

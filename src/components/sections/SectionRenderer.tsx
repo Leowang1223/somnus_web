@@ -575,7 +575,7 @@ const PurchaseSection = ({ content, productContext, isInView }: { content: any, 
     const [selectedVariant, setSelectedVariant] = useState<any>(null);
 
     const product = productContext || content.productInfo || { name: 'Unknown Artifact', price: 0, id: 'temp' };
-    const images = content.images || (product.image ? [product.image] : []);
+    const images = (content.images && content.images.length > 0) ? content.images : (product.image ? [product.image] : []);
     const featureCards = content.featureCards || [];
     const infoList = content.infoList || [];
     const variants = product.variants || [];

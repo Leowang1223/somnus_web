@@ -164,9 +164,7 @@ export async function submitTicketAction(formData: FormData) {
         // Insert into Supabase
         const { error } = await supabase
             .from('tickets')
-            .insert(ticket as any)
-            .select()
-            .single();
+            .insert(ticket as any);
 
         if (error) {
             console.error('❌ Failed to save ticket:', error);

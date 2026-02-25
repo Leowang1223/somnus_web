@@ -9,6 +9,16 @@ import { GripVertical, Edit, Eye, EyeOff, Trash2, Plus, Type, Image as ImageIcon
 import { uploadFileAction } from "@/app/actions";
 import { useAutoFitText } from "@/hooks/useAutoFitText";
 
+// Extract a plain string from a multilingual object {en,zh,jp,ko} or plain string
+function getLoc(v: any): string {
+    if (!v) return '';
+    if (typeof v === 'string') return v;
+    if (typeof v === 'object' && !Array.isArray(v)) {
+        return String(v['zh'] || v['en'] || Object.values(v).find(Boolean) || '');
+    }
+    return String(v);
+}
+
 // Sortable Item Component
 function SortableItem({ section, onEdit, onToggle, onDelete }: {
     section: Section;
@@ -48,7 +58,9 @@ function SortableItem({ section, onEdit, onToggle, onDelete }: {
                     <span className="text-[#d8aa5b] text-[10px] uppercase font-bold tracking-widest">{section.type}</span>
                 </div>
                 <p className="text-white text-xs truncate opacity-60">
-                    {section.type === 'hero' ? section.content.title : (section.content.heading || section.content.text || '未命名區塊')}
+                    {section.type === 'hero'
+                        ? getLoc(section.content.title)
+                        : (getLoc(section.content.heading) || getLoc(section.content.text) || '未命名區塊')}
                 </p>
             </div>
 
@@ -344,16 +356,6 @@ function SectionMiniPreview({
     const scale = Math.min(1, containerWidth / previewWidth);
     const previewHeight = section.type === 'hero' ? 380 : section.type === 'text-image' ? 260 : 220;
     const content = section.content;
-
-    // Resolve multilingual value
-    function getLoc(v: any): string {
-        if (!v) return '';
-        if (typeof v === 'string') return v;
-        if (typeof v === 'object') {
-            return String(v['zh'] || v['en'] || Object.values(v).find(Boolean) || '');
-        }
-        return '';
-    }
 
     const titleText = getLoc(content.title || content.heading || content.text || '');
     const subtitleText = getLoc(content.subtitle || '');

@@ -10,7 +10,7 @@ import { X, Minus, Plus, Trash2 } from "lucide-react";
 export default function CartDrawer() {
     const { isOpen, toggleCart, items, removeFromCart, updateQuantity, cartTotal } = useCart();
     const { isAuthenticated } = useAuth();
-    const { t, currency } = useLanguage();
+    const { t, currency, translate } = useLanguage();
     const router = useRouter();
 
     const handleCheckout = () => {
@@ -65,9 +65,9 @@ export default function CartDrawer() {
                                         <div className="flex-1">
                                             <div className="flex justify-between items-start mb-2">
                                                 <div>
-                                                    <h3 className="text-white font-display text-lg leading-none mb-1">{item.product.name}</h3>
+                                                    <h3 className="text-white font-display text-lg leading-none mb-1">{translate(item.product, 'name')}</h3>
                                                     {item.variant && (
-                                                        <span className="text-xs text-white/40 uppercase tracking-widest">{item.variant.name}</span>
+                                                        <span className="text-xs text-white/40 uppercase tracking-widest">{translate(item.variant, 'name')}</span>
                                                     )}
                                                 </div>
                                                 <button onClick={() => removeFromCart(item.product.id, item.variant?.id)} className="text-white/30 hover:text-red-400 transition-colors">

@@ -638,7 +638,7 @@ const PurchaseSection = ({ content, productContext, isInView }: { content: any, 
                         {loc(content.label, lang) || (product.category ? `${product.category} Collection` : t('product.ritualArtifact'))}
                     </span>
                     <h2 className="font-display text-4xl md:text-7xl text-white mb-6 leading-tight whitespace-pre-wrap">
-                        {product.name}
+                        {loc(product.name, lang)}
                     </h2>
                     <p className="text-gray-400 text-sm md:text-base leading-relaxed mb-10 max-w-xl font-light whitespace-pre-wrap">
                         {loc(content.description, lang) || loc(product.description, lang) || 'A cinematic descent into stillness. Elevate your sleep ritual with our signature collection designed to bridge the gap between day and dreams.'}
@@ -658,7 +658,7 @@ const PurchaseSection = ({ content, productContext, isInView }: { content: any, 
                                             : 'bg-white/5 border-white/10 text-white/60 hover:border-white/30 hover:text-white'
                                             }`}
                                     >
-                                        {v.name}
+                                        {loc(v.name, lang)}
                                     </button>
                                 ))}
                             </div>

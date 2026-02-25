@@ -290,83 +290,93 @@ const TextImageSection = ({ content, isInView }: { content: any, isInView?: bool
         return () => observer.disconnect();
     }, [ROW_THRESHOLD]);
 
-    const isReversed = content.imagePosition === 'right';
+    // imagePosition='right': text on LEFT, image flush RIGHT edge (ml-auto)
+    // imagePosition='left': image flush LEFT edge, text on right
+    const imageOnRight = content.imagePosition === 'right';
+
+    // ── Image element ────────────────────────────────────────────────────────
+    const imageEl = (
+        <div
+            className="flex-shrink-0 relative bg-[#111] overflow-hidden rounded-sm group"
+            style={{
+                width: useRowLayout ? `${IMAGE_PCT}%` : '100%',
+                aspectRatio: '4/5',
+                // Row + imageOnRight: push image all the way to right edge
+                marginLeft: imageOnRight && useRowLayout ? 'auto' : undefined,
+            }}
+        >
+            <div className="absolute inset-0 z-10">
+                <UniversalCarousel
+                    images={images}
+                    className="w-full h-full"
+                    overlayOpacity={1}
+                    imageClassName="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
+                />
+            </div>
+            {loc(content.caption, lang) && (
+                <div className={`absolute bottom-8 left-8 text-[#d8aa5b] font-display text-2xl max-w-[200px] z-20 reveal-text ${isInView ? 'active' : ''}`}>
+                    "{loc(content.caption, lang)}"
+                </div>
+            )}
+        </div>
+    );
+
+    // ── Text element ─────────────────────────────────────────────────────────
+    const textEl = (
+        <div
+            className="flex-shrink-0 min-w-0 space-y-6 flex flex-col"
+            style={{
+                // Natural width in row mode, capped so it never overlaps image zone
+                width: useRowLayout ? 'auto' : '100%',
+                maxWidth: useRowLayout ? `calc(${100 - IMAGE_PCT}% - 2rem)` : '100%',
+                padding: useRowLayout ? '0 3rem' : '0',
+                textAlign: (content.textAlign || 'left') as React.CSSProperties['textAlign'],
+                alignItems: content.textAlign === 'center' ? 'center'
+                    : content.textAlign === 'right' ? 'flex-end' : 'flex-start',
+            }}
+        >
+            <h2
+                ref={headingRef}
+                className={`font-display text-4xl lg:text-6xl text-white reveal-text ${isInView ? 'active' : ''}`}
+                style={Object.assign(
+                    { lineHeight: '1.2' } as React.CSSProperties,
+                    headingShrunk
+                        ? { fontSize: `${headingSize}px`, whiteSpace: 'nowrap' as const }
+                        : content.headingFontSize
+                            ? { fontSize: `${content.headingFontSize}px` }
+                            : {}
+                )}
+            >
+                {headingText}
+            </h2>
+            <div
+                className={`text-gray-400 text-base leading-relaxed font-light whitespace-pre-wrap reveal-text delay-1 ${isInView ? 'active' : ''}`}
+                style={{ lineHeight: '1.8', ...(content.textFontSize ? { fontSize: `${content.textFontSize}px` } : {}) }}
+            >
+                {loc(content.text, lang)}
+            </div>
+        </div>
+    );
 
     return (
-        // w-full: fills the full ContentLayer width (which now has no outer padding for text-image)
-        // overflow-hidden: prevents image from bleeding outside section bounds
         <section className="py-32 w-full bg-[#050505] relative z-20 overflow-hidden">
             <div
                 ref={containerRef}
-                className="w-full flex items-center"
+                className={`w-full flex items-center${!useRowLayout ? ' px-6' : ''}`}
                 style={{
-                    flexDirection: useRowLayout
-                        ? (isReversed ? 'row-reverse' : 'row')
-                        : 'column',
+                    flexDirection: useRowLayout ? 'row' : 'column',
                     gap: useRowLayout ? '0' : '2rem',
                 }}
             >
-                {/* ── IMAGE ─────────────────────────────────────────────────
-                    Row mode: IMAGE_PCT% wide, NO outer padding → flush to section edge.
-                    Column mode: full width, with px-6 padding. */}
-                <div
-                    className="flex-shrink-0 relative bg-[#111] overflow-hidden rounded-sm group"
-                    style={{
-                        width: useRowLayout ? `${IMAGE_PCT}%` : '100%',
-                        aspectRatio: '4/5',
-                        padding: useRowLayout ? '0' : '0 1.5rem',
-                    }}
-                >
-                    <div className="absolute inset-0 z-10">
-                        <UniversalCarousel
-                            images={images}
-                            className="w-full h-full"
-                            overlayOpacity={1}
-                            imageClassName="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
-                        />
-                    </div>
-                    {loc(content.caption, lang) && (
-                        <div className={`absolute bottom-8 left-8 text-[#d8aa5b] font-display text-2xl max-w-[200px] z-20 reveal-text ${isInView ? 'active' : ''}`}>
-                            "{loc(content.caption, lang)}"
-                        </div>
-                    )}
-                </div>
-
-                {/* ── TEXT ──────────────────────────────────────────────────
-                    Row mode: fills remaining width, padding on text side only.
-                    Column mode: full width with px-6. */}
-                <div
-                    className="flex-grow min-w-0 space-y-6 flex flex-col"
-                    style={Object.assign(
-                        {
-                            textAlign: content.textAlign || 'left',
-                            alignItems: content.textAlign === 'center' ? 'center'
-                                : content.textAlign === 'right' ? 'flex-end' : 'flex-start',
-                            padding: useRowLayout ? '0 3rem' : '0 1.5rem',
-                        } as React.CSSProperties
-                    )}
-                >
-                    <h2
-                        ref={headingRef}
-                        className={`font-display text-4xl lg:text-6xl text-white reveal-text ${isInView ? 'active' : ''}`}
-                        style={Object.assign(
-                            { lineHeight: '1.2' } as React.CSSProperties,
-                            headingShrunk
-                                ? { fontSize: `${headingSize}px`, whiteSpace: 'nowrap' as const }
-                                : content.headingFontSize
-                                    ? { fontSize: `${content.headingFontSize}px` }
-                                    : {}
-                        )}
-                    >
-                        {headingText}
-                    </h2>
-                    <div
-                        className={`text-gray-400 text-base leading-relaxed font-light whitespace-pre-wrap reveal-text delay-1 ${isInView ? 'active' : ''}`}
-                        style={{ lineHeight: '1.8', ...(content.textFontSize ? { fontSize: `${content.textFontSize}px` } : {}) }}
-                    >
-                        {loc(content.text, lang)}
-                    </div>
-                </div>
+                {useRowLayout
+                    ? (imageOnRight
+                        // text first (left), then image slides to right via ml-auto
+                        ? <>{textEl}{imageEl}</>
+                        // image first (left flush), then text
+                        : <>{imageEl}{textEl}</>)
+                    // column: image always on top
+                    : <>{imageEl}{textEl}</>
+                }
             </div>
         </section>
     );

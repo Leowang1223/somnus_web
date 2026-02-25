@@ -212,7 +212,7 @@ const HeroSection = ({ content, isInView }: { content: any, isInView?: boolean }
                         // Only override fontSize when hook is shrinking OR user set an explicit size.
                         // Let Tailwind text-5xl/text-8xl handle defaults — avoids circular reads.
                         titleShrunk
-                            ? { fontSize: `${titleSize}px`, whiteSpace: (titleText.includes('\n') ? 'pre-wrap' : 'nowrap') as const }
+                            ? { fontSize: `${titleSize}px`, whiteSpace: (titleText.includes('\n') ? 'pre-wrap' : 'nowrap') as React.CSSProperties['whiteSpace'] }
                             : content.titleFontSize
                                 ? { fontSize: `${content.titleFontSize}px` }
                                 : {}
@@ -230,7 +230,7 @@ const HeroSection = ({ content, isInView }: { content: any, isInView?: boolean }
                                 opacity: content.subtitleColor ? 1 : 0.7,
                             } as React.CSSProperties,
                             subtitleShrunk
-                                ? { fontSize: `${subtitleSize}px`, whiteSpace: (subtitleText.includes('\n') ? 'pre-wrap' : 'nowrap') as const }
+                                ? { fontSize: `${subtitleSize}px`, whiteSpace: (subtitleText.includes('\n') ? 'pre-wrap' : 'nowrap') as React.CSSProperties['whiteSpace'] }
                                 : content.subtitleFontSize
                                     ? { fontSize: `${content.subtitleFontSize}px` }
                                     : {}
@@ -339,7 +339,7 @@ const TextImageSection = ({ content, isInView }: { content: any, isInView?: bool
                 style={Object.assign(
                     { lineHeight: '1.2' } as React.CSSProperties,
                     headingShrunk
-                        ? { fontSize: `${headingSize}px`, whiteSpace: (headingText.includes('\n') ? 'pre-wrap' : 'nowrap') as const }
+                        ? { fontSize: `${headingSize}px`, whiteSpace: (headingText.includes('\n') ? 'pre-wrap' : 'nowrap') as React.CSSProperties['whiteSpace'] }
                         : content.headingFontSize
                             ? { fontSize: `${content.headingFontSize}px` }
                             : {}

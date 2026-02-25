@@ -25,6 +25,8 @@ function loc(value: any, lang: string): string {
 
 // --- Side Navigation Component ---
 const SideNavigation = ({ sections, activeIndex, onDotClick }: { sections: Section[], activeIndex: number, onDotClick: (i: number) => void }) => {
+    const { language } = useLanguage();
+    const lang = language || 'en';
     return (
         <div className="fixed right-8 top-1/2 -translate-y-1/2 z-50 flex flex-col gap-4">
             {sections.map((section, i) => (
@@ -34,7 +36,7 @@ const SideNavigation = ({ sections, activeIndex, onDotClick }: { sections: Secti
                     className="group relative flex items-center justify-end"
                 >
                     <span className={`absolute right-8 text-[10px] uppercase tracking-[0.3em] font-bold text-[#d8aa5b] opacity-0 group-hover:opacity-100 transition-all duration-500 whitespace-nowrap ${i === activeIndex ? 'translate-x-0' : 'translate-x-4'}`}>
-                        {section.content?.label || section.type}
+                        {loc(section.content?.label, lang) || section.type}
                     </span>
                     <div className={`h-2 rounded-full transition-all duration-700 ${i === activeIndex ? 'w-8 bg-[#d8aa5b] shadow-[0_0_15px_rgba(216,170,91,0.6)]' : 'w-2 bg-white/10 group-hover:bg-white/30'}`} />
                 </button>

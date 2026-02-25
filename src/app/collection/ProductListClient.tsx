@@ -10,7 +10,7 @@ import { useLanguage } from "@/context/LanguageContext";
 type SortOption = 'newest' | 'price-asc' | 'price-desc' | 'name';
 
 export default function ProductListClient({ initialProducts }: { initialProducts: CMSProduct[] }) {
-    const { t, currency } = useLanguage();
+    const { t, currency, translate } = useLanguage();
     const [search, setSearch] = useState('');
     const [category, setCategory] = useState('all');
     const [sort, setSort] = useState<SortOption>('newest');
@@ -114,7 +114,7 @@ export default function ProductListClient({ initialProducts }: { initialProducts
                                 {product.image && (
                                     <img
                                         src={product.image}
-                                        alt={product.name}
+                                        alt={translate(product, 'name')}
                                         className="absolute inset-0 w-full h-full object-cover transition-opacity duration-700"
                                         style={{
                                             objectPosition: product.focusPoint ? `${product.focusPoint.x}% ${product.focusPoint.y}%` : 'center'
@@ -149,7 +149,7 @@ export default function ProductListClient({ initialProducts }: { initialProducts
 
                             <div className="flex justify-between items-end">
                                 <div>
-                                    <h3 className="text-white font-display text-xl mb-1 group-hover:text-[#d8aa5b] transition-colors duration-300">{product.name}</h3>
+                                    <h3 className="text-white font-display text-xl mb-1 group-hover:text-[#d8aa5b] transition-colors duration-300">{translate(product, 'name')}</h3>
                                     <p className="text-gray-500 text-[10px] uppercase tracking-wider">{product.category}</p>
                                 </div>
                                 <span className="text-[#d8aa5b] font-display text-lg">{currency}{product.price}</span>

@@ -178,7 +178,7 @@ const HeroSection = ({ content, isInView }: { content: any, isInView?: boolean }
             <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[60vw] h-[60vw] bg-[radial-gradient(circle,_rgba(216,170,91,0.15)_0%,_transparent_70%)] blur-[100px] z-[5] animate-pulse duration-[8000ms]"></div>
 
             <div
-                className={`relative z-20 flex flex-col px-6 lg:px-24 transition-all duration-700 hero-content-container`}
+                className={`relative z-20 flex flex-col px-6 lg:px-24 hero-content-container`}
                 style={{
                     width: '100%',
                     maxWidth: `${content.containerWidth || 95}vw`,
@@ -271,16 +271,13 @@ const TextImageSection = ({ content, isInView }: { content: any, isInView?: bool
         minFontSize: 16,
     });
 
-    // Content-aware layout: only switch to vertical stack when text area
-    // would be compressed to touch the image zone (< 240px text space left).
-    // IMAGE_WIDTH (400px) + MIN_TEXT_WIDTH (240px) + GAP (48px) = 688px threshold.
-    // Above 688px → row layout; below → column layout.
-    // This replaces the fixed `md:` CSS breakpoint so the image only "moves"
-    // when text is truly being squeezed against it.
-    const IMAGE_WIDTH = content.imageWidth || 400;
-    const MIN_TEXT_WIDTH = 240;
-    const GAP = 48;
-    const ROW_THRESHOLD = IMAGE_WIDTH + MIN_TEXT_WIDTH + GAP;
+    // Content-aware layout: switch to column only when there's not enough room
+    // for image (40%) + min text (240px) + gap (48px) side by side.
+    // With full-width layout: threshold = 240 + 48 / (1 - 0.40) = 480px.
+    // Use 560px to leave comfortable text breathing room.
+    // Image width: 40% of container (percentage scales with viewport, no floating).
+    const IMAGE_PCT = content.imageWidthPercent || 40;  // %
+    const ROW_THRESHOLD = 560; // px — below this, switch to column
 
     const [useRowLayout, setUseRowLayout] = useState(true);
 
@@ -289,8 +286,7 @@ const TextImageSection = ({ content, isInView }: { content: any, isInView?: bool
         if (!container) return;
 
         const checkLayout = () => {
-            const width = container.clientWidth;
-            setUseRowLayout(width >= ROW_THRESHOLD);
+            setUseRowLayout(container.clientWidth >= ROW_THRESHOLD);
         };
 
         checkLayout();
@@ -305,20 +301,23 @@ const TextImageSection = ({ content, isInView }: { content: any, isInView?: bool
         : 'column';
 
     return (
-        <section className="py-32 px-6 bg-[#050505] relative z-20">
+        // Full-width section (no container mx-auto restriction).
+        // Image now spans 40% of the full section width → truly reaches the
+        // right/left edge instead of floating inside a max-width box.
+        <section className="py-32 bg-[#050505] relative z-20">
             <div
                 ref={containerRef}
-                className="container mx-auto items-center"
+                className="w-full items-center px-6 md:px-10 lg:px-16"
                 style={{
                     display: 'flex',
                     flexDirection: flexDirection as React.CSSProperties['flexDirection'],
                     gap: useRowLayout ? '3rem' : '2rem',
                 }}
             >
-                {/* Image - Fixed Width (only shrinks to full-width when layout switches to column) */}
+                {/* Image — percentage width so it reaches the section edge */}
                 <div
                     className="flex-shrink-0 relative aspect-[4/5] bg-[#111] overflow-hidden rounded-sm group"
-                    style={{ width: useRowLayout ? `${IMAGE_WIDTH}px` : '100%' }}
+                    style={{ width: useRowLayout ? `${IMAGE_PCT}%` : '100%' }}
                 >
                     {/* Image Layer - z-10 */}
                     <div className="absolute inset-0 z-10">

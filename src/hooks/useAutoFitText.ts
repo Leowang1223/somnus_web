@@ -1,6 +1,6 @@
 'use client';
 
-import { RefObject, useEffect, useState } from 'react';
+import { RefObject, useEffect, useState, useRef } from 'react';
 
 interface AutoFitOptions {
     /** Maximum font size in px (user explicit setting). Undefined = read from CSS classes. */
@@ -21,15 +21,21 @@ interface AutoFitResult {
 /**
  * Shrinks font size to keep text on one line within its parent container.
  *
- * CRITICAL design decisions to avoid infinite loops and mobile Safari crashes:
- *  - NEVER mutate the real element's position/visibility during measurement.
- *    Instead, clone it to a hidden off-screen container so the real element's
- *    layout is never disturbed (prevents framer-motion paint errors).
- *  - ResizeObserver tracks WIDTH only (height changes from font-size mutations
- *    must NOT re-trigger measurement).
- *  - 10px width threshold ignores micro-changes (mobile address bar ±3px,
- *    framer-motion scale 1.015→1 animation ±5.6px at 375px width).
- *  - An isMeasuring guard prevents re-entrant calls.
+ * DEAD LOOP ROOT CAUSE (why previous ResizeObserver caused jumping):
+ *   font-size changes → element/parent dimensions change → ResizeObserver fires
+ *   → re-measurement → font-size changes again → infinite loop.
+ *   When the parent also has transition-all, the 700ms animation fires the
+ *   observer ~42 times (60fps × 700ms), making the loop visible as "jumping".
+ *
+ * FIX: Watch window.resize ONLY (not the element or its parent).
+ *   Window resize is completely decoupled from font-size mutations.
+ *   Font-size changes CANNOT trigger window resize → loop impossible.
+ *
+ * Additional safeguards:
+ *   - isCalculatingRef prevents re-entrant calls
+ *   - debounce 150ms merges rapid resize events (mobile address bar: ±3px)
+ *   - Clone-based off-screen measurement: real element is NEVER mutated during measure
+ *   - Direct DOM apply before setState: no visual flicker between calculation and re-render
  */
 export function useAutoFitText<T extends HTMLElement>(
     ref: RefObject<T | null>,
@@ -40,16 +46,14 @@ export function useAutoFitText<T extends HTMLElement>(
         shrinkApplied: false,
     });
 
+    // Ref guard — prevents concurrent calculations even across async boundaries
+    const isCalculatingRef = useRef(false);
+
     useEffect(() => {
         const el = ref.current;
         if (!el) return;
 
-        let rafId: number;
-        let lastWidth = -1;
-        let isMeasuring = false;
-
-        // Persistent hidden measurement container — created once per hook instance.
-        // Positioned absolutely off-screen so it never affects document flow.
+        // Persistent hidden measurement container — lives off-screen, never affects layout
         const measureContainer = document.createElement('div');
         measureContainer.setAttribute('aria-hidden', 'true');
         Object.assign(measureContainer.style, {
@@ -63,8 +67,8 @@ export function useAutoFitText<T extends HTMLElement>(
         document.body.appendChild(measureContainer);
 
         const measure = () => {
-            if (isMeasuring) return;
-            isMeasuring = true;
+            if (isCalculatingRef.current) return;
+            isCalculatingRef.current = true;
 
             try {
                 const parent = el.parentElement ?? el;
@@ -72,22 +76,20 @@ export function useAutoFitText<T extends HTMLElement>(
                 if (availableWidth === 0) return;
 
                 // ── Determine target max font size ──────────────────────────
-                // When maxFontSize is not explicitly provided, read from the
-                // real element's CSS by temporarily clearing our own inline
-                // style (so Tailwind classes take effect, not our shrunken value).
                 let targetMax: number;
                 if (maxFontSize && maxFontSize > 0) {
                     targetMax = maxFontSize;
                 } else {
+                    // Temporarily clear inline style so we read the CSS class value,
+                    // not any previously shrunken value we set.
                     const prev = el.style.fontSize;
-                    el.style.fontSize = '';  // clear inline → Tailwind CSS takes over
+                    el.style.fontSize = '';
                     targetMax = parseFloat(window.getComputedStyle(el).fontSize) || 16;
-                    el.style.fontSize = prev; // restore
+                    el.style.fontSize = prev;
                 }
 
-                // ── Build a clone for off-screen measurement ────────────────
-                // The clone lives in measureContainer — the real element is
-                // NEVER moved to absolute/hidden, so no layout disruption.
+                // ── Clone-based off-screen measurement ──────────────────────
+                // The real element is NEVER moved or mutated during measurement.
                 const clone = el.cloneNode(true) as HTMLElement;
                 const computedStyle = window.getComputedStyle(el);
                 Object.assign(clone.style, {
@@ -104,9 +106,13 @@ export function useAutoFitText<T extends HTMLElement>(
                 });
                 measureContainer.appendChild(clone);
 
-                // ── Test if text fits at targetMax ─────────────────────────
                 if (clone.scrollWidth <= availableWidth) {
+                    // Text fits at max — restore normal rendering
                     measureContainer.removeChild(clone);
+                    // Direct DOM apply first (immediate visual, no flicker)
+                    el.style.fontSize = '';
+                    el.style.whiteSpace = '';
+                    // Then sync React state
                     setResult(prev =>
                         prev.fittedSize === targetMax && !prev.shrinkApplied
                             ? prev
@@ -133,38 +139,39 @@ export function useAutoFitText<T extends HTMLElement>(
 
                 measureContainer.removeChild(clone);
 
+                // Direct DOM apply first — prevents visible flicker between now and re-render
+                el.style.fontSize = `${best}px`;
+                el.style.whiteSpace = 'nowrap';
+                // Then sync React state
                 setResult(prev =>
                     prev.fittedSize === best && prev.shrinkApplied
                         ? prev
                         : { fittedSize: best, shrinkApplied: true }
                 );
             } finally {
-                isMeasuring = false;
+                isCalculatingRef.current = false;
             }
         };
 
-        rafId = requestAnimationFrame(measure);
+        // ── Debounced window resize listener ────────────────────────────────
+        // KEY: window.resize is completely decoupled from font-size mutations.
+        // No matter how many times we change el.style.fontSize, window.resize
+        // never fires → the dead loop is architecturally impossible.
+        let debounceTimer: ReturnType<typeof setTimeout>;
+        const debouncedMeasure = () => {
+            clearTimeout(debounceTimer);
+            debounceTimer = setTimeout(measure, 150);
+        };
 
-        // ── Watch WIDTH only, ignore height changes ──────────────────────
-        // Height changes caused by our own font-size mutations must NOT
-        // re-trigger the observer — that is the infinite-loop root cause.
-        // 10px threshold: ignores mobile address bar (±3px) AND the
-        // framer-motion scale 1.015→1 animation (≈5.6px at 375px width).
-        const observer = new ResizeObserver((entries) => {
-            for (const entry of entries) {
-                const newWidth = Math.round(entry.contentRect.width);
-                if (Math.abs(newWidth - lastWidth) < 10) return; // height-only, address-bar, or scale-animation micro-change → skip
-                lastWidth = newWidth;
-                cancelAnimationFrame(rafId);
-                rafId = requestAnimationFrame(measure);
-            }
-        });
+        // Initial measurement on mount
+        let rafId = requestAnimationFrame(measure);
 
-        observer.observe(el.parentElement ?? el);
+        window.addEventListener('resize', debouncedMeasure, { passive: true });
 
         return () => {
             cancelAnimationFrame(rafId);
-            observer.disconnect();
+            clearTimeout(debounceTimer);
+            window.removeEventListener('resize', debouncedMeasure);
             if (measureContainer.parentNode) {
                 document.body.removeChild(measureContainer);
             }

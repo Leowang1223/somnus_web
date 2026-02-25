@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { updateTicketStatusAction, claimTicketAction, replyToTicketAction, getAdminTicketsAction, getTicketUpdatesAction, uploadFileAction } from "@/app/actions";
+import { updateTicketStatusAction, claimTicketAction, unassignTicketAction, replyToTicketAction, getAdminTicketsAction, getTicketUpdatesAction, uploadFileAction } from "@/app/actions";
 import { CheckCircle, MessageSquare, RefreshCw, UserPlus, Send, Paperclip, X } from "lucide-react";
 
 export default function TicketListClient({ tickets: initialTickets, adminEmail, adminId }: { tickets: any[], adminEmail: string, adminId: string }) {
@@ -11,14 +11,31 @@ export default function TicketListClient({ tickets: initialTickets, adminEmail, 
     const [tickets, setTickets] = useState(initialTickets);
     const [pendingImage, setPendingImage] = useState<string | null>(null);
     const [imageUploading, setImageUploading] = useState(false);
+    const [adminError, setAdminError] = useState('');
+    const [hasIncomingUserMessage, setHasIncomingUserMessage] = useState(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
+
+    const sortTicketsByRecent = (items: any[]) => {
+        return [...items].sort((a, b) => {
+            const aTime = new Date(a.lastMessageAt || a.updatedAt || a.createdAt || 0).getTime();
+            const bTime = new Date(b.lastMessageAt || b.updatedAt || b.createdAt || 0).getTime();
+            if (bTime !== aTime) return bTime - aTime;
+            return new Date(b.updatedAt || b.createdAt || 0).getTime() - new Date(a.updatedAt || a.createdAt || 0).getTime();
+        });
+    };
 
     // Poll for ticket list updates every 5 seconds
     useEffect(() => {
         const interval = setInterval(async () => {
             const res = await getAdminTicketsAction();
             if (res.success && res.tickets) {
-                setTickets(res.tickets);
+                setTickets(prev => {
+                    const prevUnreadMap = new Map(prev.map((t: any) => [t.id, !!t.hasUnreadForAdmin]));
+                    const next = sortTicketsByRecent(res.tickets || []);
+                    const hasNewUnread = next.some((t: any) => t.hasUnreadForAdmin && !prevUnreadMap.get(t.id));
+                    if (hasNewUnread) setHasIncomingUserMessage(true);
+                    return next;
+                });
             }
         }, 5000);
         return () => clearInterval(interval);
@@ -28,28 +45,52 @@ export default function TicketListClient({ tickets: initialTickets, adminEmail, 
     useEffect(() => {
         if (!selectedTicketId) return;
         const interval = setInterval(async () => {
-            const res = await getTicketUpdatesAction(selectedTicketId);
+            const res = await getTicketUpdatesAction(selectedTicketId, 'admin');
             if (res.success && res.ticket) {
                 setTickets(prev => prev.map(t =>
-                    t.id === selectedTicketId ? { ...t, messages: res.ticket!.messages, status: res.ticket!.status } : t
-                ));
+                    t.id === selectedTicketId ? { ...t, ...res.ticket } : t
+                ).sort((a, b) => {
+                    const aTime = new Date(a.lastMessageAt || a.updatedAt || a.createdAt || 0).getTime();
+                    const bTime = new Date(b.lastMessageAt || b.updatedAt || b.createdAt || 0).getTime();
+                    return bTime - aTime;
+                }));
             }
         }, 3000);
         return () => clearInterval(interval);
     }, [selectedTicketId]);
 
-    const unassignedTickets = tickets.filter(t => !t.assignedTo && t.status !== 'closed');
-    const myTickets = tickets.filter(t => t.assignedTo === adminId);
+    const orderedTickets = sortTicketsByRecent(tickets);
+    const unassignedTickets = orderedTickets.filter(t => !t.assignedTo && t.status !== 'closed');
+    const myTickets = orderedTickets.filter(t => t.assignedTo === adminId && t.status !== 'closed');
 
     const shownTickets = view === 'queue' ? unassignedTickets : myTickets;
-    const selectedTicket = tickets.find(t => t.id === selectedTicketId);
+    const selectedTicket = orderedTickets.find(t => t.id === selectedTicketId);
 
     const handleClaim = async (id: string) => {
-        await claimTicketAction(id, adminId);
+        setAdminError('');
+        const res = await claimTicketAction(id, adminId);
+        if (!res.success) {
+            setAdminError((res as any)?.error || 'Failed to claim ticket');
+            return;
+        }
         setTickets(prev => prev.map(t =>
-            t.id === id ? { ...t, assignedTo: adminId, status: 'open' } : t
+            t.id === id ? { ...t, assignedTo: adminId, assignedAt: new Date().toISOString(), status: 'open' } : t
         ));
         setView('mine');
+    };
+
+    const handleUnassign = async (id: string) => {
+        setAdminError('');
+        const res = await unassignTicketAction(id);
+        if (!res.success) {
+            setAdminError((res as any)?.error || 'Failed to unassign ticket');
+            return;
+        }
+        setTickets(prev => prev.map(t =>
+            t.id === id ? { ...t, assignedTo: null, assignedAt: null } : t
+        ));
+        setSelectedTicketId(null);
+        setView('queue');
     };
 
     const handleImageSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -67,23 +108,41 @@ export default function TicketListClient({ tickets: initialTickets, adminEmail, 
 
     const handleReply = async () => {
         if (!selectedTicketId || (!replyMessage.trim() && !pendingImage)) return;
+        setAdminError('');
         const msg = replyMessage;
         const imgUrl = pendingImage;
         setReplyMessage('');
         setPendingImage(null);
+        setHasIncomingUserMessage(false);
 
         // Optimistic UI
+        const nowIso = new Date().toISOString();
         const tempMsg: any = { id: `msg-${Date.now()}`, sender: 'admin', content: msg, timestamp: Date.now() };
         if (imgUrl) tempMsg.image_url = imgUrl;
         setTickets(prev => prev.map(t =>
-            t.id === selectedTicketId ? { ...t, messages: [...(t.messages || []), tempMsg] } : t
+            t.id === selectedTicketId ? {
+                ...t,
+                messages: [...(t.messages || []), tempMsg],
+                lastMessageAt: nowIso,
+                lastMessageSender: 'admin',
+                lastMessagePreview: (msg || '').trim() ? msg.trim().slice(0, 200) : '[image]',
+                hasUnreadForAdmin: false,
+            } : t
         ));
 
-        await replyToTicketAction(selectedTicketId, msg, 'admin', imgUrl || undefined);
+        const res = await replyToTicketAction(selectedTicketId, msg, 'admin', imgUrl || undefined);
+        if (!res.success) {
+            setAdminError((res as any)?.error || 'Failed to send reply');
+        }
     };
 
     const handleStatusUpdate = async (id: string, newStatus: string) => {
-        await updateTicketStatusAction(id, newStatus);
+        setAdminError('');
+        const res = await updateTicketStatusAction(id, newStatus);
+        if (!res.success) {
+            setAdminError((res as any)?.error || 'Failed to update ticket status');
+            return;
+        }
         setTickets(prev => prev.map(t =>
             t.id === id ? { ...t, status: newStatus } : t
         ));
@@ -102,8 +161,19 @@ export default function TicketListClient({ tickets: initialTickets, adminEmail, 
                             <h3 className="font-bold text-white">Ticket #{selectedTicket.id}</h3>
                             <p className="text-xs text-[#d8aa5b]">{selectedTicket.department}</p>
                         </div>
-                        <div className="flex gap-2">
-                            <button onClick={() => handleStatusUpdate(selectedTicket.id, 'closed')} className="bg-red-500/10 text-red-500 px-3 py-1 rounded text-xs">Close Ticket</button>
+                        <div className="flex gap-2 flex-wrap justify-end">
+                            {selectedTicket.assignedTo === adminId && (
+                                <button onClick={() => handleUnassign(selectedTicket.id)} className="bg-white/5 text-white/80 px-3 py-1 rounded text-xs hover:bg-white/10">Leave / Unassign</button>
+                            )}
+                            {selectedTicket.status !== 'resolved' && selectedTicket.status !== 'closed' && (
+                                <button onClick={() => handleStatusUpdate(selectedTicket.id, 'resolved')} className="bg-green-500/10 text-green-400 px-3 py-1 rounded text-xs">Resolve</button>
+                            )}
+                            {selectedTicket.status !== 'closed' && (
+                                <button onClick={() => handleStatusUpdate(selectedTicket.id, 'closed')} className="bg-red-500/10 text-red-500 px-3 py-1 rounded text-xs">Close</button>
+                            )}
+                            {selectedTicket.status !== 'open' && selectedTicket.status !== 'closed' && (
+                                <button onClick={() => handleStatusUpdate(selectedTicket.id, 'open')} className="bg-blue-500/10 text-blue-400 px-3 py-1 rounded text-xs">Reopen</button>
+                            )}
                         </div>
                     </div>
 
@@ -128,6 +198,7 @@ export default function TicketListClient({ tickets: initialTickets, adminEmail, 
                     </div>
 
                     <div className="p-4 border-t border-white/10 bg-[#151515]">
+                        {adminError && <p className="text-red-400 text-xs mb-2">{adminError}</p>}
                         {pendingImage && (
                             <div className="mb-2 flex items-center gap-2">
                                 <img src={pendingImage} alt="預覽" className="w-14 h-14 object-cover rounded-sm" />
@@ -193,6 +264,17 @@ export default function TicketListClient({ tickets: initialTickets, adminEmail, 
 
     return (
         <div className="space-y-6">
+            {hasIncomingUserMessage && (
+                <div className="border border-[#d8aa5b]/30 bg-[#d8aa5b]/5 text-[#d8aa5b] text-xs px-4 py-3 rounded-sm flex items-center justify-between">
+                    <span>New customer message received.</span>
+                    <button className="underline underline-offset-2" onClick={() => setHasIncomingUserMessage(false)}>Dismiss</button>
+                </div>
+            )}
+            {adminError && (
+                <div className="border border-red-500/20 bg-red-500/5 text-red-300 text-xs px-4 py-3 rounded-sm">
+                    {adminError}
+                </div>
+            )}
             {/* View Tabs */}
             <div className="flex gap-4 border-b border-white/10 pb-4">
                 <button
@@ -224,15 +306,22 @@ export default function TicketListClient({ tickets: initialTickets, adminEmail, 
                                         <span className="px-2 py-1 rounded text-[10px] uppercase font-bold tracking-widest bg-blue-900/30 text-blue-400">
                                             {ticket.department || 'General'}
                                         </span>
+                                        {ticket.hasUnreadForAdmin && (
+                                            <span className="px-2 py-1 rounded text-[10px] uppercase font-bold tracking-widest bg-[#d8aa5b]/15 text-[#d8aa5b]">
+                                                New
+                                            </span>
+                                        )}
                                         <span className={`px-2 py-1 rounded text-[10px] uppercase font-bold tracking-widest ${ticket.status === 'open' ? 'bg-green-900/30 text-green-400' : 'bg-gray-800 text-gray-500'}`}>
                                             {ticket.status}
                                         </span>
-                                        <span className="text-xs text-gray-500 font-mono">{new Date(ticket.createdAt).toLocaleDateString()}</span>
+                                        <span className="text-xs text-gray-500 font-mono">
+                                            {new Date(ticket.lastMessageAt || ticket.createdAt).toLocaleString()}
+                                        </span>
                                     </div>
 
                                     <h3 className="text-lg text-white font-medium">{ticket.department} Inquiry</h3>
                                     <p className="text-gray-400 text-sm leading-relaxed truncate max-w-xl">
-                                        {ticket.messages && ticket.messages.length > 0 ? ticket.messages[ticket.messages.length - 1].content : 'No messages'}
+                                        {ticket.lastMessagePreview || (ticket.messages && ticket.messages.length > 0 ? ticket.messages[ticket.messages.length - 1].content : 'No messages')}
                                     </p>
                                     <p className="text-[10px] text-gray-600 font-mono">{ticket.userEmail || 'Guest'}</p>
                                 </div>

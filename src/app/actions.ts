@@ -129,6 +129,71 @@ export async function autoTranslateAction(text: string, sourceLang: string, targ
 // 🎟️ Ticket & Chat Actions
 // ==========================================
 
+const ACTIVE_TICKET_STATUSES = ['pending', 'open', 'resolved'] as const;
+
+function buildTicketPreviewFromMessage(msg: any) {
+    const raw = (msg?.content || '').toString().trim();
+    if (raw) return raw.slice(0, 200);
+    if (msg?.image_url) return '[image]';
+    return '';
+}
+
+function mapTicketRecord(t: any) {
+    const lastMessageAt = t.last_message_at || t.updated_at || t.created_at || null;
+    const adminLastReadAt = t.admin_last_read_at || null;
+    const customerLastReadAt = t.customer_last_read_at || null;
+    return {
+        id: t.id,
+        type: t.type,
+        department: t.department || 'General',
+        status: t.status,
+        orderId: t.order_id,
+        messages: t.messages || [],
+        userEmail: t.user_email,
+        assignedTo: t.assigned_to,
+        assignedAt: t.assigned_at,
+        createdAt: t.created_at,
+        updatedAt: t.updated_at,
+        lastMessageAt,
+        lastMessagePreview: t.last_message_preview || '',
+        lastMessageSender: t.last_message_sender || null,
+        customerLastReadAt,
+        adminLastReadAt,
+        hasUnreadForAdmin: !!(lastMessageAt && t.last_message_sender === 'user' && (!adminLastReadAt || new Date(lastMessageAt) > new Date(adminLastReadAt))),
+        hasUnreadForCustomer: !!(lastMessageAt && t.last_message_sender === 'admin' && (!customerLastReadAt || new Date(lastMessageAt) > new Date(customerLastReadAt))),
+    };
+}
+
+async function findActiveTicketByUserEmail(supabase: any, userEmail: string) {
+    const { data, error } = await supabase
+        .from('tickets')
+        .select('*')
+        .eq('user_email', userEmail)
+        .in('status', [...ACTIVE_TICKET_STATUSES])
+        .order('last_message_at', { ascending: false })
+        .order('updated_at', { ascending: false })
+        .limit(1);
+    if (error) return { ticket: null, error };
+    return { ticket: data?.[0] || null, error: null };
+}
+
+export async function getMyActiveTicketAction() {
+    try {
+        const authClient = await createClient();
+        const { data: { session } } = await authClient.auth.getSession();
+        const userEmail = session?.user?.email ?? null;
+        if (!userEmail) return { success: true, ticket: null };
+
+        const { createAdminClient } = await import('@/lib/supabase/admin');
+        const supabase = createAdminClient();
+        const { ticket, error } = await findActiveTicketByUserEmail(supabase, userEmail);
+        if (error) return { success: false, error: error.message || 'Failed to fetch active ticket' };
+        return { success: true, ticket: ticket ? mapTicketRecord(ticket) : null };
+    } catch (e) {
+        return { success: false, error: e instanceof Error ? e.message : 'Failed to fetch active ticket' };
+    }
+}
+
 export async function submitTicketAction(formData: FormData) {
     try {
         const { createAdminClient } = await import('@/lib/supabase/admin');
@@ -140,13 +205,21 @@ export async function submitTicketAction(formData: FormData) {
         const orderId = formData.get('orderId') as string;
         const department = formData.get('department') as string || 'General';
 
-        // Try to get current user email (optional — guests won't have session)
         let userEmail: string | null = null;
         try {
             const authClient = await createClient();
             const { data: { session } } = await authClient.auth.getSession();
             userEmail = session?.user?.email ?? null;
-        } catch { /* guest — no session */ }
+        } catch {}
+
+        if (userEmail) {
+            const { ticket: existingTicket, error: existingError } = await findActiveTicketByUserEmail(supabase, userEmail);
+            if (existingError) {
+                console.error('Failed to check active ticket:', existingError);
+            } else if (existingTicket) {
+                return { success: true, ticketId: existingTicket.id, existing: true, ticket: mapTicketRecord(existingTicket) };
+            }
+        }
 
         const initialMessage: Record<string, any> = {
             id: `msg-${Date.now()}`,
@@ -156,6 +229,7 @@ export async function submitTicketAction(formData: FormData) {
         };
         if (imageUrl) initialMessage.image_url = imageUrl;
 
+        const nowIso = new Date().toISOString();
         const ticket = {
             id: `tkt-${Date.now()}`,
             type,
@@ -164,21 +238,24 @@ export async function submitTicketAction(formData: FormData) {
             order_id: orderId || null,
             messages: [initialMessage],
             user_email: userEmail || null,
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString()
+            created_at: nowIso,
+            updated_at: nowIso,
+            last_message_at: nowIso,
+            last_message_preview: buildTicketPreviewFromMessage(initialMessage),
+            last_message_sender: 'user',
+            customer_last_read_at: nowIso
         };
 
-        // Insert into Supabase
         const { error } = await supabase
             .from('tickets')
             .insert(ticket as any);
 
         if (error) {
-            console.error('❌ Failed to save ticket:', error);
+            console.error('Failed to save ticket:', error);
             return { success: false, error: error.message || 'Failed to save ticket' };
         }
 
-        return { success: true, ticketId: ticket.id };
+        return { success: true, ticketId: ticket.id, ticket: mapTicketRecord(ticket) };
     } catch (e) {
         console.error('Exception submitting ticket:', e);
         return { success: false, error: e instanceof Error ? e.message : 'Submit ticket failed' };
@@ -188,21 +265,19 @@ export async function submitTicketAction(formData: FormData) {
 export async function replyToTicketAction(ticketId: string, content: string, sender: 'user' | 'admin', imageUrl?: string) {
     try {
         const { createAdminClient } = await import('@/lib/supabase/admin');
-        const supabase = createAdminClient(); // service_role: bypasses RLS
+        const supabase = createAdminClient();
 
-        // 1. Fetch current ticket messages
         const { data: ticket, error: fetchError } = await supabase
             .from('tickets')
-            .select('messages')
+            .select('messages,status')
             .eq('id', ticketId)
             .single() as { data: any; error: any };
 
         if (fetchError || !ticket) {
-            console.error('❌ Ticket not found:', fetchError);
+            console.error('Ticket not found:', fetchError);
             return { success: false, error: fetchError?.message || 'Ticket not found' };
         }
 
-        // 2. Append new message
         const newMsg: Record<string, any> = {
             id: `msg-${Date.now()}`,
             sender,
@@ -216,17 +291,32 @@ export async function replyToTicketAction(ticketId: string, content: string, sen
             newMsg,
         ];
 
-        // 3. Update ticket
-        const { error: updateError } = await (supabase
-            .from('tickets') as any)
-            .update({
-                messages: newMessages,
-                updated_at: new Date().toISOString()
-            })
+        const nowIso = new Date().toISOString();
+        const updatePayload: Record<string, any> = {
+            messages: newMessages,
+            updated_at: nowIso,
+            last_message_at: nowIso,
+            last_message_preview: buildTicketPreviewFromMessage(newMsg),
+            last_message_sender: sender,
+        };
+
+        if (sender === 'user') {
+            updatePayload.customer_last_read_at = nowIso;
+            if (ticket.status === 'resolved') {
+                updatePayload.status = 'open';
+                updatePayload.resolved_at = null;
+            }
+            updatePayload.closed_at = null;
+        } else {
+            updatePayload.admin_last_read_at = nowIso;
+        }
+
+        const { error: updateError } = await (supabase.from('tickets') as any)
+            .update(updatePayload)
             .eq('id', ticketId);
 
         if (updateError) {
-            console.error('❌ Failed to update ticket:', updateError);
+            console.error('Failed to update ticket:', updateError);
             return { success: false, error: updateError.message || 'Failed to update ticket' };
         }
 
@@ -241,13 +331,14 @@ export async function replyToTicketAction(ticketId: string, content: string, sen
 export async function claimTicketAction(ticketId: string, adminId: string) {
     try {
         const { createAdminClient } = await import('@/lib/supabase/admin');
-        const supabase = createAdminClient(); // service_role: bypasses RLS
-        const { error } = await (supabase
-            .from('tickets') as any)
+        const supabase = createAdminClient();
+        const nowIso = new Date().toISOString();
+        const { error } = await (supabase.from('tickets') as any)
             .update({
                 assigned_to: adminId,
+                assigned_at: nowIso,
                 status: 'open',
-                updated_at: new Date().toISOString()
+                updated_at: nowIso
             })
             .eq('id', ticketId);
 
@@ -261,10 +352,27 @@ export async function claimTicketAction(ticketId: string, adminId: string) {
     } catch (e) { return { success: false, error: e instanceof Error ? e.message : 'Claim ticket failed' }; }
 }
 
-export async function getTicketUpdatesAction(ticketId: string) {
+export async function unassignTicketAction(ticketId: string) {
     try {
         const { createAdminClient } = await import('@/lib/supabase/admin');
-        const supabase = createAdminClient(); // service_role: bypasses RLS
+        const supabase = createAdminClient();
+        const { error } = await (supabase.from('tickets') as any)
+            .update({
+                assigned_to: null,
+                assigned_at: null,
+                updated_at: new Date().toISOString(),
+            })
+            .eq('id', ticketId);
+        if (error) return { success: false, error: error.message || 'Unassign failed' };
+        revalidatePath('/admin/cs');
+        return { success: true };
+    } catch (e) { return { success: false, error: e instanceof Error ? e.message : 'Unassign failed' }; }
+}
+
+export async function getTicketUpdatesAction(ticketId: string, viewer?: 'user' | 'admin') {
+    try {
+        const { createAdminClient } = await import('@/lib/supabase/admin');
+        const supabase = createAdminClient();
         const { data: ticket, error } = await supabase
             .from('tickets')
             .select('*')
@@ -275,19 +383,17 @@ export async function getTicketUpdatesAction(ticketId: string) {
             return { success: false, error: error?.message || 'Ticket not found' };
         }
 
+        if (viewer === 'user' || viewer === 'admin') {
+            const readColumn = viewer === 'user' ? 'customer_last_read_at' : 'admin_last_read_at';
+            await (supabase.from('tickets') as any)
+                .update({ [readColumn]: new Date().toISOString() })
+                .eq('id', ticketId);
+            ticket[readColumn] = new Date().toISOString();
+        }
+
         return {
             success: true,
-            ticket: {
-                id: ticket.id,
-                type: ticket.type,
-                department: ticket.department || 'General',
-                status: ticket.status,
-                orderId: ticket.order_id,
-                messages: ticket.messages || [],
-                userEmail: ticket.user_email,
-                assignedTo: ticket.assigned_to,
-                createdAt: ticket.created_at
-            }
+            ticket: mapTicketRecord(ticket)
         };
     } catch (e) { return { success: false, error: e instanceof Error ? e.message : 'Get ticket updates failed' }; }
 }
@@ -295,49 +401,46 @@ export async function getTicketUpdatesAction(ticketId: string) {
 export async function updateTicketStatusAction(id: string, status: string) {
     try {
         const { createAdminClient } = await import('@/lib/supabase/admin');
-        const supabase = createAdminClient(); // service_role: bypasses RLS
-        const { error } = await (supabase
-            .from('tickets') as any)
-            .update({
-                status,
-                updated_at: new Date().toISOString()
-            })
+        const supabase = createAdminClient();
+        const nowIso = new Date().toISOString();
+        const patch: Record<string, any> = {
+            status,
+            updated_at: nowIso,
+        };
+        if (status === 'resolved') patch.resolved_at = nowIso;
+        if (status === 'closed') patch.closed_at = nowIso;
+        if (status === 'open') {
+            patch.closed_at = null;
+            patch.resolved_at = null;
+        }
+
+        const { error } = await (supabase.from('tickets') as any)
+            .update(patch)
             .eq('id', id);
 
         if (error) {
             console.error('Update ticket status failed:', error);
-            return { success: false };
+            return { success: false, error: error.message || 'Update ticket status failed' };
         }
 
         revalidatePath('/admin/cs');
         return { success: true };
-    } catch (e) { return { success: false }; }
+    } catch (e) { return { success: false, error: e instanceof Error ? e.message : 'Update ticket status failed' }; }
 }
 
 export async function getAdminTicketsAction() {
     try {
-        // Use admin client to bypass RLS so admin can see ALL tickets
         const { createAdminClient } = await import('@/lib/supabase/admin');
         const supabase = createAdminClient();
         const { data, error } = await supabase
             .from('tickets')
             .select('*')
-            .order('created_at', { ascending: false });
+            .order('last_message_at', { ascending: false })
+            .order('updated_at', { ascending: false });
         if (error) { console.error('getAdminTicketsAction failed:', error); return { tickets: [], success: false }; }
-        const tickets = (data || []).map((t: any) => ({
-            id: t.id,
-            type: t.type,
-            department: t.department || 'General',
-            status: t.status,
-            orderId: t.order_id,
-            messages: t.messages || [],
-            userEmail: t.user_email,
-            assignedTo: t.assigned_to,
-            createdAt: t.created_at,
-            updatedAt: t.updated_at,
-        }));
+        const tickets = (data || []).map((t: any) => mapTicketRecord(t));
         return { tickets, success: true };
-    } catch (e) { return { tickets: [], success: false }; }
+    } catch (e) { return { tickets: [], success: false, error: e instanceof Error ? e.message : 'Get admin tickets failed' }; }
 }
 
 export async function updateProductAction(formData: FormData) {

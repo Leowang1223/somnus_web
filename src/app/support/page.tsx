@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { submitTicketAction, getTicketUpdatesAction, replyToTicketAction, uploadFileAction } from "@/app/actions";
+import { submitTicketAction, getMyActiveTicketAction, getTicketUpdatesAction, replyToTicketAction, uploadFileAction } from "@/app/actions";
 import { Send, User as UserIcon, Headphones, Paperclip, X } from 'lucide-react';
 import { useLanguage } from "@/context/LanguageContext";
 
@@ -16,8 +16,11 @@ export default function SupportPage() {
     const [imageUploading, setImageUploading] = useState(false);
     const [isSending, setIsSending] = useState(false);
     const [startError, setStartError] = useState('');
+    const [isRestoring, setIsRestoring] = useState(true);
+    const [hasNewAgentReply, setHasNewAgentReply] = useState(false);
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
+    const lastMessageCountRef = useRef(0);
 
     const departments = [
         t('support.dept1'),
@@ -30,25 +33,64 @@ export default function SupportPage() {
         messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
     }, [messages]);
 
+    // Auto-resume the latest active ticket for logged-in users
+    useEffect(() => {
+        let cancelled = false;
+        (async () => {
+            try {
+                const res = await getMyActiveTicketAction();
+                if (cancelled) return;
+                if (res.success && res.ticket) {
+                    setTicketId(res.ticket.id);
+                    setDepartment(res.ticket.department || '');
+                    setMessages(res.ticket.messages || []);
+                    setView('chat');
+                    lastMessageCountRef.current = (res.ticket.messages || []).length;
+                }
+            } finally {
+                if (!cancelled) setIsRestoring(false);
+            }
+        })();
+        return () => { cancelled = true; };
+    }, []);
+
     // Polling for new messages
     useEffect(() => {
         if (!ticketId) return;
 
         const interval = setInterval(async () => {
-            const res = await getTicketUpdatesAction(ticketId);
+            const res = await getTicketUpdatesAction(ticketId, 'user');
             if (res.success && res.ticket) {
                 const serverMessages = res.ticket.messages || [];
+                const previousCount = lastMessageCountRef.current;
+                if (serverMessages.length > previousCount) {
+                    const latest = serverMessages[serverMessages.length - 1];
+                    if (latest?.sender === 'admin') {
+                        setHasNewAgentReply(true);
+                    }
+                }
+                lastMessageCountRef.current = serverMessages.length;
                 setMessages(prev => {
-                    if (serverMessages.length > prev.length) {
+                    if (serverMessages.length !== prev.length) {
                         return serverMessages;
                     }
                     return prev;
                 });
+                if (res.ticket.department && !department) {
+                    setDepartment(res.ticket.department);
+                }
             }
         }, 3000);
 
         return () => clearInterval(interval);
-    }, [ticketId]);
+    }, [ticketId, department]);
+
+    useEffect(() => {
+        if (view !== 'chat') return;
+        const onFocus = () => setHasNewAgentReply(false);
+        window.addEventListener('focus', onFocus);
+        return () => window.removeEventListener('focus', onFocus);
+    }, [view]);
 
     const startChat = async (msg: string) => {
         const trimmedMsg = msg.trim();
@@ -67,10 +109,21 @@ export default function SupportPage() {
             const res = await submitTicketAction(formData);
             if (res.success && res.ticketId) {
                 setTicketId(res.ticketId);
-                setMessages([{ id: 'init', sender: 'user', content: trimmedMsg, timestamp: Date.now(), image_url: imageUrl || undefined }]);
+                if ((res as any).existing && (res as any).ticket) {
+                    const existingTicket = (res as any).ticket;
+                    setDepartment(existingTicket.department || department);
+                    setMessages(existingTicket.messages || []);
+                    lastMessageCountRef.current = (existingTicket.messages || []).length;
+                } else {
+                    const initialUiMsg = { id: 'init', sender: 'user', content: trimmedMsg, timestamp: Date.now(), image_url: imageUrl || undefined };
+                    setMessages([initialUiMsg]);
+                    lastMessageCountRef.current = 1;
+                }
+                setView('chat');
                 setNewMessage('');
                 setPendingImage(null);
                 setStartError('');
+                setHasNewAgentReply(false);
             } else {
                 setStartError((res as any)?.error || 'Failed to send message. Please try again.');
             }
@@ -109,12 +162,20 @@ export default function SupportPage() {
         const tempId = `temp-${Date.now()}`;
         const tempMsg = { id: tempId, sender: 'user', content: msgToSend, timestamp: Date.now(), image_url: imgUrl || undefined };
 
-        setMessages(prev => [...prev, tempMsg]);
+        setMessages(prev => {
+            const next = [...prev, tempMsg];
+            lastMessageCountRef.current = next.length;
+            return next;
+        });
         setNewMessage('');
         setPendingImage(null);
 
         const rollbackTemp = () => {
-            setMessages(prev => prev.filter((msg) => msg.id !== tempId));
+            setMessages(prev => {
+                const next = prev.filter((msg) => msg.id !== tempId);
+                lastMessageCountRef.current = next.length;
+                return next;
+            });
             setNewMessage(msgToSend);
             setPendingImage(imgUrl || null);
         };
@@ -132,6 +193,14 @@ export default function SupportPage() {
             setIsSending(false);
         }
     };
+
+    if (isRestoring) {
+        return (
+            <div className="min-h-screen pt-28 md:pt-32 px-4 md:px-8 bg-[#050505] text-white flex flex-col items-center">
+                <div className="text-sm tracking-widest uppercase text-white/60 animate-pulse">Loading support session...</div>
+            </div>
+        );
+    }
 
     if (view === 'department') {
         return (
@@ -168,6 +237,11 @@ export default function SupportPage() {
                         <p className="text-[10px] text-[#d8aa5b] uppercase tracking-widest">{department}</p>
                     </div>
                     <div className="flex gap-2">
+                        {hasNewAgentReply && (
+                            <div className="px-2 py-1 rounded bg-[#d8aa5b]/15 text-[#d8aa5b] text-[10px] uppercase tracking-widest">
+                                New Reply
+                            </div>
+                        )}
                         <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div>
                     </div>
                 </div>

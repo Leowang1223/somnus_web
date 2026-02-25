@@ -614,6 +614,16 @@ export async function updateArticleAction(formData: FormData) {
     } catch (e) { return { success: false }; }
 }
 
+export async function getAdminArticlesAction() {
+    try {
+        const articles = await db.getArticles();
+        return { success: true, articles };
+    } catch (e: any) {
+        console.error('getAdminArticlesAction failed:', e);
+        return { success: false, articles: [], error: e?.message || 'Failed to fetch articles' };
+    }
+}
+
 export async function deleteArticlesAction(articleIds: string[]) {
     'use server';
     try {

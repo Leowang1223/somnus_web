@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { updateArticleAction, uploadFileAction, deleteArticlesAction, bulkUpdateStatusAction } from "@/app/actions";
+import { updateArticleAction, getAdminArticlesAction, uploadFileAction, deleteArticlesAction, bulkUpdateStatusAction } from "@/app/actions";
 import { Edit, Plus, Save, X, BookOpen, Upload, Loader2, Image as ImageIcon, Zap, Check } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
@@ -60,10 +60,30 @@ export default function AdminJournalClient({ initialArticles }: { initialArticle
     const [isEditing, setIsEditing] = useState(false);
     const [currentArticle, setCurrentArticle] = useState<any>(null);
     const [selectedIds, setSelectedIds] = useState<string[]>([]);
+    const [loadingList, setLoadingList] = useState(false);
 
     useEffect(() => {
         setArticles(initialArticles);
     }, [initialArticles]);
+
+    const refreshArticles = async () => {
+        setLoadingList(true);
+        try {
+            const res = await getAdminArticlesAction();
+            if (res.success && Array.isArray(res.articles)) {
+                setArticles(res.articles as any);
+            } else {
+                alert((res as any)?.error || 'Failed to load articles');
+            }
+        } finally {
+            setLoadingList(false);
+        }
+    };
+
+    useEffect(() => {
+        refreshArticles();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
 
     const handleEdit = (article: any) => {
         setCurrentArticle(article);
@@ -103,6 +123,7 @@ export default function AdminJournalClient({ initialArticles }: { initialArticle
                 const remainingArticles = articles.filter(a => !selectedIds.includes(a.id));
                 setArticles(remainingArticles);
                 setSelectedIds([]);
+                await refreshArticles();
                 router.refresh();
             } else {
                 alert('刪除失敗');
@@ -128,6 +149,7 @@ export default function AdminJournalClient({ initialArticles }: { initialArticle
                                 onClick={async () => {
                                     await bulkUpdateStatusAction(selectedIds, 'published', 'article');
                                     setSelectedIds([]);
+                                    await refreshArticles();
                                     router.refresh();
                                 }}
                                 className="text-white hover:text-[#d8aa5b] text-[10px] uppercase tracking-widest font-bold transition-colors"
@@ -145,6 +167,10 @@ export default function AdminJournalClient({ initialArticles }: { initialArticle
                     <Plus size={16} /> 新增文章
                 </button>
             </div>
+
+            {loadingList && (
+                <div className="mb-4 text-xs text-white/50 uppercase tracking-widest">Loading articles...</div>
+            )}
 
             <div className="bg-[#111] border border-white/5 rounded-sm overflow-hidden">
                 <table className="w-full text-left">
@@ -241,6 +267,7 @@ export default function AdminJournalClient({ initialArticles }: { initialArticle
                                     return;
                                 }
                                 setIsEditing(false);
+                                await refreshArticles();
                                 router.refresh();
                             }} className="space-y-8">
                                 <input type="hidden" name="id" value={currentArticle.id || ''} />

@@ -232,13 +232,8 @@ export async function getProducts() {
 
 export async function getPublicProducts() {
     try {
-        let supabase: any;
-        try {
-            const { createAdminClient } = await import('@/lib/supabase/admin');
-            supabase = createAdminClient();
-        } catch {
-            supabase = await createClient();
-        }
+        const { createAdminClient } = await import('@/lib/supabase/admin');
+        const supabase = createAdminClient();
 
         const { data, error } = await supabase
             .from('products')
@@ -273,13 +268,8 @@ export async function getProductBySlug(slug: string) {
 
 export async function getPublicProductBySlug(slug: string) {
     try {
-        let supabase: any;
-        try {
-            const { createAdminClient } = await import('@/lib/supabase/admin');
-            supabase = createAdminClient();
-        } catch {
-            supabase = await createClient();
-        }
+        const { createAdminClient } = await import('@/lib/supabase/admin');
+        const supabase = createAdminClient();
 
         const { data, error } = await supabase
             .from('products')
@@ -346,13 +336,8 @@ export async function getArticles() {
 
 export async function getPublicArticles() {
     try {
-        let supabase: any;
-        try {
-            const { createAdminClient } = await import('@/lib/supabase/admin');
-            supabase = createAdminClient();
-        } catch {
-            supabase = await createClient();
-        }
+        const { createAdminClient } = await import('@/lib/supabase/admin');
+        const supabase = createAdminClient();
 
         const { data, error } = await supabase
             .from('articles')
@@ -360,9 +345,15 @@ export async function getPublicArticles() {
             .or('status.eq.published,status.is.null')
             .order('date', { ascending: false });
 
-        if (error) return [];
+        if (error) {
+            console.error('DB: getPublicArticles failed:', error);
+            return [];
+        }
         return (data || []).map(toArticleModel);
-    } catch (e) { return []; }
+    } catch (e) {
+        console.error('DB Exception (getPublicArticles):', e);
+        return [];
+    }
 }
 
 export async function saveArticle(article: any) {

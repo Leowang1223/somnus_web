@@ -235,7 +235,11 @@ export default function AdminJournalClient({ initialArticles }: { initialArticle
                             </div>
 
                             <form action={async (formData) => {
-                                await updateArticleAction(formData);
+                                const result = await updateArticleAction(formData);
+                                if (!result?.success) {
+                                    alert('儲存失敗，請稍後再試');
+                                    return;
+                                }
                                 setIsEditing(false);
                                 router.refresh();
                             }} className="space-y-8">

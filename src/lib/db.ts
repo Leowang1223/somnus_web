@@ -321,7 +321,13 @@ export async function deleteProduct(id: string) {
 // ==========================================
 export async function getArticles() {
     try {
-        const supabase = await createClient();
+        let supabase: any;
+        try {
+            const { createAdminClient } = await import('@/lib/supabase/admin');
+            supabase = createAdminClient();
+        } catch {
+            supabase = await createClient();
+        }
         const { data, error } = await supabase
             .from('articles')
             .select('*')
@@ -354,7 +360,13 @@ export async function getPublicArticles() {
 }
 
 export async function saveArticle(article: any) {
-    const supabase = await createClient();
+    let supabase: any;
+    try {
+        const { createAdminClient } = await import('@/lib/supabase/admin');
+        supabase = createAdminClient();
+    } catch {
+        supabase = await createClient();
+    }
     const dbRecord = toArticleDB(article);
 
     const { error } = await supabase
@@ -369,7 +381,13 @@ export async function saveArticle(article: any) {
 
 export async function deleteArticle(id: string) {
     try {
-        const supabase = await createClient();
+        let supabase: any;
+        try {
+            const { createAdminClient } = await import('@/lib/supabase/admin');
+            supabase = createAdminClient();
+        } catch {
+            supabase = await createClient();
+        }
         await supabase.from('articles').delete().eq('id', id);
     } catch (e) { console.error(e); }
 }

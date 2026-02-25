@@ -290,6 +290,16 @@ function LocalizedField({ label, value, onChange, rows = 2, placeholder = '', fo
                 placeholder={placeholder || `${langLabels[activeLang]} text...`}
                 style={fontSize ? { fontSize: `${fontSize}px` } : undefined}
             />
+            <div className="flex items-center justify-between">
+                <p className="text-[9px] text-gray-500">↵ 按 Enter 換行（視覺折行不等於換行）</p>
+                {(() => {
+                    const cur = obj[activeLang] || '';
+                    const breaks = (cur.match(/\n/g) || []).length;
+                    return breaks > 0 ? (
+                        <p className="text-[9px] text-[#d8aa5b]">↵ ×{breaks}</p>
+                    ) : null;
+                })()}
+            </div>
             {fontSize && (
                 <p className="text-[9px] text-gray-600 text-right">預覽字型大小：{fontSize}px（前台將套用此尺寸）</p>
             )}

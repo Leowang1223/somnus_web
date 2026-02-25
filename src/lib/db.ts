@@ -230,6 +230,33 @@ export async function getProducts() {
     }
 }
 
+export async function getPublicProducts() {
+    try {
+        let supabase: any;
+        try {
+            const { createAdminClient } = await import('@/lib/supabase/admin');
+            supabase = createAdminClient();
+        } catch {
+            supabase = await createClient();
+        }
+
+        const { data, error } = await supabase
+            .from('products')
+            .select('*')
+            .or('status.eq.published,status.is.null')
+            .order('created_at', { ascending: false });
+
+        if (error) {
+            console.error('DB: getPublicProducts failed:', error);
+            return [];
+        }
+        return (data || []).map(toProductModel);
+    } catch (e) {
+        console.error('DB Exception (getPublicProducts):', e);
+        return [];
+    }
+}
+
 export async function getProductBySlug(slug: string) {
     try {
         const supabase = await createClient();
@@ -240,6 +267,28 @@ export async function getProductBySlug(slug: string) {
             .single();
 
         if (error) return null;
+        return toProductModel(data);
+    } catch (e) { return null; }
+}
+
+export async function getPublicProductBySlug(slug: string) {
+    try {
+        let supabase: any;
+        try {
+            const { createAdminClient } = await import('@/lib/supabase/admin');
+            supabase = createAdminClient();
+        } catch {
+            supabase = await createClient();
+        }
+
+        const { data, error } = await supabase
+            .from('products')
+            .select('*')
+            .eq('slug', slug)
+            .single();
+
+        if (error || !data) return null;
+        if (data.status && data.status !== 'published') return null;
         return toProductModel(data);
     } catch (e) { return null; }
 }
@@ -280,6 +329,27 @@ export async function getArticles() {
 
         if (error) return [];
         return data.map(toArticleModel);
+    } catch (e) { return []; }
+}
+
+export async function getPublicArticles() {
+    try {
+        let supabase: any;
+        try {
+            const { createAdminClient } = await import('@/lib/supabase/admin');
+            supabase = createAdminClient();
+        } catch {
+            supabase = await createClient();
+        }
+
+        const { data, error } = await supabase
+            .from('articles')
+            .select('*')
+            .or('status.eq.published,status.is.null')
+            .order('date', { ascending: false });
+
+        if (error) return [];
+        return (data || []).map(toArticleModel);
     } catch (e) { return []; }
 }
 

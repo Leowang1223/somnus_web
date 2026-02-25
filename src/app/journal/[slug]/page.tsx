@@ -1,5 +1,5 @@
 
-import { getArticles } from "@/lib/db";
+import { getPublicArticles } from "@/lib/db";
 import SectionRenderer from "@/components/sections/SectionRenderer";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
@@ -20,7 +20,7 @@ export default async function ArticleDetailPage({ params }: { params: Promise<{ 
     const dict = dicts[lang] || dicts.en;
     const t = (key: string) => (dict as any)[key] || (dicts.en as any)[key] || key;
 
-    const articles = await getArticles();
+    const articles = await getPublicArticles();
     const article = articles.find((a: any) => a.slug === slug);
 
     if (!article) {

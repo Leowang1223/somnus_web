@@ -1,4 +1,4 @@
-import { getProducts } from "@/lib/db";
+import { getPublicProducts } from "@/lib/db";
 import SectionRenderer from "@/components/sections/SectionRenderer";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
@@ -30,7 +30,7 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
     const t = (key: string) => (dict as any)[key] || (dicts.en as any)[key] || key;
 
     // In static export, we re-fetch to get data. This is efficient at build time.
-    const products = await getProducts();
+    const products = await getPublicProducts();
     const product = products.find((p: any) => p.slug === slug);
 
     if (!product) {

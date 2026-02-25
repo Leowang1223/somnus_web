@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { updateArticleAction, uploadFileAction, deleteArticlesAction, bulkUpdateStatusAction } from "@/app/actions";
 import { Edit, Plus, Save, X, BookOpen, Upload, Loader2, Image as ImageIcon, Zap, Check } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -60,6 +60,10 @@ export default function AdminJournalClient({ initialArticles }: { initialArticle
     const [isEditing, setIsEditing] = useState(false);
     const [currentArticle, setCurrentArticle] = useState<any>(null);
     const [selectedIds, setSelectedIds] = useState<string[]>([]);
+
+    useEffect(() => {
+        setArticles(initialArticles);
+    }, [initialArticles]);
 
     const handleEdit = (article: any) => {
         setCurrentArticle(article);

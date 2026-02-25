@@ -96,7 +96,7 @@ export default function ProductListClient({ initialProducts }: { initialProducts
             </div>
 
             {/* Product Grid */}
-            <div className="grid gap-6 md:gap-8 justify-start" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 300px))' }}>
+            <div className="grid grid-cols-4 lg:grid-cols-5 gap-3 lg:gap-4">
                 {filtered.map((product, index) => (
                     <Link href={`/product/${product.slug}`} key={product.id}>
                         <motion.div

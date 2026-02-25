@@ -131,16 +131,21 @@ export async function autoTranslateAction(text: string, sourceLang: string, targ
 
 export async function submitTicketAction(formData: FormData) {
     try {
-        const supabase = await createClient(); // Use server client
+        const { createAdminClient } = await import('@/lib/supabase/admin');
+        const supabase = createAdminClient(); // service_role: bypasses RLS so guests can submit
 
         const type = formData.get('type') as string;
         const message = formData.get('message') as string;
         const orderId = formData.get('orderId') as string;
         const department = formData.get('department') as string || 'General';
 
-        // Get current user if logged in
-        const { data: { session } } = await supabase.auth.getSession();
-        const userEmail = session?.user?.email;
+        // Try to get current user email (optional — guests won't have session)
+        let userEmail: string | null = null;
+        try {
+            const authClient = await createClient();
+            const { data: { session } } = await authClient.auth.getSession();
+            userEmail = session?.user?.email ?? null;
+        } catch { /* guest — no session */ }
 
         const ticket = {
             id: `tkt-${Date.now()}`,
@@ -177,7 +182,8 @@ export async function submitTicketAction(formData: FormData) {
 
 export async function replyToTicketAction(ticketId: string, content: string, sender: 'user' | 'admin', imageUrl?: string) {
     try {
-        const supabase = await createClient();
+        const { createAdminClient } = await import('@/lib/supabase/admin');
+        const supabase = createAdminClient(); // service_role: bypasses RLS
 
         // 1. Fetch current ticket messages
         const { data: ticket, error: fetchError } = await supabase
@@ -229,7 +235,8 @@ export async function replyToTicketAction(ticketId: string, content: string, sen
 
 export async function claimTicketAction(ticketId: string, adminId: string) {
     try {
-        const supabase = await createClient();
+        const { createAdminClient } = await import('@/lib/supabase/admin');
+        const supabase = createAdminClient(); // service_role: bypasses RLS
         const { error } = await (supabase
             .from('tickets') as any)
             .update({
@@ -251,7 +258,8 @@ export async function claimTicketAction(ticketId: string, adminId: string) {
 
 export async function getTicketUpdatesAction(ticketId: string) {
     try {
-        const supabase = await createClient();
+        const { createAdminClient } = await import('@/lib/supabase/admin');
+        const supabase = createAdminClient(); // service_role: bypasses RLS
         const { data: ticket, error } = await supabase
             .from('tickets')
             .select('*')
@@ -281,7 +289,8 @@ export async function getTicketUpdatesAction(ticketId: string) {
 
 export async function updateTicketStatusAction(id: string, status: string) {
     try {
-        const supabase = await createClient();
+        const { createAdminClient } = await import('@/lib/supabase/admin');
+        const supabase = createAdminClient(); // service_role: bypasses RLS
         const { error } = await (supabase
             .from('tickets') as any)
             .update({
@@ -302,7 +311,26 @@ export async function updateTicketStatusAction(id: string, status: string) {
 
 export async function getAdminTicketsAction() {
     try {
-        const tickets = await db.getTickets();
+        // Use admin client to bypass RLS so admin can see ALL tickets
+        const { createAdminClient } = await import('@/lib/supabase/admin');
+        const supabase = createAdminClient();
+        const { data, error } = await supabase
+            .from('tickets')
+            .select('*')
+            .order('created_at', { ascending: false });
+        if (error) { console.error('getAdminTicketsAction failed:', error); return { tickets: [], success: false }; }
+        const tickets = (data || []).map((t: any) => ({
+            id: t.id,
+            type: t.type,
+            department: t.department || 'General',
+            status: t.status,
+            orderId: t.order_id,
+            messages: t.messages || [],
+            userEmail: t.user_email,
+            assignedTo: t.assigned_to,
+            createdAt: t.created_at,
+            updatedAt: t.updated_at,
+        }));
         return { tickets, success: true };
     } catch (e) { return { tickets: [], success: false }; }
 }

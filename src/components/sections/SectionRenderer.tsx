@@ -297,12 +297,10 @@ const TextImageSection = ({ content, isInView }: { content: any, isInView?: bool
     // ── Image element ────────────────────────────────────────────────────────
     const imageEl = (
         <div
-            className="flex-shrink-0 relative bg-[#111] overflow-hidden rounded-sm group"
+            className="relative bg-[#111] overflow-hidden rounded-sm group"
             style={{
-                width: useRowLayout ? `${IMAGE_PCT}%` : '100%',
+                width: '100%',   // grid cell controls the column width
                 aspectRatio: '4/5',
-                // Row + imageOnRight: push image all the way to right edge
-                marginLeft: imageOnRight && useRowLayout ? 'auto' : undefined,
             }}
         >
             <div className="absolute inset-0 z-10">
@@ -324,11 +322,9 @@ const TextImageSection = ({ content, isInView }: { content: any, isInView?: bool
     // ── Text element ─────────────────────────────────────────────────────────
     const textEl = (
         <div
-            className="flex-shrink-0 min-w-0 space-y-6 flex flex-col"
+            className="min-w-0 space-y-6 flex flex-col"
             style={{
-                // Fixed width so text block always occupies its allocated zone
-                // regardless of content length — prevents image from "sticking"
-                width: useRowLayout ? `calc(${100 - IMAGE_PCT}% - 2rem)` : '100%',
+                width: '100%',   // grid cell (1fr) controls the column width
                 padding: useRowLayout ? '0 3rem' : '0',
                 textAlign: (content.textAlign || 'left') as React.CSSProperties['textAlign'],
                 alignItems: content.textAlign === 'center' ? 'center'
@@ -362,19 +358,24 @@ const TextImageSection = ({ content, isInView }: { content: any, isInView?: bool
         <section className="py-32 w-full bg-[#050505] relative z-20 overflow-hidden">
             <div
                 ref={containerRef}
-                className={`w-full flex items-center${!useRowLayout ? ' px-6' : ''}`}
-                style={{
-                    flexDirection: useRowLayout ? 'row' : 'column',
-                    gap: useRowLayout ? '0' : '2rem',
+                className={!useRowLayout ? 'w-full px-6 flex flex-col' : 'w-full'}
+                style={useRowLayout ? {
+                    display: 'grid',
+                    // imageOnRight: text(1fr) | image(IMAGE_PCT%) — image flush to right edge
+                    // imageOnLeft:  image(IMAGE_PCT%) | text(1fr) — image flush to left edge
+                    gridTemplateColumns: imageOnRight
+                        ? `1fr ${IMAGE_PCT}%`
+                        : `${IMAGE_PCT}% 1fr`,
+                    columnGap: '2rem',
+                    alignItems: 'center',
+                } : {
+                    gap: '2rem',
                 }}
             >
                 {useRowLayout
                     ? (imageOnRight
-                        // text first (left), then image slides to right via ml-auto
-                        ? <>{textEl}{imageEl}</>
-                        // image first (left flush), then text
-                        : <>{imageEl}{textEl}</>)
-                    // column: image always on top
+                        ? <>{textEl}{imageEl}</>   // col1=text(1fr), col2=image(IMAGE_PCT%)
+                        : <>{imageEl}{textEl}</>)  // col1=image(IMAGE_PCT%), col2=text(1fr)
                     : <>{imageEl}{textEl}</>
                 }
             </div>

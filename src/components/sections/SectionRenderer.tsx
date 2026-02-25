@@ -271,55 +271,52 @@ const TextImageSection = ({ content, isInView }: { content: any, isInView?: bool
         minFontSize: 16,
     });
 
-    // Content-aware layout: switch to column only when there's not enough room
-    // for image (40%) + min text (240px) + gap (48px) side by side.
-    // With full-width layout: threshold = 240 + 48 / (1 - 0.40) = 480px.
-    // Use 560px to leave comfortable text breathing room.
-    // Image width: 40% of container (percentage scales with viewport, no floating).
-    const IMAGE_PCT = content.imageWidthPercent || 40;  // %
-    const ROW_THRESHOLD = 560; // px — below this, switch to column
+    // Full-bleed layout: image is flush with the section edge (no container centering).
+    // ContentLayer already has its px padding stripped for text-image sections.
+    // Switch to column when viewport is too narrow for comfortable side-by-side.
+    // Threshold 640px: phones (375-428px) → column; tablets/desktop → row.
+    const IMAGE_PCT = content.imageWidthPercent || 40;  // % of full viewport
+    const ROW_THRESHOLD = 640; // px
 
     const [useRowLayout, setUseRowLayout] = useState(true);
 
     useEffect(() => {
         const container = containerRef.current;
         if (!container) return;
-
-        const checkLayout = () => {
-            setUseRowLayout(container.clientWidth >= ROW_THRESHOLD);
-        };
-
-        checkLayout();
-        const observer = new ResizeObserver(checkLayout);
+        const check = () => setUseRowLayout(container.clientWidth >= ROW_THRESHOLD);
+        check();
+        const observer = new ResizeObserver(check);
         observer.observe(container);
         return () => observer.disconnect();
     }, [ROW_THRESHOLD]);
 
     const isReversed = content.imagePosition === 'right';
-    const flexDirection = useRowLayout
-        ? (isReversed ? 'row-reverse' : 'row')
-        : 'column';
 
     return (
-        // Full-width section (no container mx-auto restriction).
-        // Image now spans 40% of the full section width → truly reaches the
-        // right/left edge instead of floating inside a max-width box.
-        <section className="py-32 bg-[#050505] relative z-20">
+        // w-full: fills the full ContentLayer width (which now has no outer padding for text-image)
+        // overflow-hidden: prevents image from bleeding outside section bounds
+        <section className="py-32 w-full bg-[#050505] relative z-20 overflow-hidden">
             <div
                 ref={containerRef}
-                className="w-full items-center px-6 md:px-10 lg:px-16"
+                className="w-full flex items-center"
                 style={{
-                    display: 'flex',
-                    flexDirection: flexDirection as React.CSSProperties['flexDirection'],
-                    gap: useRowLayout ? '3rem' : '2rem',
+                    flexDirection: useRowLayout
+                        ? (isReversed ? 'row-reverse' : 'row')
+                        : 'column',
+                    gap: useRowLayout ? '0' : '2rem',
                 }}
             >
-                {/* Image — percentage width so it reaches the section edge */}
+                {/* ── IMAGE ─────────────────────────────────────────────────
+                    Row mode: IMAGE_PCT% wide, NO outer padding → flush to section edge.
+                    Column mode: full width, with px-6 padding. */}
                 <div
-                    className="flex-shrink-0 relative aspect-[4/5] bg-[#111] overflow-hidden rounded-sm group"
-                    style={{ width: useRowLayout ? `${IMAGE_PCT}%` : '100%' }}
+                    className="flex-shrink-0 relative bg-[#111] overflow-hidden rounded-sm group"
+                    style={{
+                        width: useRowLayout ? `${IMAGE_PCT}%` : '100%',
+                        aspectRatio: '4/5',
+                        padding: useRowLayout ? '0' : '0 1.5rem',
+                    }}
                 >
-                    {/* Image Layer - z-10 */}
                     <div className="absolute inset-0 z-10">
                         <UniversalCarousel
                             images={images}
@@ -328,8 +325,6 @@ const TextImageSection = ({ content, isInView }: { content: any, isInView?: bool
                             imageClassName="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
                         />
                     </div>
-
-                    {/* Caption Layer - z-20 (above image) */}
                     {loc(content.caption, lang) && (
                         <div className={`absolute bottom-8 left-8 text-[#d8aa5b] font-display text-2xl max-w-[200px] z-20 reveal-text ${isInView ? 'active' : ''}`}>
                             "{loc(content.caption, lang)}"
@@ -337,13 +332,19 @@ const TextImageSection = ({ content, isInView }: { content: any, isInView?: bool
                     )}
                 </div>
 
-                {/* Text - Flexible, expands as needed */}
+                {/* ── TEXT ──────────────────────────────────────────────────
+                    Row mode: fills remaining width, padding on text side only.
+                    Column mode: full width with px-6. */}
                 <div
-                    className={`flex-grow min-w-0 space-y-6 flex flex-col`}
-                    style={{
-                        textAlign: content.textAlign || 'left',
-                        alignItems: content.textAlign === 'center' ? 'center' : content.textAlign === 'right' ? 'flex-end' : 'flex-start'
-                    } as React.CSSProperties}
+                    className="flex-grow min-w-0 space-y-6 flex flex-col"
+                    style={Object.assign(
+                        {
+                            textAlign: content.textAlign || 'left',
+                            alignItems: content.textAlign === 'center' ? 'center'
+                                : content.textAlign === 'right' ? 'flex-end' : 'flex-start',
+                            padding: useRowLayout ? '0 3rem' : '0 1.5rem',
+                        } as React.CSSProperties
+                    )}
                 >
                     <h2
                         ref={headingRef}
@@ -714,8 +715,11 @@ const SectionWrapper = ({ section, isFirst, noSnap, productContext }: { section:
                     </motion.div>
                 )}
 
-                {/* Content Layer */}
-                <div className={`relative z-10 w-full px-6 md:px-24 ${noSnap ? '' : `h-full flex ${section.type.toLowerCase().includes('rich') ? 'items-start pt-[10vh]' : 'items-center'} ${section.content.textAlign === 'left' ? 'justify-start' : section.content.textAlign === 'right' ? 'justify-end' : 'justify-center'}`}`}>
+                {/* Content Layer
+                     text-image uses full-bleed layout (image must reach viewport edge),
+                     so we skip px-6 md:px-24 for that type. All other sections keep
+                     the standard outer padding. */}
+                <div className={`relative z-10 w-full ${section.type === 'text-image' ? '' : 'px-6 md:px-24'} ${noSnap ? '' : `h-full flex ${section.type.toLowerCase().includes('rich') ? 'items-start pt-[10vh]' : 'items-center'} ${section.content.textAlign === 'left' ? 'justify-start' : section.content.textAlign === 'right' ? 'justify-end' : 'justify-center'}`}`}>
                     <SectionContent section={section} isInView={isInView} productContext={productContext} />
                 </div>
             </motion.div>

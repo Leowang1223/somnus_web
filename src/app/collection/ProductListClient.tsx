@@ -20,13 +20,15 @@ export default function ProductListClient({ initialProducts }: { initialProducts
         return ['all', ...Array.from(cats)];
     }, [initialProducts]);
 
+    const getProductName = (product: CMSProduct) => translate(product, 'name');
+
     const filtered = useMemo(() => {
         let result = initialProducts;
 
         if (search) {
             const q = search.toLowerCase();
             result = result.filter(p =>
-                p.name.toLowerCase().includes(q) ||
+                getProductName(p).toLowerCase().includes(q) ||
                 (p.category || '').toLowerCase().includes(q) ||
                 (p.tags || []).some(tag => tag.toLowerCase().includes(q))
             );
@@ -39,12 +41,12 @@ export default function ProductListClient({ initialProducts }: { initialProducts
         switch (sort) {
             case 'price-asc': result = [...result].sort((a, b) => a.price - b.price); break;
             case 'price-desc': result = [...result].sort((a, b) => b.price - a.price); break;
-            case 'name': result = [...result].sort((a, b) => a.name.localeCompare(b.name)); break;
+            case 'name': result = [...result].sort((a, b) => getProductName(a).localeCompare(getProductName(b))); break;
             default: break;
         }
 
         return result;
-    }, [initialProducts, search, category, sort]);
+    }, [initialProducts, search, category, sort, translate]);
 
     return (
         <div>
@@ -140,7 +142,7 @@ export default function ProductListClient({ initialProducts }: { initialProducts
 
                                 {!product.image && !product.hoverVideo && (
                                     <div className="absolute inset-0 flex items-center justify-center text-white/10 font-display text-4xl select-none">
-                                        {product.name.charAt(0)}
+                                        {(getProductName(product) || '?').charAt(0)}
                                     </div>
                                 )}
 

@@ -1,6 +1,7 @@
 'use client';
 
 import { useCart } from "@/context/CartContext";
+import { useLanguage } from "@/context/LanguageContext";
 import { useState, useMemo, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { createOrderAction } from "@/app/actions";
@@ -17,6 +18,7 @@ interface CVSStore {
 
 export default function CheckoutPage() {
     const { items, cartTotal, clearCart } = useCart();
+    const { translate } = useLanguage();
     const router = useRouter();
     const [isLoading, setIsLoading] = useState(false);
 
@@ -83,6 +85,9 @@ export default function CheckoutPage() {
         setFormData({ ...formData, [e.target.name]: e.target.value });
     };
 
+    const productLabel = (item: any) => translate(item.product, 'name');
+    const variantLabel = (item: any) => (item.variant ? translate(item.variant, 'name') : '');
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
 
@@ -99,7 +104,7 @@ export default function CheckoutPage() {
             items: items.map(item => ({
                 productId: item.product.id,
                 variantId: item.variant?.id,
-                name: item.product.name + (item.variant ? ` - ${item.variant.name}` : ''),
+                name: productLabel(item) + (item.variant ? ` - ${variantLabel(item)}` : ''),
                 price: item.product.price,
                 quantity: item.quantity,
                 image: item.product.image
@@ -430,8 +435,8 @@ export default function CheckoutPage() {
                                         </div>
                                     </div>
                                     <div>
-                                        <h3 className="text-white font-display text-sm">{item.product.name}</h3>
-                                        <p className="text-gray-500 text-xs">{item.variant?.name}</p>
+                                        <h3 className="text-white font-display text-sm">{productLabel(item)}</h3>
+                                        <p className="text-gray-500 text-xs">{variantLabel(item)}</p>
                                         {item.is_preorder && (
                                             <span className="inline-block text-[9px] uppercase tracking-widest px-2 py-0.5 rounded-sm border border-blue-500/20 text-blue-400 bg-blue-500/5 mt-1">
                                                 預購

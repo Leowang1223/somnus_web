@@ -13,6 +13,15 @@ export const dynamic = 'force-dynamic';
 
 const dicts: Record<string, any> = { en, zh, jp, ko };
 
+function loc(value: any, lang: string): string {
+    if (!value && value !== 0) return '';
+    if (typeof value === 'string') return value;
+    if (typeof value === 'object' && !Array.isArray(value)) {
+        return String(value[lang] || value.en || Object.values(value).find(v => v) || '');
+    }
+    return String(value);
+}
+
 export default async function ProductDetailPage({ params }: { params: Promise<{ slug: string }> }) {
     const { slug } = await params;
     const cookieStore = await cookies();
@@ -47,7 +56,7 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
                     />
                 ) : (
                     <div className="pt-40 pb-20 px-8 flex flex-col items-center">
-                        <h1 className="text-white font-display text-5xl mb-12">{product.name}</h1>
+                        <h1 className="text-white font-display text-5xl mb-12">{loc(product.name, lang)}</h1>
                         <SectionRenderer
                             sections={[{
                                 id: 'default-purchase',

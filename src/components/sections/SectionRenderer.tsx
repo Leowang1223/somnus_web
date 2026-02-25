@@ -23,6 +23,19 @@ function loc(value: any, lang: string): string {
     return String(value);
 }
 
+function normalizeSectionType(value: any): string {
+    if (typeof value === 'string') return value;
+    if (value && typeof value === 'object' && !Array.isArray(value)) {
+        const candidate = Object.values(value).find(v => typeof v === 'string');
+        return typeof candidate === 'string' ? candidate : '';
+    }
+    return '';
+}
+
+function normalizeTextAlign(value: any): 'left' | 'center' | 'right' {
+    return value === 'left' || value === 'right' || value === 'center' ? value : 'center';
+}
+
 // --- Side Navigation Component ---
 const SideNavigation = ({ sections, activeIndex, onDotClick }: { sections: Section[], activeIndex: number, onDotClick: (i: number) => void }) => {
     const { language } = useLanguage();
@@ -30,16 +43,22 @@ const SideNavigation = ({ sections, activeIndex, onDotClick }: { sections: Secti
     return (
         <div className="fixed right-8 top-1/2 -translate-y-1/2 z-50 flex flex-col gap-4">
             {sections.map((section, i) => (
+                (() => {
+                    const sectionType = normalizeSectionType(section.type);
+                    const label = loc(section.content?.label, lang) || sectionType || 'section';
+                    return (
                 <button
                     key={section.id}
                     onClick={() => onDotClick(i)}
                     className="group relative flex items-center justify-end"
                 >
                     <span className={`absolute right-8 text-[10px] uppercase tracking-[0.3em] font-bold text-[#d8aa5b] opacity-0 group-hover:opacity-100 transition-all duration-500 whitespace-nowrap ${i === activeIndex ? 'translate-x-0' : 'translate-x-4'}`}>
-                        {loc(section.content?.label, lang) || section.type}
+                        {label}
                     </span>
                     <div className={`h-2 rounded-full transition-all duration-700 ${i === activeIndex ? 'w-8 bg-[#d8aa5b] shadow-[0_0_15px_rgba(216,170,91,0.6)]' : 'w-2 bg-white/10 group-hover:bg-white/30'}`} />
                 </button>
+                    );
+                })()
             ))}
         </div>
     );
@@ -742,6 +761,8 @@ const PurchaseSection = ({ content, productContext, isInView }: { content: any, 
 const SectionWrapper = ({ section, isFirst, noSnap, productContext }: { section: Section, isFirst?: boolean, noSnap?: boolean, productContext?: any }) => {
     const bg = section.backgroundConfig;
     const ref = useRef(null);
+    const sectionType = normalizeSectionType(section.type);
+    const textAlign = normalizeTextAlign(section.content?.textAlign);
     // once:true → 入場動畫只播一次，isInView 永遠保持 true 不回頭
     // 解決手機地址欄 100vh 抖動造成閾值反覆切換 → 背景/圖片跳針問題
     const isInView = useInView(ref, { once: true, amount: 0.15 });
@@ -796,7 +817,7 @@ const SectionWrapper = ({ section, isFirst, noSnap, productContext }: { section:
                      text-image uses full-bleed layout (image must reach viewport edge),
                      so we skip px-6 md:px-24 for that type. All other sections keep
                      the standard outer padding. */}
-                <div className={`relative z-10 w-full ${section.type === 'text-image' ? '' : 'px-6 md:px-24'} ${noSnap ? '' : `h-full flex ${section.type.toLowerCase().includes('rich') ? 'items-start pt-[10vh]' : 'items-center'} ${section.content.textAlign === 'left' ? 'justify-start' : section.content.textAlign === 'right' ? 'justify-end' : 'justify-center'}`}`}>
+                <div className={`relative z-10 w-full ${sectionType === 'text-image' ? '' : 'px-6 md:px-24'} ${noSnap ? '' : `h-full flex ${sectionType.toLowerCase().includes('rich') ? 'items-start pt-[10vh]' : 'items-center'} ${textAlign === 'left' ? 'justify-start' : textAlign === 'right' ? 'justify-end' : 'justify-center'}`}`}>
                     <SectionContent section={section} isInView={isInView} productContext={productContext} />
                 </div>
             </motion.div>
@@ -808,7 +829,8 @@ const SectionWrapper = ({ section, isFirst, noSnap, productContext }: { section:
 
 // Helper to dispatch section rendering
 const SectionContent = ({ section, isInView, productContext }: { section: Section, isInView?: boolean, productContext?: any }) => {
-    switch (section.type) {
+    const sectionType = normalizeSectionType(section.type);
+    switch (sectionType) {
         case 'hero':
             return <HeroSection content={section.content} isInView={isInView} />;
         case 'text-image':
@@ -827,7 +849,7 @@ const SectionContent = ({ section, isInView, productContext }: { section: Sectio
         case 'purchase':
             return <PurchaseSection content={section.content} productContext={productContext} isInView={isInView} />;
         default:
-            return <div className="p-10 text-center text-white/20 border border-dashed border-white/10 my-10 mx-auto container">Unknown Block Type: {section.type}</div>;
+            return <div className="p-10 text-center text-white/20 border border-dashed border-white/10 my-10 mx-auto container">Unknown Block Type: {sectionType || 'invalid'}</div>;
     }
 };
 

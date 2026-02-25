@@ -201,7 +201,7 @@ const HeroSection = ({ content, isInView }: { content: any, isInView?: boolean }
 
                 <h1
                     ref={titleRef}
-                    className={`font-display text-5xl md:text-8xl mb-4 leading-tight relative z-10 reveal-text ${isInView ? 'active' : ''} ${content.enableTitleGlow ? 'text-breathing-glow' : ''}`}
+                    className={`font-display text-5xl md:text-8xl mb-4 leading-tight relative z-10 whitespace-pre-wrap reveal-text ${isInView ? 'active' : ''} ${content.enableTitleGlow ? 'text-breathing-glow' : ''}`}
                     style={Object.assign(
                         {
                             color: content.titleColor || '#ffffff',
@@ -333,7 +333,7 @@ const TextImageSection = ({ content, isInView }: { content: any, isInView?: bool
         >
             <h2
                 ref={headingRef}
-                className={`font-display text-4xl lg:text-6xl text-white reveal-text ${isInView ? 'active' : ''}`}
+                className={`font-display text-4xl lg:text-6xl text-white whitespace-pre-wrap reveal-text ${isInView ? 'active' : ''}`}
                 style={Object.assign(
                     { lineHeight: '1.2' } as React.CSSProperties,
                     headingShrunk
@@ -637,7 +637,7 @@ const PurchaseSection = ({ content, productContext, isInView }: { content: any, 
                     <span className="text-[#d8aa5b] text-[10px] uppercase tracking-[0.5em] mb-4 font-bold opacity-60">
                         {loc(content.label, lang) || (product.category ? `${product.category} Collection` : t('product.ritualArtifact'))}
                     </span>
-                    <h2 className="font-display text-4xl md:text-7xl text-white mb-6 leading-tight">
+                    <h2 className="font-display text-4xl md:text-7xl text-white mb-6 leading-tight whitespace-pre-wrap">
                         {product.name}
                     </h2>
                     <p className="text-gray-400 text-sm md:text-base leading-relaxed mb-10 max-w-xl font-light whitespace-pre-wrap">

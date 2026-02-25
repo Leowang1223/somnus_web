@@ -136,6 +136,7 @@ export async function submitTicketAction(formData: FormData) {
 
         const type = formData.get('type') as string;
         const message = formData.get('message') as string;
+        const imageUrl = formData.get('imageUrl') as string;
         const orderId = formData.get('orderId') as string;
         const department = formData.get('department') as string || 'General';
 
@@ -147,15 +148,21 @@ export async function submitTicketAction(formData: FormData) {
             userEmail = session?.user?.email ?? null;
         } catch { /* guest — no session */ }
 
+        const initialMessage: Record<string, any> = {
+            id: `msg-${Date.now()}`,
+            sender: 'user',
+            content: message,
+            timestamp: Date.now()
+        };
+        if (imageUrl) initialMessage.image_url = imageUrl;
+
         const ticket = {
             id: `tkt-${Date.now()}`,
             type,
             department,
             status: 'pending',
             order_id: orderId || null,
-            messages: [
-                { id: `msg-${Date.now()}`, sender: 'user', content: message, timestamp: Date.now() }
-            ],
+            messages: [initialMessage],
             user_email: userEmail || null,
             created_at: new Date().toISOString(),
             updated_at: new Date().toISOString()
@@ -168,13 +175,13 @@ export async function submitTicketAction(formData: FormData) {
 
         if (error) {
             console.error('❌ Failed to save ticket:', error);
-            return { success: false };
+            return { success: false, error: error.message || 'Failed to save ticket' };
         }
 
         return { success: true, ticketId: ticket.id };
     } catch (e) {
         console.error('Exception submitting ticket:', e);
-        return { success: false };
+        return { success: false, error: e instanceof Error ? e.message : 'Submit ticket failed' };
     }
 }
 
@@ -192,7 +199,7 @@ export async function replyToTicketAction(ticketId: string, content: string, sen
 
         if (fetchError || !ticket) {
             console.error('❌ Ticket not found:', fetchError);
-            return { success: false };
+            return { success: false, error: fetchError?.message || 'Ticket not found' };
         }
 
         // 2. Append new message
@@ -220,14 +227,14 @@ export async function replyToTicketAction(ticketId: string, content: string, sen
 
         if (updateError) {
             console.error('❌ Failed to update ticket:', updateError);
-            return { success: false };
+            return { success: false, error: updateError.message || 'Failed to update ticket' };
         }
 
         revalidatePath('/admin/cs');
         return { success: true };
     } catch (e) {
         console.error('Exception replying to ticket:', e);
-        return { success: false };
+        return { success: false, error: e instanceof Error ? e.message : 'Reply failed' };
     }
 }
 
@@ -246,12 +253,12 @@ export async function claimTicketAction(ticketId: string, adminId: string) {
 
         if (error) {
             console.error('Claim ticket failed:', error);
-            return { success: false };
+            return { success: false, error: error?.message || 'Claim ticket failed' };
         }
 
         revalidatePath('/admin/cs');
         return { success: true };
-    } catch (e) { return { success: false }; }
+    } catch (e) { return { success: false, error: e instanceof Error ? e.message : 'Claim ticket failed' }; }
 }
 
 export async function getTicketUpdatesAction(ticketId: string) {
@@ -265,7 +272,7 @@ export async function getTicketUpdatesAction(ticketId: string) {
             .single() as { data: any; error: any };
 
         if (error || !ticket) {
-            return { success: false };
+            return { success: false, error: error?.message || 'Ticket not found' };
         }
 
         return {
@@ -282,7 +289,7 @@ export async function getTicketUpdatesAction(ticketId: string) {
                 createdAt: ticket.created_at
             }
         };
-    } catch (e) { return { success: false }; }
+    } catch (e) { return { success: false, error: e instanceof Error ? e.message : 'Get ticket updates failed' }; }
 }
 
 export async function updateTicketStatusAction(id: string, status: string) {

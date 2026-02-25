@@ -14,6 +14,21 @@ function RegisterContent() {
     const [success, setSuccess] = useState(false);
     const [loading, setLoading] = useState(false);
 
+    const sanitizeEmail = (value: string) => value.replace(/\s+/g, "").trim();
+    const mapSignUpError = (message: string) => {
+        const lower = message.toLowerCase();
+        if (lower.includes("invalid") && lower.includes("email")) {
+            return "Invalid email format. Remove spaces and try again.";
+        }
+        if (lower.includes("rate limit")) {
+            return "Too many attempts. Please try again later.";
+        }
+        if (lower.includes("already registered") || lower.includes("already been registered")) {
+            return "This email is already registered. Please sign in instead.";
+        }
+        return message;
+    };
+
     const handleRegister = async (e: React.FormEvent) => {
         e.preventDefault();
         setError("");
@@ -26,21 +41,28 @@ function RegisterContent() {
             setError("密碼至少需要 6 個字元");
             return;
         }
+        const normalizedEmail = sanitizeEmail(email);
+        if (!normalizedEmail) {
+            setError("Please enter an email address.");
+            return;
+        }
+
 
         setLoading(true);
         try {
             const { createClient } = await import('@/lib/supabase/client');
             const supabase = createClient();
             const { error: signUpError } = await supabase.auth.signUp({
-                email,
+                email: normalizedEmail,
                 password,
                 options: {
                     data: { full_name: fullName },
                 },
             });
             if (signUpError) {
-                setError(signUpError.message);
+                setError(mapSignUpError(signUpError.message));
             } else {
+                setEmail(normalizedEmail);
                 setSuccess(true);
             }
         } catch (err: any) {
@@ -100,7 +122,7 @@ function RegisterContent() {
                     <input
                         type="email"
                         value={email}
-                        onChange={(e) => setEmail(e.target.value)}
+                        onChange={(e) => setEmail(sanitizeEmail(e.target.value))}
                         required
                         className="w-full bg-[#111] border border-white/10 p-3 text-white focus:outline-none focus:border-[#d8aa5b] transition-colors"
                     />

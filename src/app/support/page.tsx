@@ -51,26 +51,31 @@ export default function SupportPage() {
     }, [ticketId]);
 
     const startChat = async (msg: string) => {
-        if (!msg.trim()) return;
+        const trimmedMsg = msg.trim();
+        if (!trimmedMsg && !pendingImage) return;
         setIsSending(true);
         setStartError('');
+        const imageUrl = pendingImage;
 
         const formData = new FormData();
         formData.append('type', 'support');
         formData.append('department', department);
-        formData.append('message', msg);
+        formData.append('message', trimmedMsg);
+        if (imageUrl) formData.append('imageUrl', imageUrl);
 
         try {
             const res = await submitTicketAction(formData);
             if (res.success && res.ticketId) {
                 setTicketId(res.ticketId);
-                setMessages([{ id: 'init', sender: 'user', content: msg, timestamp: Date.now() }]);
+                setMessages([{ id: 'init', sender: 'user', content: trimmedMsg, timestamp: Date.now(), image_url: imageUrl || undefined }]);
                 setNewMessage('');
+                setPendingImage(null);
+                setStartError('');
             } else {
-                setStartError('訊息傳送失敗，請稍後再試。');
+                setStartError((res as any)?.error || 'Failed to send message. Please try again.');
             }
-        } catch {
-            setStartError('網路錯誤，請稍後再試。');
+        } catch (e: any) {
+            setStartError(e?.message || 'Unexpected error while sending message.');
         } finally {
             setIsSending(false);
         }
@@ -92,22 +97,37 @@ export default function SupportPage() {
     };
 
     const sendMessage = async () => {
-        if (!newMessage.trim() && !pendingImage) return;
+        const trimmedMsg = newMessage.trim();
+        if (!trimmedMsg && !pendingImage) return;
         if (!ticketId || isSending) return;
 
         setIsSending(true);
-        const imgUrl = pendingImage;
-        const msgToSend = newMessage;
+        setStartError('');
 
-        const tempMsg = { id: `temp-${Date.now()}`, sender: 'user', content: msgToSend, timestamp: Date.now(), image_url: imgUrl || undefined };
+        const imgUrl = pendingImage;
+        const msgToSend = trimmedMsg;
+        const tempId = `temp-${Date.now()}`;
+        const tempMsg = { id: tempId, sender: 'user', content: msgToSend, timestamp: Date.now(), image_url: imgUrl || undefined };
+
         setMessages(prev => [...prev, tempMsg]);
         setNewMessage('');
         setPendingImage(null);
 
+        const rollbackTemp = () => {
+            setMessages(prev => prev.filter((msg) => msg.id !== tempId));
+            setNewMessage(msgToSend);
+            setPendingImage(imgUrl || null);
+        };
+
         try {
-            await replyToTicketAction(ticketId, msgToSend, 'user', imgUrl || undefined);
-        } catch {
-            // 樂觀更新已顯示，失敗也保留訊息在畫面上
+            const res = await replyToTicketAction(ticketId, msgToSend, 'user', imgUrl || undefined);
+            if (!res.success) {
+                rollbackTemp();
+                setStartError((res as any)?.error || 'Failed to send message. Please try again.');
+            }
+        } catch (e: any) {
+            rollbackTemp();
+            setStartError(e?.message || 'Unexpected error while sending message.');
         } finally {
             setIsSending(false);
         }
@@ -195,8 +215,7 @@ export default function SupportPage() {
                         </div>
                     )}
                     <div className="relative flex items-center gap-2">
-                        {ticketId && (
-                            <>
+                        <>
                                 <input ref={fileInputRef} type="file" accept="image/*" onChange={handleImageSelect} className="hidden" />
                                 <button
                                     type="button"
@@ -208,7 +227,6 @@ export default function SupportPage() {
                                     {imageUploading ? <span className="animate-spin inline-block w-4 h-4 border border-white/40 border-t-white rounded-full" /> : <Paperclip size={16} />}
                                 </button>
                             </>
-                        )}
                         <div className="relative flex-1">
                             <input
                                 value={newMessage}

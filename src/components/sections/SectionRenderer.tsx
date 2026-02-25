@@ -221,7 +221,7 @@ const HeroSection = ({ content, isInView }: { content: any, isInView?: boolean }
                 {subtitleText && (
                     <p
                         ref={subtitleRef}
-                        className={`text-sm md:text-base tracking-widest uppercase mt-4 mb-12 max-w-2xl relative z-10 reveal-text delay-1 ${isInView ? 'active' : ''}`}
+                        className={`text-sm md:text-base tracking-widest uppercase mt-4 mb-12 max-w-2xl relative z-10 reveal-text delay-1 whitespace-pre-wrap ${isInView ? 'active' : ''}`}
                         style={Object.assign(
                             {
                                 color: content.subtitleColor || '#ffffff',
@@ -417,7 +417,7 @@ const QuoteSection = ({ content, isInView }: { content: any, isInView?: boolean 
                     <Zap size={48} className={`opacity-20 ${content.textAlign === 'left' ? 'mr-auto' : content.textAlign === 'right' ? 'ml-auto' : 'mx-auto'}`} />
                 </div>
                 <blockquote
-                    className={`font-display text-3xl md:text-5xl text-white leading-tight mb-12 italic reveal-text delay-1 ${isInView ? 'active' : ''}`}
+                    className={`font-display text-3xl md:text-5xl text-white leading-tight mb-12 italic whitespace-pre-wrap reveal-text delay-1 ${isInView ? 'active' : ''}`}
                     style={content.quoteFontSize ? { fontSize: `${content.quoteFontSize}px` } : undefined}
                 >
                     "{loc(content.text, lang)}"
@@ -640,7 +640,7 @@ const PurchaseSection = ({ content, productContext, isInView }: { content: any, 
                     <h2 className="font-display text-4xl md:text-7xl text-white mb-6 leading-tight">
                         {product.name}
                     </h2>
-                    <p className="text-gray-400 text-sm md:text-base leading-relaxed mb-10 max-w-xl font-light">
+                    <p className="text-gray-400 text-sm md:text-base leading-relaxed mb-10 max-w-xl font-light whitespace-pre-wrap">
                         {loc(content.description, lang) || loc(product.description, lang) || 'A cinematic descent into stillness. Elevate your sleep ritual with our signature collection designed to bridge the gap between day and dreams.'}
                     </p>
 
@@ -723,7 +723,7 @@ const PurchaseSection = ({ content, productContext, isInView }: { content: any, 
                                     </span>
                                     <div>
                                         <h4 className="text-white text-sm uppercase tracking-widest font-bold mb-2 group-hover:text-[#d8aa5b] transition-colors">{loc(item.title, lang)}</h4>
-                                        <p className="text-gray-500 text-xs leading-relaxed font-light">{loc(item.description, lang)}</p>
+                                        <p className="text-gray-500 text-xs leading-relaxed font-light whitespace-pre-wrap">{loc(item.description, lang)}</p>
                                     </div>
                                 </div>
                             ))}

@@ -175,6 +175,8 @@ const HeroSection = ({ content, isInView }: { content: any, isInView?: boolean }
     const ctaText = loc(content.ctaText, lang);
     const titleText = loc(content.title, lang);
     const subtitleText = loc(content.subtitle, lang);
+    const titleHasManualBreak = titleText.includes('\n');
+    const subtitleHasManualBreak = subtitleText.includes('\n');
     const titleRef = useRef<HTMLHeadingElement>(null);
     const subtitleRef = useRef<HTMLParagraphElement>(null);
     const { fittedSize: titleSize, shrinkApplied: titleShrunk } = useAutoFitText(titleRef, {
@@ -199,7 +201,7 @@ const HeroSection = ({ content, isInView }: { content: any, isInView?: boolean }
             <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[60vw] h-[60vw] bg-[radial-gradient(circle,_rgba(216,170,91,0.15)_0%,_transparent_70%)] blur-[100px] z-[5] animate-pulse duration-[8000ms]"></div>
 
             <div
-                className={`relative z-20 flex flex-col px-6 lg:px-24 hero-content-container`}
+                className={`relative z-20 flex flex-col px-3 sm:px-6 lg:px-24 hero-content-container`}
                 style={{
                     width: '100%',
                     maxWidth: `${content.containerWidth || 95}vw`,
@@ -222,7 +224,7 @@ const HeroSection = ({ content, isInView }: { content: any, isInView?: boolean }
 
                 <h1
                     ref={titleRef}
-                    className={`font-display text-5xl md:text-8xl mb-4 leading-tight relative z-10 whitespace-pre-wrap reveal-text ${isInView ? 'active' : ''} ${content.enableTitleGlow ? 'text-breathing-glow' : ''}`}
+                    className={`font-display text-5xl md:text-8xl mb-4 leading-tight relative z-10 reveal-text ${titleHasManualBreak ? 'whitespace-pre-wrap' : 'whitespace-nowrap'} max-w-full overflow-hidden tracking-[0.01em] md:tracking-normal ${isInView ? 'active' : ''} ${content.enableTitleGlow ? 'text-breathing-glow' : ''}`}
                     style={Object.assign(
                         {
                             color: content.titleColor || '#ffffff',
@@ -231,9 +233,12 @@ const HeroSection = ({ content, isInView }: { content: any, isInView?: boolean }
                         // Only override fontSize when hook is shrinking OR user set an explicit size.
                         // Let Tailwind text-5xl/text-8xl handle defaults — avoids circular reads.
                         titleShrunk
-                            ? { fontSize: `${titleSize}px`, whiteSpace: (titleText.includes('\n') ? 'pre-wrap' : 'nowrap') as React.CSSProperties['whiteSpace'] }
+                            ? { fontSize: `${titleSize}px`, whiteSpace: (titleHasManualBreak ? 'pre-wrap' : 'nowrap') as React.CSSProperties['whiteSpace'] }
                             : content.titleFontSize
-                                ? { fontSize: `${content.titleFontSize}px` }
+                                ? {
+                                    fontSize: `${content.titleFontSize}px`,
+                                    whiteSpace: (titleHasManualBreak ? 'pre-wrap' : 'nowrap') as React.CSSProperties['whiteSpace'],
+                                }
                                 : {}
                     )}
                 >
@@ -242,16 +247,19 @@ const HeroSection = ({ content, isInView }: { content: any, isInView?: boolean }
                 {subtitleText && (
                     <p
                         ref={subtitleRef}
-                        className={`text-sm md:text-base tracking-widest uppercase mt-4 mb-12 max-w-2xl relative z-10 reveal-text delay-1 whitespace-pre-wrap ${isInView ? 'active' : ''}`}
+                        className={`text-sm md:text-base uppercase mt-4 mb-12 max-w-full md:max-w-2xl relative z-10 reveal-text delay-1 ${subtitleHasManualBreak ? 'whitespace-pre-wrap' : 'whitespace-nowrap'} overflow-hidden tracking-[0.12em] md:tracking-widest ${isInView ? 'active' : ''}`}
                         style={Object.assign(
                             {
                                 color: content.subtitleColor || '#ffffff',
                                 opacity: content.subtitleColor ? 1 : 0.7,
                             } as React.CSSProperties,
                             subtitleShrunk
-                                ? { fontSize: `${subtitleSize}px`, whiteSpace: (subtitleText.includes('\n') ? 'pre-wrap' : 'nowrap') as React.CSSProperties['whiteSpace'] }
+                                ? { fontSize: `${subtitleSize}px`, whiteSpace: (subtitleHasManualBreak ? 'pre-wrap' : 'nowrap') as React.CSSProperties['whiteSpace'] }
                                 : content.subtitleFontSize
-                                    ? { fontSize: `${content.subtitleFontSize}px` }
+                                    ? {
+                                        fontSize: `${content.subtitleFontSize}px`,
+                                        whiteSpace: (subtitleHasManualBreak ? 'pre-wrap' : 'nowrap') as React.CSSProperties['whiteSpace'],
+                                    }
                                     : {}
                         )}
                     >

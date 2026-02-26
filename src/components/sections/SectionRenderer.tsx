@@ -604,7 +604,18 @@ const PurchaseSection = ({ content, productContext, isInView }: { content: any, 
     const [selectedVariant, setSelectedVariant] = useState<any>(null);
 
     const product = productContext || content.productInfo || { name: 'Unknown Artifact', price: 0, id: 'temp' };
-    const images = (content.images && content.images.length > 0) ? content.images : (product.image ? [product.image] : []);
+    const normalizedContentImages = Array.isArray(content.images)
+        ? content.images.filter((img: any) => typeof img === 'string' && img.trim().length > 0)
+        : [];
+    const normalizedProductImages = Array.isArray((product as any).images)
+        ? (product as any).images.filter((img: any) => typeof img === 'string' && img.trim().length > 0)
+        : [];
+    const fallbackProductImage = typeof product.image === 'string' && product.image.trim().length > 0
+        ? [product.image]
+        : [];
+    const images = normalizedContentImages.length > 0
+        ? normalizedContentImages
+        : (normalizedProductImages.length > 0 ? normalizedProductImages : fallbackProductImage);
     const featureCards = content.featureCards || [];
     const infoList = content.infoList || [];
     const variants = product.variants || [];

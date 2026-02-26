@@ -80,28 +80,48 @@ const UniversalCarousel = ({
 }) => {
     const [index, setIndex] = useState(0);
     const [isHovered, setIsHovered] = useState(false);
+    const [failedSrcs, setFailedSrcs] = useState<Set<string>>(new Set());
+    const sanitizedImages = (Array.isArray(images) ? images : [])
+        .map((img) => (typeof img === 'string' ? img.trim() : ''))
+        .filter((img) => img.length > 0);
+    const imageListSignature = sanitizedImages.join('||');
+    const activeImages = sanitizedImages.filter((src) => !failedSrcs.has(src));
 
     useEffect(() => {
-        if (images.length <= 1 || isHovered) return;
+        setFailedSrcs(new Set());
+        setIndex(0);
+    }, [imageListSignature]);
+
+    useEffect(() => {
+        if (activeImages.length === 0) return;
+        if (index >= activeImages.length) {
+            setIndex(0);
+        }
+    }, [index, activeImages.length]);
+
+    useEffect(() => {
+        if (activeImages.length <= 1 || isHovered) return;
         const interval = setInterval(() => {
-            setIndex((prev) => (prev + 1) % images.length);
+            setIndex((prev) => (prev + 1) % activeImages.length);
         }, autoPlayInterval);
         return () => clearInterval(interval);
-    }, [images, autoPlayInterval, isHovered]);
+    }, [activeImages.length, autoPlayInterval, isHovered]);
 
     const nextSlide = (e?: React.MouseEvent) => {
         e?.preventDefault();
         e?.stopPropagation();
-        setIndex((prev) => (prev + 1) % images.length);
+        if (activeImages.length === 0) return;
+        setIndex((prev) => (prev + 1) % activeImages.length);
     };
 
     const prevSlide = (e?: React.MouseEvent) => {
         e?.preventDefault();
         e?.stopPropagation();
-        setIndex((prev) => (prev - 1 + images.length) % images.length);
+        if (activeImages.length === 0) return;
+        setIndex((prev) => (prev - 1 + activeImages.length) % activeImages.length);
     };
 
-    if (!images || images.length === 0) return null;
+    if (activeImages.length === 0) return null;
 
     return (
         <div
@@ -110,12 +130,13 @@ const UniversalCarousel = ({
             onMouseLeave={() => setIsHovered(false)}
         >
             {/* Render all images with explicit visibility control */}
-            {images.map((img, i) => {
+            {activeImages.map((img, i) => {
                 const isActive = i === index;
+                const normalizedSrc = img;
                 return (
                     <img
                         key={i}
-                        src={img}
+                        src={normalizedSrc}
                         alt=""
                         className={`absolute inset-0 w-full h-full object-cover ${imageClassName}`}
                         style={{
@@ -127,10 +148,18 @@ const UniversalCarousel = ({
                             pointerEvents: 'none'
                         }}
                         draggable={false}
+                        referrerPolicy="no-referrer"
                         onError={(e) => {
+                            console.error('Carousel image failed to load:', normalizedSrc);
+                            setFailedSrcs((prev) => {
+                                const next = new Set(prev);
+                                next.add(normalizedSrc);
+                                return next;
+                            });
                             e.currentTarget.style.display = 'none';
                             if (e.currentTarget.parentElement) {
                                 e.currentTarget.parentElement.style.backgroundColor = '#111';
+                                e.currentTarget.parentElement.setAttribute('data-image-error', normalizedSrc || 'empty-src');
                             }
                         }}
                     />
@@ -138,7 +167,7 @@ const UniversalCarousel = ({
             })}
 
             {/* Manual Controls */}
-            {images.length > 1 && (
+            {activeImages.length > 1 && (
                 <>
                     <button
                         onClick={prevSlide}
@@ -153,7 +182,7 @@ const UniversalCarousel = ({
                         <ChevronRight size={20} />
                     </button>
                     <div className="absolute bottom-8 left-1/2 -translate-x-1/2 z-30 flex gap-3 px-4 py-2 bg-black/20 backdrop-blur-sm rounded-full border border-white/5 opacity-0 group-hover:opacity-100 transition-opacity">
-                        {images.map((_, i) => (
+                        {activeImages.map((_, i) => (
                             <button
                                 key={i}
                                 onClick={(e) => { e.preventDefault(); e.stopPropagation(); setIndex(i); }}
@@ -613,9 +642,11 @@ const PurchaseSection = ({ content, productContext, isInView }: { content: any, 
     const fallbackProductImage = typeof product.image === 'string' && product.image.trim().length > 0
         ? [product.image]
         : [];
-    const images = normalizedContentImages.length > 0
-        ? normalizedContentImages
-        : (normalizedProductImages.length > 0 ? normalizedProductImages : fallbackProductImage);
+    const images = Array.from(new Set([
+        ...normalizedContentImages,
+        ...normalizedProductImages,
+        ...fallbackProductImage,
+    ]));
     const featureCards = content.featureCards || [];
     const infoList = content.infoList || [];
     const variants = product.variants || [];

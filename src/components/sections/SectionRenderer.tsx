@@ -642,11 +642,9 @@ const PurchaseSection = ({ content, productContext, isInView }: { content: any, 
     const fallbackProductImage = typeof product.image === 'string' && product.image.trim().length > 0
         ? [product.image]
         : [];
-    const images = Array.from(new Set([
-        ...normalizedContentImages,
-        ...normalizedProductImages,
-        ...fallbackProductImage,
-    ]));
+    const images = normalizedContentImages.length > 0
+        ? normalizedContentImages
+        : (normalizedProductImages.length > 0 ? normalizedProductImages : fallbackProductImage);
     const featureCards = content.featureCards || [];
     const infoList = content.infoList || [];
     const variants = product.variants || [];

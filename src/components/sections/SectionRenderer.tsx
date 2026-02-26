@@ -694,12 +694,35 @@ const PurchaseSection = ({ content, productContext, isInView }: { content: any, 
                 <div className="flex-1 w-full h-[60vh] md:h-[80vh] relative group">
                     <div className="absolute -inset-4 bg-[#d8aa5b]/5 blur-3xl opacity-30 group-hover:opacity-60 transition-opacity duration-1000"></div>
                     <div className="relative w-full h-full overflow-hidden rounded-sm border border-white/5 bg-[#0a0a0a]">
-                        <UniversalCarousel
-                            images={images.length > 0 ? images : ['https://images.unsplash.com/photo-1616137422495-1e9e46e2aa77?q=80&w=1000']}
-                            className="absolute inset-0"
-                            overlayOpacity={0.9}
-                            imageClassName="w-full h-full object-cover"
-                        />
+                        {images.length <= 1 ? (
+                            <img
+                                src={(images[0] || 'https://images.unsplash.com/photo-1616137422495-1e9e46e2aa77?q=80&w=1000').trim()}
+                                alt={loc(product.name, lang) || 'Product image'}
+                                className="absolute inset-0 w-full h-full object-cover"
+                                referrerPolicy="no-referrer"
+                                loading="eager"
+                                decoding="async"
+                                onError={(e) => {
+                                    const fallback = (fallbackProductImage[0] || '').trim();
+                                    if (fallback && e.currentTarget.src !== fallback) {
+                                        e.currentTarget.src = fallback;
+                                        return;
+                                    }
+                                    e.currentTarget.style.display = 'none';
+                                    if (e.currentTarget.parentElement) {
+                                        e.currentTarget.parentElement.style.backgroundColor = '#111';
+                                    }
+                                    console.error('Purchase image failed to load:', e.currentTarget.currentSrc || e.currentTarget.src);
+                                }}
+                            />
+                        ) : (
+                            <UniversalCarousel
+                                images={images}
+                                className="absolute inset-0"
+                                overlayOpacity={0.9}
+                                imageClassName="w-full h-full object-cover"
+                            />
+                        )}
                     </div>
                 </div>
 
